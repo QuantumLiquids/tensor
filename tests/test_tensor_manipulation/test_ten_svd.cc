@@ -637,7 +637,7 @@ void RunTestSvdOmpCase(DGQTensor& t,//Only index
     
     ConciseShow(t);
     // unsigned max_thread = std::thread::hardware_concurrency();
-    unsigned max_thread = 5;
+    unsigned max_thread = 20;
 
     Timer single_thread_timer("svd_single_thread");
     gqten::hp_numeric::SetTensorManipulationTotalThreads(max_thread);
@@ -660,7 +660,7 @@ void RunTestSvdOmpCase(DGQTensor& t,//Only index
 
     Timer nested_thread_timer("svd_nested_omp_thread");
     assert(omp_outer_th>1);
-    gqten::hp_numeric::SetTensorManipulationTotalThreads(max_thread*omp_outer_th);
+    gqten::hp_numeric::SetTensorManipulationTotalThreads(max_thread);
     gqten::hp_numeric::SetTensorDecompOuterParallelThreads(omp_outer_th);
     GQTensor<TenElemT, QNT> u2, vt2;
     GQTensor<GQTEN_Double, QNT> s2;
@@ -696,10 +696,10 @@ TEST(bench_mark_for_nested_omp_parallel, 2Dcase){
 
 
 
-    auto index2_in = RandIndex(50,500,gqten::IN);
-    auto index2_out = RandIndex(50,500, gqten::OUT);
+    auto index2_in = RandIndex(200,1200,gqten::IN);
+    auto index2_out = RandIndex(200,1200, gqten::OUT);
     DGQTensor t2({index2_in,index2_out});
 
     RunTestSvdOmpCase<GQTEN_Double,U1QN>(t2, size_t(1), size_t(1),
-                 1e-8,size_t(30),size_t(30),4);
+                 1e-8,size_t(30),size_t(30),10);
 }

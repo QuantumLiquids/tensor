@@ -404,8 +404,8 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
     omp_set_nested(true);
     omp_set_max_active_levels(2);
     std::cout << "ompth = " <<ompth <<std::endl;
-    omp_set_num_threads(ompth);
-    std::cout << "get ompth: " << omp_get_num_threads() <<std::endl;
+    // omp_set_num_threads(ompth);
+    // std::cout << "get ompth: " << omp_get_num_threads() <<std::endl;
   }else{
     std::cout << "warning: setting tensor_decomp_outer_parallel_num_threads==0,"
               << "treat tensor_decomp_outer_parallel_num_threads as 1."
@@ -426,12 +426,13 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
       iter_vector[i] = iter;
       iter++;
     }
-    #pragma omp parallel for default(private) \
-            shared(mklth, map_size, idx_svd_res_map)\
-            schedule(dynamic) \
-            num_threads(ompth)
+
+    #pragma omp parallel for default(none) \
+                shared(iter_vector, map_size, idx_svd_res_map)\
+                num_threads(ompth)\
+                schedule(dynamic) 
     for (size_t i = 0;i<map_size;i++) {
-      std::cout << omp_get_num_threads() <<std::endl;
+      // std::cout << omp_get_num_threads() <<std::endl;
       mkl_set_num_threads_local(mklth);
       auto iter = iter_vector[i];
       auto idx = iter->first;
