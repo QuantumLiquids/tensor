@@ -592,7 +592,7 @@ IndexT RandIndex(const unsigned qn_sct_num,  //how many quantum number sectors?
     for(size_t i=0;i<qn_sct_num;i++){
         auto qn = U1QN({QNCard("qn", U1QNVal(i))});
         srand(i*i/3);
-        unsigned degeneracy = rand()%max_dim_in_one_qn_sct;
+        unsigned degeneracy = rand()%max_dim_in_one_qn_sct+1;
         qnsv[i] = QNSector(qn, degeneracy);
     }
     return Index(qnsv, dir);
@@ -636,8 +636,8 @@ void RunTestSvdOmpCase(DGQTensor& t,//Only index
 
     
     ConciseShow(t);
-    unsigned max_thread = std::thread::hardware_concurrency();
-
+    // unsigned max_thread = std::thread::hardware_concurrency();
+    unsigned max_thread = 5;
 
     Timer single_thread_timer("svd_single_thread");
     gqten::hp_numeric::SetTensorManipulationTotalThreads(max_thread);
@@ -660,6 +660,7 @@ void RunTestSvdOmpCase(DGQTensor& t,//Only index
 
     Timer nested_thread_timer("svd_nested_omp_thread");
     assert(omp_outer_th>1);
+    gqten::hp_numeric::SetTensorManipulationTotalThreads(max_thread*omp_outer_th);
     gqten::hp_numeric::SetTensorDecompOuterParallelThreads(omp_outer_th);
     GQTensor<TenElemT, QNT> u2, vt2;
     GQTensor<GQTEN_Double, QNT> s2;
@@ -677,7 +678,10 @@ void RunTestSvdOmpCase(DGQTensor& t,//Only index
     EXPECT_NEAR(trunc_err1, trunc_err2, kEpsilon);
     EXPECT_EQ(D1,D2);
     EXPECT_EQ(u1, u2);
-    EXPECT_EQ(s1,s2);
+    EXPECT_EQ(s1.GetShape(), s2.GetShape());
+    for(size_t i=0;i<s1.GetShape()[0];i++ ){
+        EXPECT_NEAR(s1({i,i}),s2({i,i}),kEpsilon*s1.GetShape()[0]);
+    }
     EXPECT_EQ(vt1,vt2);
 
 }
@@ -692,10 +696,10 @@ TEST(bench_mark_for_nested_omp_parallel, 2Dcase){
 
 
 
-    auto index1_in = RandIndex(20,20,gqten::IN);
-    auto index1_out = RandIndex(20,20, gqten::OUT);
-    DGQTensor t1({index1_in,index1_out});
+    auto index2_in = RandIndex(50,500,gqten::IN);
+    auto index2_out = RandIndex(50,500, gqten::OUT);
+    DGQTensor t2({index2_in,index2_out});
 
-    RunTestSvdOmpCase<GQTEN_Double,U1QN>(t1, size_t(1), size_t(1),
-                 1e-8,size_t(50),size_t(50),size_t(2));
+    RunTestSvdOmpCase<GQTEN_Double,U1QN>(t2, size_t(1), size_t(1),
+                 1e-8,size_t(30),size_t(30),4);
 }

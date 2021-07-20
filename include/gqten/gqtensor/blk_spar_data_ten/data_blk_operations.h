@@ -20,6 +20,7 @@
 #include "gqten/gqtensor/blk_spar_data_ten/raw_data_operation_tasks.h"
 #include "gqten/framework/hp_numeric/lapack.h"    // MatSVD, MatQR
 #include "gqten/framework/hp_numeric/omp_set.h"
+#include "gqten/utility/timer.h"
 #include <omp.h>
 
 #include <cstring>      // memcpy
@@ -388,39 +389,51 @@ std::map<size_t, DataBlkMatSvdRes<ElemT>>
 BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
     const IdxDataBlkMatMap<QNT> &idx_data_blk_mat_map
 ) const {
+  Timer svd_raw_data("sad_raw_data");
   using hp_numeric::tensor_decomp_outer_parallel_num_threads;
   using hp_numeric::tensor_decomp_inner_parallel_num_threads;
-  unsigned ompth = tensor_decomp_outer_parallel_num_threads;
-  unsigned mklth = tensor_decomp_inner_parallel_num_threads;
+  using std::map;
+  const unsigned ompth = tensor_decomp_outer_parallel_num_threads;
+  const unsigned mklth = tensor_decomp_inner_parallel_num_threads;
   if(tensor_decomp_outer_parallel_num_threads==1){
     mkl_set_dynamic(true);
     omp_set_max_active_levels(1);
+    mkl_set_num_threads(mklth);
   }else if(tensor_decomp_outer_parallel_num_threads>1 ){
     mkl_set_dynamic(false);
-    // omp_set_nested(true);
+    omp_set_nested(true);
     omp_set_max_active_levels(2);
+    std::cout << "ompth = " <<ompth <<std::endl;
+    omp_set_num_threads(ompth);
+    std::cout << "get ompth: " << omp_get_num_threads() <<std::endl;
   }else{
     std::cout << "warning: setting tensor_decomp_outer_parallel_num_threads==0,"
               << "treat tensor_decomp_outer_parallel_num_threads as 1."
               << std::endl;
     mkl_set_dynamic(true);
     omp_set_max_active_levels(1);
+    mkl_set_num_threads(mklth);
   }
   
 
   std::map<size_t, DataBlkMatSvdRes<ElemT>> idx_svd_res_map;
 
   if(ompth > 1 ){
-    size_t max_idx = idx_data_blk_mat_map.rbegin()->first;
+    auto iter = idx_data_blk_mat_map.begin();
+    size_t map_size = idx_data_blk_mat_map.size();
+    decltype(iter)* iter_vector = new decltype(iter)[map_size];
+    for(size_t i=0 ;i<map_size;i++){
+      iter_vector[i] = iter;
+      iter++;
+    }
     #pragma omp parallel for default(private) \
-            shared(iter, idx_data_blk_mat_map, idx_svd_res_map)\
+            shared(mklth, map_size, idx_svd_res_map)\
             schedule(dynamic) \
             num_threads(ompth)
-    for (size_t i = 0;i<=max_idx;i++) {
-      auto iter = idx_data_blk_mat_map.find(i);
-      if(iter==idx_data_blk_mat_map.cend()){
-        continue;
-      }
+    for (size_t i = 0;i<map_size;i++) {
+      std::cout << omp_get_num_threads() <<std::endl;
+      mkl_set_num_threads_local(mklth);
+      auto iter = iter_vector[i];
       auto idx = iter->first;
       auto data_blk_mat = iter->second;
       ElemT *mat = RawDataGenDenseDataBlkMat_(data_blk_mat);
@@ -433,9 +446,13 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
       hp_numeric::MatSVD(mat, m, n, u, s, vt);
       free(mat);
       auto svd_res = DataBlkMatSvdRes<ElemT>(m, n, k, u, s, vt);
-      #pragma omp critical 
-      idx_svd_res_map[idx] = std::move(svd_res);
+      #pragma omp critical (insert_svd_res)
+      {
+        idx_svd_res_map[idx] = svd_res;
+      }
     }
+
+    delete iter_vector;
   }else{
     for(auto&[idx, data_blk_mat]: idx_data_blk_mat_map){
       ElemT *mat = RawDataGenDenseDataBlkMat_(data_blk_mat);
@@ -450,7 +467,7 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
       idx_svd_res_map[idx] =  DataBlkMatSvdRes<ElemT>(m, n, k, u, s, vt);
     }
   }
-
+  svd_raw_data.PrintElapsed();
   return idx_svd_res_map;
 }
 
