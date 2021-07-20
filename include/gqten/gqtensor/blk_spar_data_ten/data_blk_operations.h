@@ -19,6 +19,8 @@
 #include "gqten/gqtensor/blk_spar_data_ten/raw_data_operations.h"
 #include "gqten/gqtensor/blk_spar_data_ten/raw_data_operation_tasks.h"
 #include "gqten/framework/hp_numeric/lapack.h"    // MatSVD, MatQR
+#include "gqten/framework/hp_numeric/omp_set.h"
+#include <omp.h>
 
 #include <cstring>      // memcpy
 #ifdef Release
@@ -386,21 +388,69 @@ std::map<size_t, DataBlkMatSvdRes<ElemT>>
 BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
     const IdxDataBlkMatMap<QNT> &idx_data_blk_mat_map
 ) const {
-  std::map<size_t, DataBlkMatSvdRes<ElemT>> idx_svd_res_map;
-  for (auto &idx_data_blk_mat : idx_data_blk_mat_map) {
-    auto idx = idx_data_blk_mat.first;
-    auto data_blk_mat = idx_data_blk_mat.second;
-    ElemT *mat = RawDataGenDenseDataBlkMat_(data_blk_mat);
-    ElemT *u = nullptr;
-    ElemT *vt = nullptr;
-    GQTEN_Double *s = nullptr;
-    size_t m = data_blk_mat.rows;
-    size_t n = data_blk_mat.cols;
-    size_t k = m > n ? n : m;
-    hp_numeric::MatSVD(mat, m, n, u, s, vt);
-    free(mat);
-    idx_svd_res_map[idx] = DataBlkMatSvdRes<ElemT>(m, n, k, u, s, vt);
+  using hp_numeric::tensor_decomp_outer_parallel_num_threads;
+  using hp_numeric::tensor_decomp_inner_parallel_num_threads;
+  unsigned ompth = tensor_decomp_outer_parallel_num_threads;
+  unsigned mklth = tensor_decomp_inner_parallel_num_threads;
+  if(tensor_decomp_outer_parallel_num_threads==1){
+    mkl_set_dynamic(true);
+    omp_set_max_active_levels(1);
+  }else if(tensor_decomp_outer_parallel_num_threads>1 ){
+    mkl_set_dynamic(false);
+    // omp_set_nested(true);
+    omp_set_max_active_levels(2);
+  }else{
+    std::cout << "warning: setting tensor_decomp_outer_parallel_num_threads==0,"
+              << "treat tensor_decomp_outer_parallel_num_threads as 1."
+              << std::endl;
+    mkl_set_dynamic(true);
+    omp_set_max_active_levels(1);
   }
+  
+
+  std::map<size_t, DataBlkMatSvdRes<ElemT>> idx_svd_res_map;
+
+  if(ompth > 1 ){
+    size_t max_idx = idx_data_blk_mat_map.rbegin()->first;
+    #pragma omp parallel for default(private) \
+            shared(iter, idx_data_blk_mat_map, idx_svd_res_map)\
+            schedule(dynamic) \
+            num_threads(ompth)
+    for (size_t i = 0;i<=max_idx;i++) {
+      auto iter = idx_data_blk_mat_map.find(i);
+      if(iter==idx_data_blk_mat_map.cend()){
+        continue;
+      }
+      auto idx = iter->first;
+      auto data_blk_mat = iter->second;
+      ElemT *mat = RawDataGenDenseDataBlkMat_(data_blk_mat);
+      ElemT *u = nullptr;
+      ElemT *vt = nullptr;
+      GQTEN_Double *s = nullptr;
+      size_t m = data_blk_mat.rows;
+      size_t n = data_blk_mat.cols;
+      size_t k = m > n ? n : m;
+      hp_numeric::MatSVD(mat, m, n, u, s, vt);
+      free(mat);
+      auto svd_res = DataBlkMatSvdRes<ElemT>(m, n, k, u, s, vt);
+      #pragma omp critical 
+      idx_svd_res_map[idx] = std::move(svd_res);
+    }
+  }else{
+    for(auto&[idx, data_blk_mat]: idx_data_blk_mat_map){
+      ElemT *mat = RawDataGenDenseDataBlkMat_(data_blk_mat);
+      ElemT *u = nullptr;
+      ElemT *vt = nullptr;
+      GQTEN_Double *s = nullptr;
+      size_t m = data_blk_mat.rows;
+      size_t n = data_blk_mat.cols;
+      size_t k = m > n ? n : m;
+      hp_numeric::MatSVD(mat, m, n, u, s, vt);
+      free(mat);
+      idx_svd_res_map[idx] =  DataBlkMatSvdRes<ElemT>(m, n, k, u, s, vt);
+    }
+  }
+
   return idx_svd_res_map;
 }
 

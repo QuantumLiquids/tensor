@@ -11,12 +11,12 @@
 #include "gqten/tensor_manipulation/basic_operations.h"     // Dag
 #include "gqten/utility/utils_inl.h"
 #include "gqten/framework/hp_numeric/lapack.h"
-
+#include "gqten/utility/timer.h"
 #include "gtest/gtest.h"
 #include "../testing_utility.h"
 
 #include "mkl.h"    // Included after other header file. Because GraceQ needs redefine MKL_Complex16 to gqten::GQTEN_Complex
-
+#include <thread>     //hardware_concurrency()
 
 using namespace gqten;
 using U1QN = QN<U1QNVal>;
@@ -578,4 +578,124 @@ TEST_F(TestSvd, 4DCase) {
       1, 3,
       0, 1, d_s*2,
       &qnp1);
+}
+
+
+struct TestSvdOmpParallel : public testing::Test {
+  std::string qn_nm = "qn";
+};
+
+IndexT RandIndex(const unsigned qn_sct_num,  //how many quantum number sectors?
+                 const unsigned max_dim_in_one_qn_sct, // maximum dimension in every quantum number sector?
+                 const GQTenIndexDirType dir){
+    QNSectorVec<U1QN> qnsv(qn_sct_num);
+    for(size_t i=0;i<qn_sct_num;i++){
+        auto qn = U1QN({QNCard("qn", U1QNVal(i))});
+        srand(i*i/3);
+        unsigned degeneracy = rand()%max_dim_in_one_qn_sct;
+        qnsv[i] = QNSector(qn, degeneracy);
+    }
+    return Index(qnsv, dir);
+}
+
+// template <typename TenElemT, typename QNT>
+void ConciseShow(DGQTensor& t){
+    using std::cout;
+    using std::endl;
+    cout << "  Tensor Concise Info: " <<"\n";
+    ShapeT shape = t.GetShape();
+    cout << "\t tensor shape: " << "\t[";
+    for(size_t i = 0;i<shape.size();i++){
+        if(i<shape.size()-1){
+            cout << shape[i] << ",  ";
+        }else{
+            cout << shape[i] <<"]\n";
+        }
+    }
+    cout << "\t tensor elementary type: " << "GQTEN_Double";
+    cout << "\t tensor qn block: " << t.GetQNBlkNum() << "\n";
+    unsigned total_size = t.size();
+    unsigned data_size = t.GetBlkSparDataTen().GetActualRawDataSize();
+    cout << "\t tensor size(product of shape):" << total_size<<"\n";
+    cout << "\t actual data size: " << data_size <<"\n";
+    cout << "\t tensor sparsity: " << double(data_size) / double(total_size) << endl;
+}
+
+template <typename TenElemT, typename QNT>
+void RunTestSvdOmpCase(DGQTensor& t,//Only index
+    const size_t &ldims,
+    const size_t &rdims,
+    const double &cutoff,
+    const size_t &dmin,
+    const size_t &dmax,
+    const size_t &omp_outer_th){
+    srand(3);
+    std::string qn_nm = "qn";
+    U1QN qn0 =  U1QN({QNCard(qn_nm, U1QNVal( 0))});
+    t.Random(qn0);
+
+    
+    ConciseShow(t);
+    unsigned max_thread = std::thread::hardware_concurrency();
+
+
+    Timer single_thread_timer("svd_single_thread");
+    gqten::hp_numeric::SetTensorManipulationTotalThreads(max_thread);
+    gqten::hp_numeric::SetTensorDecompOuterParallelThreads(1);
+
+    GQTensor<TenElemT, QNT> u1, vt1;
+    GQTensor<GQTEN_Double, QNT> s1;
+    double trunc_err1;
+    size_t D1;
+
+    SVD(
+        &t,
+        ldims,
+        qn0,
+        cutoff, dmin, dmax,
+        &u1, &s1,&vt1, &trunc_err1, &D1
+    );
+
+    single_thread_timer.PrintElapsed();
+
+    Timer nested_thread_timer("svd_nested_omp_thread");
+    assert(omp_outer_th>1);
+    gqten::hp_numeric::SetTensorDecompOuterParallelThreads(omp_outer_th);
+    GQTensor<TenElemT, QNT> u2, vt2;
+    GQTensor<GQTEN_Double, QNT> s2;
+    double trunc_err2;
+    size_t D2;
+    SVD(
+        &t,
+        ldims,
+        qn0,
+        cutoff, dmin, dmax,
+        &u2, &s2,&vt2, &trunc_err2, &D2
+    );
+    nested_thread_timer.PrintElapsed();
+
+    EXPECT_NEAR(trunc_err1, trunc_err2, kEpsilon);
+    EXPECT_EQ(D1,D2);
+    EXPECT_EQ(u1, u2);
+    EXPECT_EQ(s1,s2);
+    EXPECT_EQ(vt1,vt2);
+
+}
+
+TEST(bench_mark_for_nested_omp_parallel, 2Dcase){
+    auto index1_in = RandIndex(5,4,gqten::IN);
+    auto index1_out = RandIndex(5,4, gqten::OUT);
+    DGQTensor t1({index1_in,index1_out});
+
+    RunTestSvdOmpCase<GQTEN_Double,U1QN>(t1, size_t(1), size_t(1),
+                 1e-8,size_t(10),size_t(10),size_t(2));
+
+
+
+    auto index1_in = RandIndex(20,20,gqten::IN);
+    auto index1_out = RandIndex(20,20, gqten::OUT);
+    DGQTensor t1({index1_in,index1_out});
+
+    RunTestSvdOmpCase<GQTEN_Double,U1QN>(t1, size_t(1), size_t(1),
+                 1e-8,size_t(50),size_t(50),size_t(2));
 }
