@@ -265,6 +265,16 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataSetZeros_(
   memset(pactual_raw_data_ + offset, 0, size * sizeof(ElemT));
 }
 
+template <typename ElemT, typename QNT>
+void BlockSparseDataTensor<ElemT, QNT>::RawDataSetZeros_(
+    const std::vector<size_t>& offsets,
+    const std::vector<size_t>& sizes
+) {
+  assert(offsets.size()==sizes.size());
+  for(size_t i=0;i<offsets.size();i++){
+    RawDataSetZeros_(offsets[i], sizes[i]);
+  }
+}
 
 template <typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::RawDataSetZeros_(
