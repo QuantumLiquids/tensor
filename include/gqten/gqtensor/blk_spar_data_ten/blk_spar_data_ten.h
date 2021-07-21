@@ -248,6 +248,7 @@ private:
       const ElemT *
   );
   void RawDataSetZeros_(const size_t, const size_t);
+  void RawDataSetZeros_(const std::vector<size_t>&, const std::vector<size_t>&);
   void RawDataSetZeros_(const std::vector<RawDataSetZerosTask> &);
   void RawDataDuplicateFromReal_(const GQTEN_Double *, const size_t);
 
