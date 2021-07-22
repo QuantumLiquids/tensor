@@ -9,3 +9,4 @@ build_doc/
 .DS_Store
 .ycm_extra_conf.py
 .vscode/*
+.vscode/c_cpp_properties.json
