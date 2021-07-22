@@ -400,17 +400,18 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
 
 
   if(tensor_decomp_outer_parallel_num_threads>1 ){
-    mkl_set_dynamic(true);
+    mkl_set_dynamic(false);
     omp_set_max_active_levels(2);
+    omp_set_nested(true);
   }else if(tensor_decomp_outer_parallel_num_threads<=1){
     if(tensor_decomp_outer_parallel_num_threads==0){
       std::cout << "warning: tensor_decomp_outer_parallel_num_threads==0,"
                 << "treat tensor_decomp_outer_parallel_num_threads as 1."
                 << std::endl;
     }
-    mkl_set_dynamic(true);
-    omp_set_max_active_levels(1);
+    mkl_set_num_threads_local(0);
     mkl_set_num_threads(mklth);
+    mkl_set_dynamic(true);
   }
   
 
@@ -464,6 +465,9 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
     }
   }
   svd_raw_data.PrintElapsed();
+  if(tensor_decomp_outer_parallel_num_threads>1 ){
+    mkl_set_num_threads_local(0);
+  }
   return idx_svd_res_map;
 }
 

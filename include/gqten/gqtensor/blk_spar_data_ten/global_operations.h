@@ -160,7 +160,7 @@ void BlockSparseDataTensor<ElemT, QNT>::FuseFirstTwoIndex(
       blk_coors[1]
     );
     size_t new_blk_first_coor=map_from_old_blk_first_two_coors_to_new_blk_first_coor[old_blk_first_two_coors];
-    std::vector new_blk_coors=std::vector(blk_coors.begin()+1, blk_coors.end());
+    std::vector<size_t> new_blk_coors=std::vector<size_t>(blk_coors.begin()+1, blk_coors.end());
     new_blk_coors[0] = new_blk_first_coor;
     new_blk_coors_vector.push_back(new_blk_coors);
     size_t new_idx = new_bsdt.BlkCoorsToBlkIdx(new_blk_coors);
@@ -429,11 +429,10 @@ void BlockSparseDataTensor<ElemT, QNT>::CtrctTwoBSDTAndAssignIn(
   std::unordered_map<size_t, ElemT *> a_blk_idx_transed_data_map;
   std::unordered_map<size_t, ElemT *> b_blk_idx_transed_data_map;
   RawDataCtrctTask::SortTasksByCBlkIdx(raw_data_ctrct_tasks);
-  if( mkl_get_max_threads()!=hp_numeric::tensor_manipulation_total_num_threads  ){
-    mkl_set_dynamic(true);
-    omp_set_max_active_levels(1);
-    mkl_set_num_threads(hp_numeric::tensor_manipulation_total_num_threads);
-  }
+  
+  mkl_set_num_threads_local( 0 );	
+  mkl_set_num_threads(hp_numeric::tensor_manipulation_total_num_threads);
+  mkl_set_dynamic(true);
  
   for (auto &task : raw_data_ctrct_tasks) {
     const ElemT *a_data;
