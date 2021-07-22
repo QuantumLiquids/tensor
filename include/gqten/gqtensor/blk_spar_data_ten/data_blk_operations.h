@@ -391,7 +391,7 @@ std::map<size_t, DataBlkMatSvdRes<ElemT>>
 BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
     const IdxDataBlkMatMap<QNT> &idx_data_blk_mat_map
 ) const {
-  Timer svd_raw_data("sad_raw_data");
+  Timer svd_raw_data("svd_raw_data");
   using hp_numeric::tensor_decomp_outer_parallel_num_threads;
   using hp_numeric::tensor_decomp_inner_parallel_num_threads;
   using std::map;

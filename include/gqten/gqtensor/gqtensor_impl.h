@@ -370,6 +370,7 @@ void GQTensor<ElemT, QNT>::Random(const QNT &div) {
   if (IsScalar()) { assert(div == QNT()); }
   pblk_spar_data_ten_->Clear();
   if(IsScalar()){
+    pblk_spar_data_ten_->Random();
     return;
   }
   if(pblk_spar_data_ten_->blk_shape.size()==2){
