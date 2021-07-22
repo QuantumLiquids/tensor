@@ -69,7 +69,7 @@ elseif(UNIX)
   endif()
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(MATH_LIB_COMPILE_FLAGS -m64 -I$ENV{MKLROOT}/include)
-    set(MATH_LIB_LINK_FLAGS $ENV{MKLROOT}/lib/libmkl_intel_lp64.a $ENV{MKLROOT}/lib/libmkl_intel_thread.a $ENV{MKLROOT}/lib/libmkl_core.a -L$ENV{MKLROOT}/lib -L/opt/intel//oneapi/compiler/2021.3.0/mac/compiler/lib -Wl, -rpath /opt/intel//oneapi/compiler/2021.3.0/mac/compiler/lib/libiomp5.dylib -liomp5 -lpthread -lm -ldl)
+    set(MATH_LIB_LINK_FLAGS $ENV{MKLROOT}/lib/libmkl_intel_lp64.a $ENV{MKLROOT}/lib/libmkl_intel_thread.a $ENV{MKLROOT}/lib/libmkl_core.a -L$ENV{MKLROOT}/lib -L/opt/intel//oneapi/compiler/2021.3.0/mac/compiler/lib -liomp5 -lpthread -lm -ldl)
   endif()
 endif()
 
