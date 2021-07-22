@@ -15,6 +15,7 @@
 
 
 #include "gqten/gqtensor_all.h"     // GQTensor
+#include "gqten/utility/timer.h"
 
 #include <vector>       // vector
 #include <map>          // map
@@ -269,7 +270,7 @@ void ExpandOneIdx_(
       b_idx_qnsct_coor_expanded_idx_qnsct_coor_map
   );
 #ifdef GQTEN_TIMING_MODE
-  expand_index_timer.PrintElapsed()
+  expand_index_timer.PrintElapsed();
 #endif 
   // Expand data
   IndexVec<QNT> expanded_idxs = pa->GetIndexes();

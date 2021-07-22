@@ -21,6 +21,7 @@
 #include "gqten/framework/value_t.h"                                      // GQTEN_Double, GQTEN_Complex
 #include "gqten/framework/hp_numeric/ten_trans.h"                         // TensorTranspose
 #include "gqten/utility/utils_inl.h"                                      // CalcMultiDimDataOffsets, Reorder
+#include "gqten/utility/timer.h"
 
 #include <map>              // map
 #include <unordered_set>    // unordered_set
@@ -127,7 +128,9 @@ template <typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::FuseFirstTwoIndex(
   const std::vector<std::tuple<size_t,size_t,size_t,size_t>>& qnscts_offset_info_list
   ){
-  //TODO: Add TIMING_MODE 
+#ifdef GQTEN_TIMING_MODE
+  Timer fuse_index_bsdt_pre_timer("   =============> fuse_index_bsdt_prepare");
+#endif  
   using QNSctsOffsetInfo = std::tuple<size_t,size_t,size_t,size_t>;
   std::map<std::pair<size_t,size_t>, size_t> map_from_old_blk_first_two_coors_to_new_blk_first_coor;
   std::map<std::pair<size_t,size_t>, size_t> map_from_old_blk_first_two_coors_to_new_blk_data_off_set;
@@ -202,8 +205,17 @@ void BlockSparseDataTensor<ElemT, QNT>::FuseFirstTwoIndex(
     data_copy_tasks.push_back(task);
   }
 
-  new_bsdt.RawDataCopy_( data_copy_tasks, pactual_raw_data_ );
+#ifdef GQTEN_TIMING_MODE
+  fuse_index_bsdt_pre_timer.PrintElapsed();
+#endif  
 
+#ifdef GQTEN_TIMING_MODE
+  Timer fuse_index_bsdt_raw_data_copy("   =============> fuse_index_bsdt_raw_data_copy");
+#endif   
+  new_bsdt.RawDataCopy_( data_copy_tasks, pactual_raw_data_ );
+#ifdef GQTEN_TIMING_MODE
+  fuse_index_bsdt_raw_data_copy.PrintElapsed();
+#endif   
   delete pactual_raw_data_;
   // right value referece copy
   ten_rank = new_bsdt.ten_rank;

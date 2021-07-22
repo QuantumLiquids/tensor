@@ -54,8 +54,8 @@ void RunTestTenFuseIndexCase(
     TenT &correct_res
 ) {
   a.FuseIndex(idx1,idx2);
-  a.Show();
-  correct_res.Show();
+  // a.Show();
+  // correct_res.Show();
   EXPECT_TRUE(a == correct_res);
 }
 

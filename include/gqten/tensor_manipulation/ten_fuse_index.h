@@ -17,6 +17,7 @@
 
 #include "gqten/gqtensor_all.h"     // GQTensor
 #include "gqten/tensor_manipulation/index_combine.h"  // QNSctsOffsetInfo
+#include "gqten/utility/timer.h"
 
 #include <vector>       // vector
 #include <map>          // map
@@ -57,7 +58,9 @@ void GQTensor<TenElemT, QNT>::FuseIndex(
 ){
   assert(idx1<idx2 && idx2<rank_);
   assert(indexes_[idx1].GetDir()==indexes_[idx2].GetDir());
-  
+#ifdef GQTEN_TIMING_MODE
+  Timer fuse_index_pre_transpose_timer("   =============> fuse_index_pre_transpose");
+#endif  
   //First we transpose the idx1 and idx2 to last 
   std::vector<size_t> transpose_axes(rank_);
   transpose_axes[0]=idx1;
@@ -73,6 +76,9 @@ void GQTensor<TenElemT, QNT>::FuseIndex(
   }
   Transpose(transpose_axes);
 
+#ifdef GQTEN_TIMING_MODE
+  fuse_index_pre_transpose_timer.PrintElapsed();
+#endif
   //generate new index
   std::vector<QNSctsOffsetInfo> qnscts_offset_info_list;
   Index<QNT> new_index = FuseTwoIndexAndRecordInfo(
