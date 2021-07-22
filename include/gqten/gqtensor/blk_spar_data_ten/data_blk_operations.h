@@ -87,6 +87,7 @@ void BlockSparseDataTensor<ElemT, QNT>::DataBlksInsert(
 ) {
   assert(blk_idx_data_blk_map_.empty());
   //it's better that every CoorsT is unique.
+  //if not unique, it will also work
   auto iter = blk_idxs.begin();
   for(auto &blk_coors: blk_coors_s){
     size_t blk_idx = *iter;
@@ -118,6 +119,7 @@ void BlockSparseDataTensor<ElemT, QNT>::DataBlksInsert(
 ) {
   assert(blk_idx_data_blk_map_.empty());
   //it's better that every CoorsT is unique.
+  //if not unique, it will also work
   std::vector<size_t> blk_idxs;
   blk_idxs.reserve(blk_coors_s.size());
   for (auto &blk_coors: blk_coors_s) {
@@ -399,7 +401,6 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
 
   if(tensor_decomp_outer_parallel_num_threads>1 ){
     mkl_set_dynamic(true);
-    omp_set_nested(true);
     omp_set_max_active_levels(2);
   }else if(tensor_decomp_outer_parallel_num_threads<=1){
     if(tensor_decomp_outer_parallel_num_threads==0){
@@ -447,7 +448,7 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
         idx_svd_res_map[idx] = svd_res;
       }
     }
-    delete iter_vector;
+    delete[] iter_vector;
   }else{
     for(auto&[idx, data_blk_mat]: idx_data_blk_mat_map){
       ElemT *mat = RawDataGenDenseDataBlkMat_(data_blk_mat);
