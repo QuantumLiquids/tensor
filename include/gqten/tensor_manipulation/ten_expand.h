@@ -236,6 +236,9 @@ void ExpandOneIdx_(
   TensorExpandPreChecker(*pa, *pb, {expand_idx_num});
 #endif /* ifndef NDEBUG */
 
+#ifdef GQTEN_TIMING_MODE
+  Timer expand_pre_transpose_timer("   =============> expansion_first_time_transpose");
+#endif
   // Firstly we transpose the expand_idx_num-th index to the first index
   size_t ten_rank = pa->Rank();
   std::vector<size_t> transpose_order(ten_rank);
@@ -248,7 +251,13 @@ void ExpandOneIdx_(
     pa->Transpose(transpose_order);
     pb->Transpose(transpose_order);
   }
+#ifdef GQTEN_TIMING_MODE
+  expand_pre_transpose_timer.PrintElapsed();
+#endif
 
+#ifdef GQTEN_TIMING_MODE
+  Timer expand_index_timer("   =============> expansion_expand_index_and_record_info");
+#endif
   // Then we can expand the two tensor according the first indexes. For each block, the data are direct connected
   // Expand the first index
   std::vector<bool> is_a_idx_qnsct_expanded;
@@ -259,7 +268,9 @@ void ExpandOneIdx_(
       is_a_idx_qnsct_expanded,
       b_idx_qnsct_coor_expanded_idx_qnsct_coor_map
   );
-
+#ifdef GQTEN_TIMING_MODE
+  expand_index_timer.PrintElapsed()
+#endif 
   // Expand data
   IndexVec<QNT> expanded_idxs = pa->GetIndexes();
   expanded_idxs[0] = expanded_index;
@@ -270,7 +281,9 @@ void ExpandOneIdx_(
       is_a_idx_qnsct_expanded,
       b_idx_qnsct_coor_expanded_idx_qnsct_coor_map
   );
-
+#ifdef GQTEN_TIMING_MODE
+  Timer expand_latter_transpose_timer("   =============> expansion_second_time_transpose");
+#endif
   // transpose back
   for(size_t i = 0; i < expand_idx_num; i++){ transpose_order[i] = i + 1; }
   transpose_order[expand_idx_num] = 0;
@@ -281,7 +294,9 @@ void ExpandOneIdx_(
     pb->Transpose(transpose_order);
   }
   pc->Transpose(transpose_order);
-
+#ifdef GQTEN_TIMING_MODE
+  expand_latter_transpose_timer.PrintElapsed();
+#endif
 #ifndef NDEBUG
   ExpandedTenDivChecker(*pa, *pb, *pc);
 #endif /* ifndef NDEBUG */

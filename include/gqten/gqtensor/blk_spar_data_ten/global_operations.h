@@ -317,6 +317,13 @@ void BlockSparseDataTensor<ElemT, QNT>::CtrctTwoBSDTAndAssignIn(
   std::unordered_map<size_t, ElemT *> a_blk_idx_transed_data_map;
   std::unordered_map<size_t, ElemT *> b_blk_idx_transed_data_map;
   RawDataCtrctTask::SortTasksByCBlkIdx(raw_data_ctrct_tasks);
+  if( mkl_get_num_threads )
+  if( mkl_get_max_threads!=hp_numeric::tensor_manipulation_total_num_threads  ){
+    mkl_set_dynamic(true);
+    omp_set_max_active_levels(1);
+    mkl_set_num_threads(hp_numeric::tensor_manipulation_total_num_threads);
+  }
+ 
   for (auto &task : raw_data_ctrct_tasks) {
     const ElemT *a_data;
     const ElemT *b_data;
@@ -411,6 +418,9 @@ void BlockSparseDataTensor<ElemT, QNT>::ConstructExpandedDataOnFirstIndex(
     const std::vector<bool> &is_a_first_idx_qnsct_expanded,
     const std::map<size_t, size_t> &b_idx_qnsct_coor_expanded_idx_qnsct_coor_map
 ) {
+  #ifdef GQTEN_TIMING_MODE
+    Timer expand_data_blk_timer("   =============> expansion_construct_data_blk_and_prepare_raw_data_tasks");
+  #endif
   std::map<size_t, size_t> expanded_idx_qnsct_coor_b_idx_qnsct_coor_map;
   for (auto &elem: b_idx_qnsct_coor_expanded_idx_qnsct_coor_map) {
     expanded_idx_qnsct_coor_b_idx_qnsct_coor_map[elem.second] = elem.first;
@@ -429,6 +439,7 @@ void BlockSparseDataTensor<ElemT, QNT>::ConstructExpandedDataOnFirstIndex(
   std::vector<size_t> blk_idxs;
   blk_coors_s.reserve(blk_idx_data_blk_map_a.size() + blk_idx_data_blk_map_b.size());// reserve more
   blk_idxs.reserve( blk_idx_data_blk_map_a.size() + blk_idx_data_blk_map_b.size());
+  size_t zero_piece_num=0;//how many pieces of zeros need to set
   for(const auto &[blk_idx_a, data_blk_a] : blk_idx_data_blk_map_a){
     size_t blk_coor_in_first_idx = data_blk_a.blk_coors[0];
     size_t blk_idx = blk_idx_a;
@@ -446,6 +457,7 @@ void BlockSparseDataTensor<ElemT, QNT>::ConstructExpandedDataOnFirstIndex(
         blk_idx_data_blk_map_b.erase(pdata_blk_b);
       } else {
         blk_idx_expand_mapto_blk_map_b[blk_idx] = -1;
+        zero_piece_num++;
       }
     }
   }
@@ -465,6 +477,7 @@ void BlockSparseDataTensor<ElemT, QNT>::ConstructExpandedDataOnFirstIndex(
     if (blk_coor_in_first_idx_expand < is_a_first_idx_qnsct_expanded.size()) {
       auto pdata_blk_a = blk_idx_data_blk_map_a.find(blk_idx);
       blk_idx_expand_mapto_blk_map_a[blk_idx] = -1;
+      zero_piece_num++;
     }
   }
 
@@ -475,6 +488,11 @@ void BlockSparseDataTensor<ElemT, QNT>::ConstructExpandedDataOnFirstIndex(
   std::vector<RawDataCopyTask> raw_data_copy_tasks_from_a,raw_data_copy_tasks_from_b;
   raw_data_copy_tasks_from_a.reserve(blk_idx_expand_mapto_blk_map_a.size());// reserve more
   raw_data_copy_tasks_from_b.reserve(blk_idx_expand_mapto_blk_map_b.size());// reserve more
+
+  std::vector<size_t> raw_data_zero_pieces_offsets;
+  std::vector<size_t> raw_data_zero_pieces_size;
+  raw_data_zero_pieces_offsets.reserve(zero_piece_num);
+  raw_data_zero_pieces_size.reserve(zero_piece_num);
   for (const auto &[blk_idx, data_blk] : blk_idx_data_blk_map_) {
     if (
         blk_idx_expand_mapto_blk_map_a.find(blk_idx) !=
@@ -498,7 +516,8 @@ void BlockSparseDataTensor<ElemT, QNT>::ConstructExpandedDataOnFirstIndex(
                                                  blk_idx
                                              ]
                                          ].size;
-        RawDataSetZeros_(data_blk.data_offset, filled_zero_elem_number);
+        raw_data_zero_pieces_offsets.push_back(data_blk.data_offset);
+        raw_data_zero_pieces_size.push_back(filled_zero_elem_number);
       }
     }
 
@@ -528,16 +547,36 @@ void BlockSparseDataTensor<ElemT, QNT>::ConstructExpandedDataOnFirstIndex(
                                         );
         size_t filled_zero_elem_number = data_blk.size-
                                          pblk_idx_data_blk_pair_a->second.size;
-        RawDataSetZeros_(
-            data_blk.data_offset + pblk_idx_data_blk_pair_a->second.size,
-            filled_zero_elem_number
-        );
+        raw_data_zero_pieces_offsets.push_back(
+            data_blk.data_offset + pblk_idx_data_blk_pair_a->second.size
+          );
+        raw_data_zero_pieces_size.push_back(filled_zero_elem_number);
+      
       }
     }
   }
+#ifdef GQTEN_TIMING_MODE
+   expand_data_blk_timer.PrintElapsed();
+#endif
+
+#ifdef GQTEN_TIMING_MODE
+  Timer expand_raw_data_set_zero_timer("   =============> expansion_raw_data_set_zeros");
+#endif 
+  RawDataSetZeros_(raw_data_zero_pieces_offsets,raw_data_zero_pieces_size);
+
+#ifdef GQTEN_TIMING_MODE
+  expand_raw_data_set_zero_timer.PrintElapsed();
+#endif
+
+#ifdef GQTEN_TIMING_MODE
+  Timer expand_raw_data_cp_timer("   =============> expansion_raw_data_copy");
+#endif
   // Do data copy
   RawDataCopy_(raw_data_copy_tasks_from_a, bsdt_a.pactual_raw_data_);
   RawDataCopy_(raw_data_copy_tasks_from_b, bsdt_b.pactual_raw_data_);
+#ifdef GQTEN_TIMING_MODE
+  expand_raw_data_cp_timer.PrintElapsed();
+#endif
 }
 
 
