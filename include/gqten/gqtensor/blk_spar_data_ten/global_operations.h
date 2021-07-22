@@ -317,8 +317,7 @@ void BlockSparseDataTensor<ElemT, QNT>::CtrctTwoBSDTAndAssignIn(
   std::unordered_map<size_t, ElemT *> a_blk_idx_transed_data_map;
   std::unordered_map<size_t, ElemT *> b_blk_idx_transed_data_map;
   RawDataCtrctTask::SortTasksByCBlkIdx(raw_data_ctrct_tasks);
-  if( mkl_get_num_threads )
-  if( mkl_get_max_threads!=hp_numeric::tensor_manipulation_total_num_threads  ){
+  if( mkl_get_max_threads()!=hp_numeric::tensor_manipulation_total_num_threads  ){
     mkl_set_dynamic(true);
     omp_set_max_active_levels(1);
     mkl_set_num_threads(hp_numeric::tensor_manipulation_total_num_threads);
