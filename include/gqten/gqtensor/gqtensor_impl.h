@@ -383,9 +383,7 @@ void GQTensor<ElemT, QNT>::Random(const QNT &div) {
           }
         }
       }
-    std::cout << "random tensor: finded all blk index" <<std::endl;
     pblk_spar_data_ten_->DataBlksInsert(blk_coors_s, false,false);     // NO allocate memory on this stage.
-    std::cout << "random tensor: insert all blk" <<std::endl;
   }else{
     for (auto &blk_coors : GenAllCoors(pblk_spar_data_ten_->blk_shape)) {
       if (CalcDiv(indexes_, blk_coors) == div) {

@@ -395,21 +395,18 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
   using std::map;
   const unsigned ompth = tensor_decomp_outer_parallel_num_threads;
   const unsigned mklth = tensor_decomp_inner_parallel_num_threads;
-  if(tensor_decomp_outer_parallel_num_threads==1){
+
+
+  if(tensor_decomp_outer_parallel_num_threads>1 ){
     mkl_set_dynamic(true);
-    omp_set_max_active_levels(1);
-    mkl_set_num_threads(mklth);
-  }else if(tensor_decomp_outer_parallel_num_threads>1 ){
-    mkl_set_dynamic(false);
     omp_set_nested(true);
     omp_set_max_active_levels(2);
-    std::cout << "ompth = " <<ompth <<std::endl;
-    // omp_set_num_threads(ompth);
-    // std::cout << "get ompth: " << omp_get_num_threads() <<std::endl;
-  }else{
-    std::cout << "warning: setting tensor_decomp_outer_parallel_num_threads==0,"
-              << "treat tensor_decomp_outer_parallel_num_threads as 1."
-              << std::endl;
+  }else if(tensor_decomp_outer_parallel_num_threads<=1){
+    if(tensor_decomp_outer_parallel_num_threads==0){
+      std::cout << "warning: tensor_decomp_outer_parallel_num_threads==0,"
+                << "treat tensor_decomp_outer_parallel_num_threads as 1."
+                << std::endl;
+    }
     mkl_set_dynamic(true);
     omp_set_max_active_levels(1);
     mkl_set_num_threads(mklth);
@@ -426,13 +423,11 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
       iter_vector[i] = iter;
       iter++;
     }
-
     #pragma omp parallel for default(none) \
                 shared(iter_vector, map_size, idx_svd_res_map)\
                 num_threads(ompth)\
                 schedule(dynamic) 
     for (size_t i = 0;i<map_size;i++) {
-      // std::cout << omp_get_num_threads() <<std::endl;
       mkl_set_num_threads_local(mklth);
       auto iter = iter_vector[i];
       auto idx = iter->first;
@@ -452,7 +447,6 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
         idx_svd_res_map[idx] = svd_res;
       }
     }
-
     delete iter_vector;
   }else{
     for(auto&[idx, data_blk_mat]: idx_data_blk_mat_map){
