@@ -42,6 +42,7 @@ option(GQTEN_USE_EXTERNAL_HPTT_LIB "Use external hptt library" OFF)
 set(CMAKE_CXX_STANDARD 17)
 add_definitions(-Wall -g)
 
+
 if(APPLE)
   # Set MKL compile flags and link flags.
   if(CMAKE_CXX_COMPILER_ID MATCHES "Intel")
@@ -72,6 +73,7 @@ elseif(UNIX)
     set(MATH_LIB_LINK_FLAGS $ENV{MKLROOT}/lib/libmkl_intel_lp64.a $ENV{MKLROOT}/lib/libmkl_intel_thread.a $ENV{MKLROOT}/lib/libmkl_core.a -L$ENV{MKLROOT}/lib -L/opt/intel//oneapi/compiler/2021.3.0/mac/compiler/lib -liomp5 -lpthread -lm -ldl)
   endif()
 endif()
+
 
 
 # Build dependencies.

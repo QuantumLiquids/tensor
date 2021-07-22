@@ -115,6 +115,18 @@ struct RawDataCopyTask {
       src_data_offset(src_data_offset),
       src_data_size(src_data_size),
       copy_and_add(copy_and_add) {}
+      
+  RawDataCopyTask(
+      const CoorsT &src_blk_coors,
+      const size_t src_data_offset,
+      const size_t src_data_size,
+      const size_t dest_data_offset,
+      const bool copy_and_add = false
+  ) : src_blk_coors(src_blk_coors),
+      src_data_offset(src_data_offset),
+      src_data_size(src_data_size),
+      dest_data_offset(dest_data_offset),
+      copy_and_add(copy_and_add) {}
 };
 
 
@@ -159,8 +171,8 @@ struct RawDataSetZerosTask {
       const CoorsT &blk_coors,
       const size_t data_size,
       const size_t extra_data_offset
-  ) : blk_coors(blk_coors),
-      data_size(data_size),
+  ) : data_size(data_size),
+      blk_coors(blk_coors),
       extra_data_offset(extra_data_offset) {}
 };
 
