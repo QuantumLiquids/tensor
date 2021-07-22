@@ -17,7 +17,7 @@ macro(add_unittest
     ${TEST_SRC})
 
     target_compile_options(${TEST_NAME}
-      PRIVATE ${CFLAGS}
+      PRIVATE ${CFLAGS} -DGQTEN_TIMING_MODE=ON
     )
     target_include_directories(${TEST_NAME}
       PRIVATE ${GQTEN_HEADER_PATH}
@@ -90,7 +90,7 @@ add_unittest(test_ten_expand
   "${MATH_LIB_COMPILE_FLAGS}" "" "${MATH_LIB_LINK_FLAGS}"
 )
 
-# Test tensor expansion
+# Test tensor fuse index
 add_unittest(test_ten_fuse_index
   "test_tensor_manipulation/test_ten_fuse_index.cc"
   "${MATH_LIB_COMPILE_FLAGS}" "" "${MATH_LIB_LINK_FLAGS}"

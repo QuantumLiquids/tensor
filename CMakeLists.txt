@@ -30,7 +30,7 @@ endif()
 # Advanced options.
 option(GQTEN_BUILD_UNITTEST "Build unittests for GraceQ/tensor." OFF)
 
-option(GQTEN_TIMING_MODE "Timing mode." OFF)
+option(GQTEN_TIMING_MODE "Timing mode." ON)
 if(GQTEN_TIMING_MODE)
   add_definitions(-DGQTEN_TIMING_MODE)
 endif()
