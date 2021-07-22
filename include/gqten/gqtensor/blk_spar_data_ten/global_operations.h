@@ -160,8 +160,8 @@ void BlockSparseDataTensor<ElemT, QNT>::FuseFirstTwoIndex(
       blk_coors[1]
     );
     size_t new_blk_first_coor=map_from_old_blk_first_two_coors_to_new_blk_first_coor[old_blk_first_two_coors];
-    std::vector new_blk_coors=std::vector(blk_coors.begin()+1, blk_coors.end());
-    new_blk_coors[0] = new_blk_first_coor;
+    std::vector<size_t> new_blk_coors=std::vector<size_t>(blk_coors.begin()+1, blk_coors.end());
+    new_blk_coors[0] = new_blk_first_coor;m
     new_blk_coors_vector.push_back(new_blk_coors);
     size_t new_idx = new_bsdt.BlkCoorsToBlkIdx(new_blk_coors);
     old_blk_idx_mapto_new_blk_idx.insert(std::make_pair(old_idx, new_idx));
