@@ -185,7 +185,6 @@ void BlockSparseDataTensor<ElemT, QNT>::FuseFirstTwoIndex(
     size_t first_dim_off_set=map_from_old_blk_first_two_coors_to_new_blk_data_off_set.at(old_blk_first_two_coors);
     size_t new_idx = old_blk_idx_mapto_new_blk_idx.at(old_idx);
     size_t dest_data_offset = new_bsdt.blk_idx_data_blk_map_.at(new_idx).data_offset ;
-    std::cout << "\n first_dim_off_set=" <<first_dim_off_set<<"\n"<<std::endl;
     if(first_dim_off_set!=0){
       size_t other_dimension=1;
       for(size_t i=2;i<shape.size();i++){

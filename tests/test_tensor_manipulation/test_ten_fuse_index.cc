@@ -8,6 +8,7 @@
 
 #include "gqten/gqtensor_all.h"
 #include "gqten/tensor_manipulation/ten_fuse_index.h"
+#include "gqten/tensor_manipulation/ten_ctrct.h"
 
 #include "gtest/gtest.h"
 #include "gqten/utility/timer.h"
@@ -58,7 +59,7 @@ void RunTestTenFuseIndexCase(
   EXPECT_TRUE(a == correct_res);
 }
 
-TEST(TestExpand, TestCase) {
+TEST(TestFuseIndexNaive, TestCase) {
   DGQTensor ten0 = DGQTensor({idx_out0_2, idx_out0_2, idx_in0});
   DGQTensor ten1 = DGQTensor({idx_out0_4, idx_in0});
   ten0({0,0,0}) = 0.5;
@@ -84,3 +85,92 @@ TEST(TestExpand, TestCase) {
 
 }
 
+
+//helper
+IndexT RandIndex(const unsigned qn_sct_num,  //how many quantum number sectors?
+                 const unsigned max_dim_in_one_qn_sct, // maximum dimension in every quantum number sector?
+                 const GQTenIndexDirType dir){
+    QNSectorVec<U1QN> qnsv(qn_sct_num);
+    for(size_t i=0;i<qn_sct_num;i++){
+        auto qn = U1QN({QNCard("qn", U1QNVal(i))});
+        srand((unsigned)time(NULL));
+        unsigned degeneracy = rand()%max_dim_in_one_qn_sct+1;
+        qnsv[i] = QNSector(qn, degeneracy);
+    }
+    return Index(qnsv, dir);
+}
+template <typename QNT>
+std::string ElemenTypeOfTensor(GQTensor<GQTEN_Double,QNT> & t){
+    return "GQTEN_Double";
+}
+
+template <typename QNT>
+std::string ElemenTypeOfTensor(GQTensor<GQTEN_Complex,QNT> & t){
+    return "GQTEN_Complex";
+}
+
+template <typename TenElemT, typename QNT>
+void ConciseShow(GQTensor<TenElemT,QNT>& t){
+    using std::cout;
+    using std::endl;
+    cout << "  Tensor Concise Info: " <<"\n";
+    ShapeT shape = t.GetShape();
+    cout << "\t tensor shape: " << "\t[";
+    for(size_t i = 0;i<shape.size();i++){
+        if(i<shape.size()-1){
+            cout << shape[i] << ",  ";
+        }else{
+            cout << shape[i] <<"]\n";
+        }
+    }
+    cout << "\t tensor elementary type: " << ElemenTypeOfTensor(t) << "\n";
+    cout << "\t tensor qn block number: " << t.GetQNBlkNum() << "\n";
+    unsigned total_size = t.size();
+    unsigned data_size = t.GetBlkSparDataTen().GetActualRawDataSize();
+    cout << "\t tensor size(product of shape):" << total_size<<"\n";
+    cout << "\t actual data size: " << data_size <<"\n";
+    cout << "\t tensor sparsity: " << double(data_size) / double(total_size) << endl;
+}
+
+
+
+
+
+template <typename TenElemT, typename QNT>
+void RunTestTenFuseIndexBenchMarkByIndexCombinerCase(
+    GQTensor<TenElemT, QNT> &a,
+    const size_t idx1,
+    const size_t idx2
+) {
+  ConciseShow(a);
+  using TenT = GQTensor<TenElemT, QNT>;
+  TenT correct_res;
+  Index<QNT> index1 = a.GetIndexes()[idx1];
+  Index<QNT> index2 = a.GetIndexes()[idx2];
+  TenT index_combine = IndexCombine<TenElemT, QNT>(
+    InverseIndex(index1) ,InverseIndex(index2),
+    index2.GetDir());
+
+  Contract(&index_combine, &a, {{0,1},{idx1,idx2}},&correct_res);
+  a.FuseIndex(idx1,idx2);
+  EXPECT_TRUE(a == correct_res);
+}
+
+TEST(TESTFuseIndexRandom, 3DCase){
+  auto index1_in =  RandIndex(5,4, gqten::IN);
+  auto index1_out = RandIndex(6,3, gqten::OUT);
+  DGQTensor t1({index1_in,index1_in,index1_out});
+  t1.Random(qn0);
+  RunTestTenFuseIndexBenchMarkByIndexCombinerCase(t1,0,1);
+}
+
+TEST(TESTFuseIndexRandom, 4DCase){
+  auto index1_in = RandIndex(5,4, gqten::IN);
+  auto index2_in = RandIndex(4,6, gqten::IN);
+  auto index1_out = RandIndex(3,3, gqten::OUT);
+  auto index2_out = RandIndex(2,5, gqten::OUT);
+
+  DGQTensor t1({index2_out,index1_in,index2_in, index1_out});
+  t1.Random(qn0);
+  RunTestTenFuseIndexBenchMarkByIndexCombinerCase(t1,1,2);
+}
