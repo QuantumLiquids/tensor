@@ -129,7 +129,6 @@ std::vector<RawDataCtrctTask> DataBlkGenForTenCtrct(
   void Random(void);
   void Transpose(const std::vector<size_t> &);
   void FuseFirstTwoIndex(
-      const Index<QNT>&, const Index<QNT>&, 
       const std::vector<std::tuple<size_t,size_t,size_t,size_t>>&
   );
   GQTEN_Double Normalize(void);
@@ -308,9 +307,9 @@ BlockSparseDataTensor<ElemT, QNT>::BlockSparseDataTensor(
 ) :
     ten_rank(bsdt.ten_rank),
     blk_shape(bsdt.blk_shape),
-    blk_multi_dim_offsets_(bsdt.blk_multi_dim_offsets_),
-    blk_idx_data_blk_map_(bsdt.blk_idx_data_blk_map_),
     pgqten_indexes(bsdt.pgqten_indexes),
+    blk_idx_data_blk_map_(bsdt.blk_idx_data_blk_map_),
+    blk_multi_dim_offsets_(bsdt.blk_multi_dim_offsets_),
     raw_data_size_(bsdt.raw_data_size_),
     actual_raw_data_size_(bsdt.actual_raw_data_size_) {
   if (bsdt.pactual_raw_data_ != nullptr) {

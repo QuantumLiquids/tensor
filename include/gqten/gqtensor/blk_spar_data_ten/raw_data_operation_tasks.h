@@ -171,8 +171,8 @@ struct RawDataSetZerosTask {
       const CoorsT &blk_coors,
       const size_t data_size,
       const size_t extra_data_offset
-  ) : blk_coors(blk_coors),
-      data_size(data_size),
+  ) : data_size(data_size),
+      blk_coors(blk_coors),
       extra_data_offset(extra_data_offset) {}
 };
 

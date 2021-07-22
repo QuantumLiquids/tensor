@@ -73,22 +73,23 @@ void GQTensor<TenElemT, QNT>::FuseIndex(
   }
   Transpose(transpose_axes);
 
+  //generate new index
   std::vector<QNSctsOffsetInfo> qnscts_offset_info_list;
-  auto old_index_0 = indexes_[0];
-  auto old_index_1 = indexes_[1];
   Index<QNT> new_index = FuseTwoIndexAndRecordInfo(
-    old_index_0, 
-    old_index_1,
+    indexes_[0], 
+    indexes_[1],
     qnscts_offset_info_list
     );
+  
+  //update index, shape, rank
   indexes_.erase(indexes_.begin());
   indexes_[0] = new_index;
   shape_[1] = shape_[0]*shape_[1];
   shape_.erase(shape_.begin());
+  rank_=rank_-1;
 
+  //update bsdt(data blk, raw data and some others)
   pblk_spar_data_ten_->FuseFirstTwoIndex(
-    old_index_0,
-    old_index_1,
     qnscts_offset_info_list
     );
 }
@@ -101,7 +102,7 @@ Index<QNT> FuseTwoIndexAndRecordInfo(
 ){
   assert(idx1.GetDir() != GQTenIndexDirType::NDIR);
   assert(idx2.GetDir() != GQTenIndexDirType::NDIR);
-  // assert(idx1.GetDir()==idx1.GetDir());
+  assert(idx1.GetDir()==idx1.GetDir());
   auto new_idx_dir = idx1.GetDir();
   auto idx1_qnsct_num = idx1.GetQNSctNum();
   auto idx2_qnsct_num = idx2.GetQNSctNum();
@@ -115,38 +116,7 @@ Index<QNT> FuseTwoIndexAndRecordInfo(
       auto qn_from_idx2 = qnsct_from_idx2.GetQn();
       auto dgnc_from_idx1 = qnsct_from_idx1.GetDegeneracy();
       auto dgnc_from_idx2 = qnsct_from_idx2.GetDegeneracy();
-      QNT combined_qn;
-      switch (idx1.GetDir()) {
-        case GQTenIndexDirType::IN:
-          switch (idx2.GetDir()) {
-            case GQTenIndexDirType::IN:
-              combined_qn = qn_from_idx1 + qn_from_idx2;
-              break;
-            case GQTenIndexDirType::OUT:
-              combined_qn = qn_from_idx1 - qn_from_idx2;
-              break;
-            default:
-              assert(false);
-          }
-          break;
-        case GQTenIndexDirType::OUT:
-          switch (idx2.GetDir()) {
-            case GQTenIndexDirType::IN:
-              combined_qn = qn_from_idx2 - qn_from_idx1;
-              break;
-            case GQTenIndexDirType::OUT:
-              combined_qn = (-qn_from_idx2) - qn_from_idx1;
-              break;
-            default:
-              assert(false);
-          }
-          break;
-        default:
-          assert(false);
-      }
-      if (new_idx_dir == GQTenIndexDirType::IN) {
-        combined_qn = -combined_qn;
-      }
+      QNT combined_qn = qn_from_idx1 + qn_from_idx2;
       auto poss_it = std::find_if(
                          new_qn_dgnc_list.begin(),
                          new_qn_dgnc_list.end(),
