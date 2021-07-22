@@ -128,6 +128,10 @@ std::vector<RawDataCtrctTask> DataBlkGenForTenCtrct(
 
   void Random(void);
   void Transpose(const std::vector<size_t> &);
+  void FuseFirstTwoIndex(
+      const Index<QNT>&, const Index<QNT>&, 
+      const std::vector<std::tuple<size_t,size_t,size_t,size_t>>&
+  );
   GQTEN_Double Normalize(void);
   void Conj(void);
 

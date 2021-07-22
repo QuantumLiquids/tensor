@@ -115,6 +115,7 @@ public:
   // Inplace operations.
   void Random(const QNT &);
   void Transpose(const std::vector<size_t> &);
+  void FuseIndex(const size_t, const size_t);
   GQTEN_Double Normalize(void);
   void Dag(void);
 

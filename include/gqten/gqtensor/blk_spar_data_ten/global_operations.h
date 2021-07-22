@@ -123,6 +123,74 @@ void BlockSparseDataTensor<ElemT, QNT>::Transpose(
 }
 
 
+template <typename ElemT, typename QNT>
+void BlockSparseDataTensor<ElemT, QNT>::FuseFirstTwoIndex(
+  const Index<QNT>&old_index0, 
+  const Index<QNT>&old_index1,
+  const std::vector<std::tuple<size_t,size_t,size_t,size_t>>& qnscts_offset_info_list
+  ){
+  using QNSctsOffsetInfo = std::tuple<size_t,size_t,size_t,size_t>;
+  std::map<std::pair<size_t,size_t>, size_t> map_from_old_blk_first_two_coors_to_new_blk_first_coor;
+  std::map<std::pair<size_t,size_t>, size_t> map_from_old_blk_first_two_coors_to_new_blk_data_off_set;
+  for(const QNSctsOffsetInfo& qnscts_offset_info: qnscts_offset_info_list ){
+    std::pair<size_t,size_t> old_blk_first_two_coors = std::make_pair(
+      std::get<0>(qnscts_offset_info),
+      std::get<1>(qnscts_offset_info)
+    );
+    map_from_old_blk_first_two_coors_to_new_blk_first_coor[old_blk_first_two_coors] =
+      std::get<2>(qnscts_offset_info);
+    map_from_old_blk_first_two_coors_to_new_blk_data_off_set[old_blk_first_two_coors] =
+      std::get<3>(qnscts_offset_info);
+  }
+  
+  BlockSparseDataTensor<ElemT, QNT> new_bsdt = new BlockSparseDataTensor<ElemT, QNT>(pgqten_indexes);
+  pgqten_indexes = new std::vector<Index<QNT>>(ten_rank);
+  (*pgqten_indexes)[0] = old_index0;
+  (*pgqten_indexes)[1] = old_index1;
+  for(size_t i=2;i<ten_rank;i++){
+    (*pgqten_indexes)[i] =new_bsdt.pgqten_indexes[i-1];
+  }
+  std::map<size_t, size_t> old_blk_idx_mapto_new_blk_idx;
+  std::vector<CoorsT> new_blk_coors_vector;
+  std::vector<size_t> new_blk_idx_vector;
+  new_blk_coors_vector.reserve(blk_idx_data_blk_map_.size());
+  new_blk_idx_vector.reserve(blk_idx_data_blk_map_.size());
+  for(auto&[old_idx, data_blk ]: blk_idx_data_blk_map_ ){
+    CoorsT& blk_coors = data_blk.blk_coors;
+    std::pair<size_t,size_t> old_blk_first_two_coors = std::make_pair(
+      blk_coors[0],
+      blk_coors[1]
+    );
+    size_t new_blk_first_coor=map_from_old_blk_first_two_coors_to_new_blk_first_coor[old_blk_first_two_coors];
+    std::vector new_blk_coors=std::vector(blk_coors.begin()+1, blk_coors.end());
+    new_blk_coors[0] = new_blk_first_coor;
+    new_blk_coors_vector.push_back(new_blk_coors);
+    size_t new_idx = BlkCoorsToBlkIdx(new_blk_coors);
+    old_blk_idx_mapto_new_blk_idx.insert(old_idx, new_idx);
+    new_blk_idx_vector.push_back(new_idx);
+  }
+
+  new_bsdt.DataBlksInsert(
+    new_blk_idx_vector,
+    new_blk_coors_vector,
+    true,
+    true
+    );//note here we initial the memory, so need performence test here.
+
+  //Assign copy task
+  std::vector<RawDataCopyTask> data_copy_tasks;
+  data_copy_tasks.reserve(blk_idx_data_blk_map_);
+  for(auto&[old_idx, data_blk ]: blk_idx_data_blk_map_ ){
+
+  }
+
+}
+
+
+
+
+
+
 /**
 Normalize the data tensor and return its norm.
 
