@@ -583,6 +583,38 @@ void GQTensor<ElemT, QNT>::Show(const size_t indent_level) const {
   }
 }
 
+template <typename QNT>
+std::string ElemenTypeOfTensor(const GQTensor<GQTEN_Double,QNT> & t){
+    return "GQTEN_Double";
+}
+
+template <typename QNT>
+std::string ElemenTypeOfTensor(const GQTensor<GQTEN_Complex,QNT> & t){
+    return "GQTEN_Complex";
+}
+
+
+template <typename ElemT, typename QNT>
+void GQTensor<ElemT, QNT>::ConciseShow(const size_t indent_level) const{
+    using std::cout;
+    using std::endl;
+    cout  << IndentPrinter(indent_level) << "GQTensor Concise Info: " <<"\n";
+    cout  << IndentPrinter(indent_level+1) << "tensor shape:" << "\t[";
+    VectorPrinter(shape_);
+    cout  << "]\n";
+    cout  << IndentPrinter(indent_level+1) << "tensor elementary type:\t" 
+          << ElemenTypeOfTensor(*this) << "\n";
+    cout  << IndentPrinter(indent_level+1) 
+          << "tensor qumtum number block number:\t" 
+          << GetQNBlkNum() << "\n";
+    cout  << IndentPrinter(indent_level+1)  
+          << "tensor size(product of shape):\t" << size_ <<"\n";
+    unsigned data_size = pblk_spar_data_ten_->GetActualRawDataSize();
+    cout  << IndentPrinter(indent_level+1) 
+          << "actual data size:\t" << data_size << "\n";
+    cout  << IndentPrinter(indent_level+1) 
+          << "tensor sparsity:\t" << double(data_size) / double(size_) << endl;
+}
 
 /**
 Calculate shape from tensor rank.

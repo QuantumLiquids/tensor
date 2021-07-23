@@ -391,7 +391,6 @@ std::map<size_t, DataBlkMatSvdRes<ElemT>>
 BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
     const IdxDataBlkMatMap<QNT> &idx_data_blk_mat_map
 ) const {
-  Timer svd_raw_data("svd_raw_data");
   using hp_numeric::tensor_decomp_outer_parallel_num_threads;
   using hp_numeric::tensor_decomp_inner_parallel_num_threads;
   using std::map;
@@ -451,6 +450,10 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
     }
     delete[] iter_vector;
   }else{
+#ifdef GQTEN_TIMING_MODE
+  Timer svd_mkl_timer("   =============> svd raw mkl");
+  svd_mkl_timer.Suspend();
+#endif
     for(auto&[idx, data_blk_mat]: idx_data_blk_mat_map){
       ElemT *mat = RawDataGenDenseDataBlkMat_(data_blk_mat);
       ElemT *u = nullptr;
@@ -459,12 +462,20 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
       size_t m = data_blk_mat.rows;
       size_t n = data_blk_mat.cols;
       size_t k = m > n ? n : m;
+#ifdef GQTEN_TIMING_MODE
+  svd_mkl_timer.Restart();
+#endif
       hp_numeric::MatSVD(mat, m, n, u, s, vt);
+#ifdef GQTEN_TIMING_MODE
+  svd_mkl_timer.Suspend();
+#endif
       free(mat);
       idx_svd_res_map[idx] =  DataBlkMatSvdRes<ElemT>(m, n, k, u, s, vt);
     }
+#ifdef GQTEN_TIMING_MODE
+  svd_mkl_timer.PrintElapsed();
+#endif
   }
-  svd_raw_data.PrintElapsed();
   if(tensor_decomp_outer_parallel_num_threads>1 ){
     mkl_set_num_threads_local(0);
   }

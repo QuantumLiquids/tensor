@@ -21,6 +21,9 @@
 #include <time.h>
 #include <sys/time.h>
 
+#define STATUS bool
+#define SLEEPING false
+#define RUNNING true
 
 namespace gqten {
 
@@ -37,15 +40,37 @@ public:
   */
   Timer(const std::string &notes) :
       start_(GetWallTime_()),
+      pass_(0.0),
+      status_(RUNNING),
       notes_(notes) {}
 
   Timer(void) : Timer("") {}
 
+  void Suspend(void) { 
+    assert(status_==RUNNING);
+    pass_ += GetWallTime_() - start_;
+    status_ = SLEEPING;
+  }
   /// Restart the timer.
-  void Restart(void) { start_ = GetWallTime_(); }
+  void Restart(void) {
+    assert(status_==SLEEPING);
+    start_ = GetWallTime_(); 
+    status_ = RUNNING;
+  }
+  void ClearAndRestart(void){
+    pass_ = 0.0;
+    start_ = GetWallTime_(); 
+    status_ = RUNNING;
+  }
 
   /// Return elapsed time (seconds).
-  double Elapsed(void) { return GetWallTime_() - start_; }
+  double Elapsed(void) { 
+    if(status_==RUNNING){
+      return GetWallTime_() - start_ + pass_; 
+    }else{
+      return pass_;
+    }
+  }
 
   /**
   Print elapsed time with the notes.
@@ -68,6 +93,8 @@ public:
 
 private:
   double start_;
+  double pass_;
+  STATUS status_; 
   std::string notes_;
 
   double GetWallTime_(void) {
