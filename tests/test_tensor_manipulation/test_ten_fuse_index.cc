@@ -99,39 +99,6 @@ IndexT RandIndex(const unsigned qn_sct_num,  //how many quantum number sectors?
     }
     return Index(qnsv, dir);
 }
-template <typename QNT>
-std::string ElemenTypeOfTensor(GQTensor<GQTEN_Double,QNT> & t){
-    return "GQTEN_Double";
-}
-
-template <typename QNT>
-std::string ElemenTypeOfTensor(GQTensor<GQTEN_Complex,QNT> & t){
-    return "GQTEN_Complex";
-}
-
-template <typename TenElemT, typename QNT>
-void ConciseShow(GQTensor<TenElemT,QNT>& t){
-    using std::cout;
-    using std::endl;
-    cout << "  Tensor Concise Info: " <<"\n";
-    ShapeT shape = t.GetShape();
-    cout << "\t tensor shape: " << "\t[";
-    for(size_t i = 0;i<shape.size();i++){
-        if(i<shape.size()-1){
-            cout << shape[i] << ",  ";
-        }else{
-            cout << shape[i] <<"]\n";
-        }
-    }
-    cout << "\t tensor elementary type: " << ElemenTypeOfTensor(t) << "\n";
-    cout << "\t tensor qn block number: " << t.GetQNBlkNum() << "\n";
-    unsigned total_size = t.size();
-    unsigned data_size = t.GetBlkSparDataTen().GetActualRawDataSize();
-    cout << "\t tensor size(product of shape):" << total_size<<"\n";
-    cout << "\t actual data size: " << data_size <<"\n";
-    cout << "\t tensor sparsity: " << double(data_size) / double(total_size) << endl;
-}
-
 
 
 
@@ -142,7 +109,7 @@ void RunTestTenFuseIndexBenchMarkByIndexCombinerCase(
     const size_t idx1,
     const size_t idx2
 ) {
-  ConciseShow(a);
+  a.ConciseShow();
   using TenT = GQTensor<TenElemT, QNT>;
   TenT correct_res;
   Index<QNT> index1 = a.GetIndexes()[idx1];

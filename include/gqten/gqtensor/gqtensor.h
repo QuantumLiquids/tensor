@@ -134,7 +134,7 @@ public:
   void StreamWrite(std::ostream &) const override;
 
   void Show(const size_t indent_level = 0) const override;
-
+  void ConciseShow(const size_t indent_level = 0) const;
 private:
   /// The rank of the GQTensor.
   size_t rank_ = 0;
