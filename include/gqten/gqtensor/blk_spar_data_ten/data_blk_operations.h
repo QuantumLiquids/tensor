@@ -19,6 +19,7 @@
 #include "gqten/gqtensor/blk_spar_data_ten/raw_data_operations.h"
 #include "gqten/gqtensor/blk_spar_data_ten/raw_data_operation_tasks.h"
 #include "gqten/framework/hp_numeric/lapack.h"    // MatSVD, MatQR
+#include "gqten/utility/timer.h"
 
 #include <cstring>      // memcpy
 #ifdef Release
@@ -387,6 +388,10 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
     const IdxDataBlkMatMap<QNT> &idx_data_blk_mat_map
 ) const {
   std::map<size_t, DataBlkMatSvdRes<ElemT>> idx_svd_res_map;
+#ifdef GQTEN_TIMING_MODE
+  Timer svd_mkl_timer("   =============> svd raw mkl");
+  svd_mkl_timer.Suspend();
+#endif
   for (auto &idx_data_blk_mat : idx_data_blk_mat_map) {
     auto idx = idx_data_blk_mat.first;
     auto data_blk_mat = idx_data_blk_mat.second;
@@ -397,10 +402,19 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
     size_t m = data_blk_mat.rows;
     size_t n = data_blk_mat.cols;
     size_t k = m > n ? n : m;
+#ifdef GQTEN_TIMING_MODE
+  svd_mkl_timer.Restart();
+#endif
     hp_numeric::MatSVD(mat, m, n, u, s, vt);
+#ifdef GQTEN_TIMING_MODE
+  svd_mkl_timer.Suspend();
+#endif
     free(mat);
     idx_svd_res_map[idx] = DataBlkMatSvdRes<ElemT>(m, n, k, u, s, vt);
   }
+#ifdef GQTEN_TIMING_MODE
+  svd_mkl_timer.PrintElapsed();
+#endif
   return idx_svd_res_map;
 }
 
