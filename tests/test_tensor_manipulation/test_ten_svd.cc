@@ -598,39 +598,6 @@ IndexT RandIndex(const unsigned qn_sct_num,  //how many quantum number sectors?
     return Index(qnsv, dir);
 }
 
-template <typename QNT>
-std::string ElemenTypeOfTensor(GQTensor<GQTEN_Double,QNT> & t){
-    return "GQTEN_Double";
-}
-
-template <typename QNT>
-std::string ElemenTypeOfTensor(GQTensor<GQTEN_Complex,QNT> & t){
-    return "GQTEN_Complex";
-}
-
-template <typename TenElemT, typename QNT>
-void ConciseShow(GQTensor<TenElemT,QNT>& t){
-    using std::cout;
-    using std::endl;
-    cout << "  Tensor Concise Info: " <<"\n";
-    ShapeT shape = t.GetShape();
-    cout << "\t tensor shape: " << "\t[";
-    for(size_t i = 0;i<shape.size();i++){
-        if(i<shape.size()-1){
-            cout << shape[i] << ",  ";
-        }else{
-            cout << shape[i] <<"]\n";
-        }
-    }
-    cout << "\t tensor elementary type: " << ElemenTypeOfTensor(t) << "\n";
-    cout << "\t tensor qn block number: " << t.GetQNBlkNum() << "\n";
-    unsigned total_size = t.size();
-    unsigned data_size = t.GetBlkSparDataTen().GetActualRawDataSize();
-    cout << "\t tensor size(product of shape):" << total_size<<"\n";
-    cout << "\t actual data size: " << data_size <<"\n";
-    cout << "\t tensor sparsity: " << double(data_size) / double(total_size) << endl;
-}
-
 
 template <typename TenElemT, typename QNT>
 void RunTestSvdOmpCase(
@@ -648,7 +615,7 @@ void RunTestSvdOmpCase(
     t.Random(qn0);
 
     
-    ConciseShow(t);
+    t.ConciseShow();
     // unsigned max_thread = std::thread::hardware_concurrency();
 
     Timer single_thread_timer("svd_no_nested_omp_thread");
@@ -726,10 +693,9 @@ TEST(bench_mark_for_nested_omp_parallel, 2Dcase){
     RunTestSvdOmpCase(t1, 1, 1,
                  1e-8,10,10, 10,2);
 
+    //Below test cases should run on many cpus
     auto index2_in = RandIndex(200,1200,gqten::IN);
-    std::cout << "index2 in dim: "<< index2_in.dim() <<std::endl;
     auto index2_out = RandIndex(200,1000, gqten::OUT);
-    std::cout << "index2 out dim: "<< index2_out.dim() <<std::endl;
     DGQTensor t2({index2_in,index2_out});
 
     RunTestSvdOmpCase(t2, 1, 1,
@@ -749,7 +715,7 @@ TEST(bench_mark_for_nested_omp_parallel, 3Dcase){
     RunTestSvdOmpCase(t2, 2, 1,
                  1e-8,10,10, 10,2);
 
-
+    //Below test cases should run on many cpus
     auto index3_in = RandIndex(100,400,gqten::IN);
     auto index3_out = RandIndex(50,500, gqten::OUT);
     DGQTensor t3({index3_in,index3_out,index2_out});
