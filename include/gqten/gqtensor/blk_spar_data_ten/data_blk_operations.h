@@ -401,7 +401,7 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
   if(tensor_decomp_outer_parallel_num_threads>1 ){
     mkl_set_dynamic(false);
     omp_set_max_active_levels(2);
-    omp_set_nested(true);
+    // omp_set_nested(true);
   }else if(tensor_decomp_outer_parallel_num_threads<=1){
     if(tensor_decomp_outer_parallel_num_threads==0){
       std::cout << "warning: tensor_decomp_outer_parallel_num_threads==0,"
