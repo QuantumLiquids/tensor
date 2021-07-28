@@ -24,6 +24,11 @@
 #include <iterator>     // next
 #include <algorithm>    // is_sorted
 
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/mpi.hpp>
+#include <boost/mpi/request.hpp>
+
 #ifdef Release
   #define NDEBUG
 #endif
@@ -521,6 +526,24 @@ void GQTensor<ElemT, QNT>::StreamRead(std::istream &is) {
 }
 
 
+/**
+Boost serialization
+*/
+template <typename ElemT, typename QNT>
+template <class Archive>
+void GQTensor<ElemT, QNT>::load(Archive &ar, const unsigned int version){
+  assert(IsDefault());
+  ar & rank_;
+  ar & indexes_;
+  ar & shape_;
+  ar & size_;
+  if(size_>0){// not default
+    pblk_spar_data_ten_ = new BlockSparseDataTensor<ElemT, QNT>(&indexes_);
+    ar & (*pblk_spar_data_ten_);
+  }
+}
+
+
 template <typename ElemT, typename QNT>
 void GQTensor<ElemT, QNT>::StreamWrite(std::ostream &os) const {
   assert(!IsDefault());
@@ -528,6 +551,24 @@ void GQTensor<ElemT, QNT>::StreamWrite(std::ostream &os) const {
   for (auto &index : indexes_) { os << index; }
   os << (*pblk_spar_data_ten_);
 }
+
+
+/**
+Boost serialization
+*/
+template <typename ElemT, typename QNT>
+template <class Archive>
+void GQTensor<ElemT, QNT>::save(Archive &ar, const unsigned int version) const{
+  assert(!IsDefault());
+  ar & rank_;
+  ar & indexes_;
+  ar & shape_;
+  ar & size_;
+  ar & (*pblk_spar_data_ten_);
+}
+
+
+
 
 
 template <typename VecElemT>
@@ -593,6 +634,10 @@ void GQTensor<ElemT, QNT>::ConciseShow(const size_t indent_level) const{
           << GetQNBlkNum() << "\n";
     cout  << IndentPrinter(indent_level+1)  
           << "tensor size(product of shape):\t" << size_ <<"\n";
+    if(IsDefault()){
+      cout << IndentPrinter(indent_level+1)  << "default tensor" <<endl;
+      return;
+    }
     unsigned data_size = pblk_spar_data_ten_->GetActualRawDataSize();
     cout  << IndentPrinter(indent_level+1) 
           << "actual data size:\t" << data_size << "\n";
@@ -644,6 +689,66 @@ std::pair<CoorsT, CoorsT> GQTensor<ElemT, QNT>::CoorsToBlkCoorsDataCoors_(
     data_coors.push_back(blk_coor_data_coor.second);
   }
   return make_pair(blk_coors, data_coors);
+}
+
+
+const int kMPIDataTagMultiplyFactor=11;
+
+template <typename ElemT, typename QNT>
+inline void send_gqten(boost::mpi::communicator world,
+                int dest, int tag,
+                const GQTensor<ElemT, QNT>& gqten){
+  world.send(dest,tag+11,gqten.IsDefault());
+  if(gqten.IsDefault()){
+    return;
+  }
+  boost::mpi::request reqs[2];
+  Timer send_gqten_wrap_timer("send_gqten_wrap");
+  reqs[0] = world.isend(dest, tag, gqten);
+  send_gqten_wrap_timer.PrintElapsed();
+  
+  Timer send_gqten_data_timer("send_gqten_data");
+  int tag_data = tag*kMPIDataTagMultiplyFactor+1;
+  const BlockSparseDataTensor<ElemT, QNT>& bsdt=gqten.GetBlkSparDataTen();
+  const ElemT* data_pointer = bsdt.GetActualRawDataPtr();
+  int data_size = bsdt.GetActualRawDataSize();
+  ElemT zero = ElemT(0.0);
+  if( gqten.IsScalar() && data_size==0 ){
+    data_pointer = &zero;
+    data_size = 1;
+  }
+  reqs[1] = world.isend(dest, tag_data, data_pointer, data_size);
+  send_gqten_data_timer.PrintElapsed();
+  boost::mpi::wait_all(reqs,reqs+2);
+}
+
+
+template <typename ElemT, typename QNT>
+inline boost::mpi::status recv_gqten(boost::mpi::communicator world,
+                int source, int tag,
+                GQTensor<ElemT, QNT>& gqten){
+  assert(gqten.IsDefault());
+  bool is_default;
+  world.recv(source,tag+11,is_default);
+  if(is_default){
+    return boost::mpi::status();
+  }
+  // boost::mpi::request reqs[2];
+  Timer recv_gqten_wrap_timer("recv_gqten_wrap");
+  auto s1 = world.recv(source, tag, gqten);
+  recv_gqten_wrap_timer.PrintElapsed();
+
+  Timer recv_gqten_data_timer("recv_gqten_data");
+  int tag_data = tag*kMPIDataTagMultiplyFactor+1;
+  BlockSparseDataTensor<ElemT, QNT>& bsdt=gqten.GetBlkSparDataTen();
+  ElemT* data_pointer = bsdt.pactual_raw_data_;
+  int data_size = bsdt.GetActualRawDataSize();
+  auto s = world.recv(source, tag_data, data_pointer, data_size);
+
+  recv_gqten_data_timer.PrintElapsed();
+  
+  // boost::mpi::wait_all(reqs+1,reqs+2);
+  return s;
 }
 } /* gqten */
 #endif /* ifndef GQTEN_GQTENSOR_GQTENSOR_IMPL_H */

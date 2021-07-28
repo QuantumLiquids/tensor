@@ -22,6 +22,15 @@
 #include "gqten/gqtensor/blk_spar_data_ten/data_blk_mat.h"                // IdxDataBlkMatMap
 #include "gqten/utility/utils_inl.h"                                      // CalcEffOneDimArrayOffset, CalcMultiDimDataOffsets, Reorder, ArrayEq, VecMultiSelectElemts
 
+
+#include <boost/serialization/serialization.hpp>  
+// #include <boost/serialization/map.hpp>    
+#include <boost/serialization/split_member.hpp>
+#include <boost/serialization/array.hpp>
+#include <boost/serialization/array_wrapper.hpp>
+#include <boost/mpi.hpp>
+// #include "gqten/gqtensor/gqtensor.h"
+
 #include <map>              // map
 #include <unordered_map>    // unordered_map
 #include <iostream>         // endl, istream, ostream
@@ -36,6 +45,8 @@
 
 namespace gqten {
 
+template <typename ElemT, typename QNT>
+class GQTensor;
 
 /**
 Block sparse data tensor.
@@ -276,6 +287,19 @@ private:
 
   void RawDataRead_(std::istream &);
   void RawDataWrite_(std::ostream &) const;
+
+
+  friend class boost::serialization::access;
+  template<class Archive>
+  void save(Archive & ar, const unsigned int version) const;
+  template<class Archive>
+  void load(Archive & ar, const unsigned int version);
+  BOOST_SERIALIZATION_SPLIT_MEMBER()
+
+  template <typename ElemT2, typename QNT2>
+  friend inline boost::mpi::status recv_gqten(boost::mpi::communicator world,
+                int source, int tag,
+                GQTensor<ElemT2, QNT2>& gqten);
 };
 
 
@@ -504,6 +528,51 @@ void BlockSparseDataTensor<ElemT, QNT>::StreamWrite(std::ostream &os) const {
   }
 }
 
+
+template <typename ElemT, typename QNT>
+template <class Archive>
+void BlockSparseDataTensor<ElemT, QNT>::save(Archive & ar, const unsigned int version) const{
+  ar & blk_idx_data_blk_map_.size();
+  for (auto &blk_idx_data_blk : blk_idx_data_blk_map_) {
+    for (auto &blk_coor : blk_idx_data_blk.second.blk_coors) {
+      ar & blk_coor;
+    }
+  }
+
+  // if (IsScalar() && actual_raw_data_size_ == 0) {     // Empty scalar case
+  //   // std::cout << "This is a keng for IsScalar() && actual_raw_data_size_ == 0" <<std::endl;
+  //   // assert(0);
+  //   // ElemT zero=0.0;
+  //   // ar & zero;
+  //   // ar & boost::serialization::make_array<ElemT>(&zero, 1);
+  // } else {
+  //   // ar & boost::serialization::make_array<ElemT>(pactual_raw_data_, actual_raw_data_size_);
+  //   // for(ElemT* point = pactual_raw_data_; point<pactual_raw_data_+actual_raw_data_size_;point++ )
+  //   // ar & (*point);
+  // }
+}
+
+template <typename ElemT, typename QNT>
+template <class Archive>
+void BlockSparseDataTensor<ElemT, QNT>::load(Archive & ar, const unsigned int version){
+  size_t data_blk_num;
+  ar & data_blk_num;
+  for (size_t i = 0; i < data_blk_num; ++i) {
+    CoorsT blk_coors(ten_rank);
+    for (size_t j = 0; j < ten_rank; ++j) {
+      ar & blk_coors[j];
+    }
+    DataBlkInsert(blk_coors, false);
+  }
+
+  if (IsScalar()) { raw_data_size_ = 1; }
+
+  Allocate();
+  // ar & boost::serialization::make_array<ElemT>(pactual_raw_data_, raw_data_size_);
+  // for(ElemT* point = pactual_raw_data_; point<pactual_raw_data_+actual_raw_data_size_;point++ )
+  //   ar & (*point);
+  // ar & pactual_raw_data_;
+}
 
 
 /**

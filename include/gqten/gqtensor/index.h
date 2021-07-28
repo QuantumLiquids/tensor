@@ -22,6 +22,8 @@
 #include "gqten/framework/bases/showable.h"     // Showable
 #include "gqten/framework/vec_hash.h"           // VecHasher
 #include "gqten/gqtensor/qnsct.h"               // QNSectorVec
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/vector.hpp>
 
 #include <functional>     // std::hash
 #include <string>         // string
@@ -240,6 +242,15 @@ private:
   size_t CalcHash_(void) {
     std::hash<int> int_hasher;
     return VecHasher(qnscts_) ^ int_hasher(dir_);
+  }
+
+  friend class boost::serialization::access;
+  template<class Archive>
+  void serialize(Archive & ar, const unsigned int version){
+    ar & dir_;
+    ar & dim_;
+    ar & hash_;
+    ar & qnscts_;
   }
 };
 
