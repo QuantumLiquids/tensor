@@ -95,3 +95,23 @@ add_unittest(test_ten_fuse_index
   "test_tensor_manipulation/test_ten_fuse_index.cc"
   "${MATH_LIB_COMPILE_FLAGS}" "" "${MATH_LIB_LINK_FLAGS}"
 )
+
+# Test tensor comminutation for serialization
+add_unittest(test_boost_serialization
+  "test_gqtensor/test_boost_serialization.cc"
+  "${MATH_LIB_COMPILE_FLAGS}" "" "${MATH_LIB_LINK_FLAGS}"
+)
+
+
+# Test tensor comminutation for mpi
+add_unittest(test_boost_mpi
+  "test_gqtensor/test_boost_mpi.cc"
+  "${MATH_LIB_COMPILE_FLAGS}" "" "${MATH_LIB_LINK_FLAGS}"
+)
+
+
+Test tensor restriction contract 
+add_unittest(test_ten_ctrct_1sector
+  "test_tensor_manipulation/test_ten_ctrct_1sector.cc"
+  "${MATH_LIB_COMPILE_FLAGS}" "" "${MATH_LIB_LINK_FLAGS}"
+)

@@ -93,9 +93,19 @@ public:
       const ElemT *
   );
 
-std::vector<RawDataCtrctTask> DataBlkGenForTenCtrct(
+  std::vector<RawDataCtrctTask> DataBlkGenForTenCtrct(
       const BlockSparseDataTensor &,
       const BlockSparseDataTensor &,
+      const std::vector<std::vector<size_t>> &
+  );
+
+    std::vector<RawDataCtrctTask> DataBlkGenForTenCtrct(
+      const BlockSparseDataTensor &,
+      const size_t, 
+      const size_t,
+      const BlockSparseDataTensor &,
+      const size_t,
+      const size_t,
       const std::vector<std::vector<size_t>> &
   );
 

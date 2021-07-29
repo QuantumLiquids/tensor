@@ -429,6 +429,8 @@ void BlockSparseDataTensor<ElemT, QNT>::CtrctTwoBSDTAndAssignIn(
   std::unordered_map<size_t, ElemT *> a_blk_idx_transed_data_map;
   std::unordered_map<size_t, ElemT *> b_blk_idx_transed_data_map;
   RawDataCtrctTask::SortTasksByCBlkIdx(raw_data_ctrct_tasks);
+  // Timer contract_mkl_timer("gemm");
+  // contract_mkl_timer.Suspend();
   for (auto &task : raw_data_ctrct_tasks) {
     const ElemT *a_data;
     const ElemT *b_data;
@@ -478,6 +480,7 @@ void BlockSparseDataTensor<ElemT, QNT>::CtrctTwoBSDTAndAssignIn(
     } else {
       b_data = bsdt_b.pactual_raw_data_ + task.b_data_offset;
     }
+    // contract_mkl_timer.Restart();
     RawDataTwoMatMultiplyAndAssignIn_(
         a_data,
         b_data,
@@ -485,8 +488,9 @@ void BlockSparseDataTensor<ElemT, QNT>::CtrctTwoBSDTAndAssignIn(
         task.m, task.k, task.n,
         task.beta
     );
+    // contract_mkl_timer.Suspend();
   }
-
+  // contract_mkl_timer.PrintElapsed();
   for (auto &blk_idx_transed_data : a_blk_idx_transed_data_map) {
     free(blk_idx_transed_data.second);
   }
