@@ -6,6 +6,7 @@
 * Description: GraceQ/tensor project. Unittests for Boost MPI of GQTensor.
 */
 
+//Note run this executable as: /usr/bin/mpirun -np 2 ./tests/test_boost_mpi
 #include "gqten/gqten.h"      // GQTensor, Index, QN, U1QNVal, QNSectorVec
 #include "gqten/utility/utils_inl.h"        // GenAllCoors
 #include "gqten/utility/timer.h"
@@ -28,6 +29,8 @@ namespace mpi = boost::mpi;
 using namespace gqten;
 
 using U1QN = QN<U1QNVal>;
+using U1U1QN = QN<U1QNVal, U1QNVal>;
+using DGQTensor2 = GQTensor<GQTEN_Double,U1U1QN>;
 using IndexT = Index<U1QN>;
 using QNSctT = QNSector<U1QN>;
 using QNSctVecT = QNSectorVec<U1QN>;
@@ -88,75 +91,16 @@ IndexT RandIndex(const unsigned qn_sct_num,  //how many quantum number sectors?
 }
 
 
-// TEST_F(TestGQTensor, TestSerializationRandomTensor){
-//     std::ofstream ofs("dten_default.gqten");
-//     boost::archive::binary_oarchive oa(ofs);
-
-//     auto index1_in = RandIndex(5,4, gqten::IN);
-//     auto index2_in = RandIndex(4,6, gqten::IN);
-//     auto index1_out = RandIndex(3,3, gqten::OUT);
-//     auto index2_out = RandIndex(2,5, gqten::OUT);
-
-//     DGQTensor t1({index2_out,index1_in,index2_in, index1_out});
-//     t1.Random(qn0);
-//     t1.ConciseShow();
-//     oa << t1;
-//     ofs.close();
-    
-
-//     std::ifstream ifs("dten_default.gqten");
-//     boost::archive::binary_iarchive ia(ifs);
-
-//     DGQTensor t2;
-//     ia >> t2;
-//     ifs.close();
-//     EXPECT_EQ(t1, t2);
-// }
-
-
 int main(int argc, char* argv[])
 {
-  
-  // const size_t num_data = 1e7;
-
-/*
-  MPI_Init(&argc, &argv);
-  int rank;
-  double* A = new double[num_data];
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  if (rank == 0) {
-    Timer transfer_array_MPI("transfer_array_by_MPI");
-    int result = MPI_Send(A, num_data, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD);
-    if (result == MPI_SUCCESS)
-      std::cout << "Rank 0 OK!" << std::endl;
-    result = MPI_Recv(A, num_data, MPI_DOUBLE, 1, 2, MPI_COMM_WORLD,
-			  MPI_STATUS_IGNORE);
-    if (result == MPI_SUCCESS)
-      std::cout << "Rank 0 OK!" << std::endl;
-    transfer_array_MPI.PrintElapsed();
-  } else if (rank == 1) {
-    int result = MPI_Recv(A, num_data, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD,
-			  MPI_STATUS_IGNORE);
-    if (result == MPI_SUCCESS)
-      std::cout << "Rank 1 OK!" << std::endl;
-
-    result = MPI_Send(A, num_data, MPI_DOUBLE, 0, 2, MPI_COMM_WORLD);
-    if (result == MPI_SUCCESS)
-      std::cout << "Rank 1 OK!" << std::endl;
-  }
-  delete[] A;
-
-  MPI_Finalize();
-*/
-
-/*
   mpi::environment env;
   mpi::communicator world;
+  const size_t num_data = 1e7;
   double* B = new double[num_data];
-  // auto B = boost::serialization::make_array(A, num_data);
   if (world.rank() == 0) {
-    Timer transfer_array_boost("transfer_array_by_boost");
-    
+    std::cout << "Test transfers " << num_data <<" double array efficiency by boost." << "\n";
+    std::cout << "(The efficiency should almost the same with C API MPI." << std::endl;
+    Timer transfer_array_boost("send_and_recv_array_by_boost");
     world.send(1, 0, B, num_data);
     world.recv(1, 2, B, num_data);
     transfer_array_boost.PrintElapsed();
@@ -166,85 +110,96 @@ int main(int argc, char* argv[])
   }
   delete[] B;
 
-
-
-
-  return 0;
-*/
-  mpi::environment env;
-  mpi::communicator world;
-  if (world.rank() == 0) {
-    
-    // auto index1_in = RandIndex(50,400, gqten::IN);
-    // auto index2_in = RandIndex(4,1, gqten::IN);
-    // auto index1_out = RandIndex(4,1, gqten::OUT);
-    // auto index2_out = RandIndex(50,400, gqten::OUT);
+  if(world.rank() == 0){
+    std::cout << "Test for random tensor." <<std::endl;
+    auto index1_in = RandIndex(50,400, gqten::IN);
+    auto index2_in = RandIndex(4,1, gqten::IN);
+    auto index1_out = RandIndex(4,1, gqten::OUT);
+    auto index2_out = RandIndex(50,400, gqten::OUT);
 
     // auto index1_in = RandIndex(1,40, gqten::IN);
     // auto index2_in = RandIndex(1,4, gqten::IN);
     // auto index1_out = RandIndex(1,2, gqten::OUT);
     // auto index2_out = RandIndex(1,20, gqten::OUT);
 
-    // DGQTensor t1({index2_out,index1_in,index2_in, index1_out});
-    // t1.Random(qn0);
-    DGQTensor t1;
-    std::ifstream ifs("/Users/hxwang/Documents/mps_ten1.gqten", std::ifstream::binary);
-    if(ifs.good()){
-      std::cout << "open file success" << std::endl;
-    }else{
-      std::cout << "open file fail" << std::endl;
-      exit(0);
-    }
-    ifs >> t1;
-    std::cout << "load success" << std::endl;
-    // world.send(1, 235, std::string("load_finished!"));
+    DGQTensor t1({index2_out,index1_in,index2_in, index1_out});
+    t1.Random(qn0);
+
 
     t1.ConciseShow();
 
     Timer mpi_double_transf_timer("mpi_send_recv_send");
     send_gqten(world,1, //to process 1
-    0,//tag 
+    35,//tag 
     t1);
     
     DGQTensor t3;// will receive the t2 in process1
-    recv_gqten<GQTEN_Double,U1QN>(world,1,// from process1
-    3,//tag 
+    recv_gqten(world,1,// from process1
+    37,//tag 
     t3);
 
     mpi_double_transf_timer.PrintElapsed();
-    // t3.ConciseShow();
-    if(t1==t3){
-      std::cout << "Send-Receive-Send Success." << std::endl;
-    }else{
-      // assert(t1==t3);
-    }
-
-  } else {
+    assert(t1==t3);
+    std::cout << "Send-Receive-Send For Random Tensor Success." << std::endl;
+  }else {
     DGQTensor t2;
 
-    // std::string msg;
-    // world.recv(0, 235, msg);
-    // std::cout << msg << std::endl;
-
-    recv_gqten<GQTEN_Double,U1QN>(world,0,// from process1
-     0,//tag 
+    recv_gqten(world,0,// from process1
+    35,//tag 
     t2);
-    t2.ConciseShow();
 
     send_gqten(world,0,
-    3,
+    37,
     t2);
-
-    // Timer write_read_disk_timer("write_read_disk");
-    // std::ofstream ofs("A.gqten");
-    // ofs << t2;
-    // ofs.close();
-
-    // std::ifstream ifs("A.gqten");
-    // DGQTensor t3;
-    // ifs >> t3;
-    // write_read_disk_timer.PrintElapsed();
   }
 
 
+  std::string file="mps_ten987.gqten";
+  const std::string FAIL_SIGNAL = "open file " + file + " fail.";
+  if (world.rank() == 0) {
+    std::cout << "Test for loaded mps tensor" <<std::endl;
+    DGQTensor2 t1;
+    std::ifstream ifs(file, std::ifstream::binary);
+    if(!ifs.good()){
+      world.send(1, 235, std::string(FAIL_SIGNAL));
+    }else{
+      ifs >> t1;
+      world.send(1, 235, std::string("read tensor success!"));
+
+      t1.ConciseShow();
+
+      Timer mpi_double_transf_timer("mpi_send_recv_send");
+      send_gqten(world,1, //to process 1
+      0,//tag 
+      t1);
+    
+      DGQTensor2 t3;// will receive the t2 in process1
+      recv_gqten(world,1,// from process1
+      3,//tag 
+      t3);
+
+      mpi_double_transf_timer.PrintElapsed();
+      assert(t1==t3);
+      std::cout << "Send-Receive-Send For Tensor In File " 
+              << file << " Success." << std::endl;
+    }
+
+  } else {
+    DGQTensor2 t2;
+
+    std::string msg;
+    world.recv(0, 235, msg);
+    std::cout << msg << std::endl;
+
+    if(msg != FAIL_SIGNAL){
+      recv_gqten(world,0,// from process1
+      0,//tag 
+      t2);
+
+      send_gqten(world,0,
+      3,
+      t2);
+    }
+  }
+  return 0;
 }

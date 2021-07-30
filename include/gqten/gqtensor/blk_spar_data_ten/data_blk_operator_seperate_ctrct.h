@@ -51,8 +51,8 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
                             a_trans_orders,
                             b_trans_orders
                         );
-  std::__1::map<size_t, gqten::DataBlk<QNT>> a_blk_idx_data_blk_map = bsdt_a.GetBlkIdxDataBlkMap();
-  std::__1::map<size_t, gqten::DataBlk<QNT>> b_blk_idx_data_blk_map = bsdt_b.GetBlkIdxDataBlkMap();
+  std::map<size_t, gqten::DataBlk<QNT>> a_blk_idx_data_blk_map = bsdt_a.GetBlkIdxDataBlkMap();
+  std::map<size_t, gqten::DataBlk<QNT>> b_blk_idx_data_blk_map = bsdt_b.GetBlkIdxDataBlkMap();
   if(idx_a < bsdt_a.ten_rank ){
     for(auto iter = a_blk_idx_data_blk_map.begin();
              iter != a_blk_idx_data_blk_map.end();){

@@ -269,7 +269,7 @@ void QN<QNValTs...>::Show(const size_t indent_level) const {
     qnval->Show(indent_level + 1);
   }
 }
-
+class U1QNVal;
 template <typename... QNValTs>
 template <class Archive>
 void QN<QNValTs...>::save(Archive & ar, const unsigned int version) const {

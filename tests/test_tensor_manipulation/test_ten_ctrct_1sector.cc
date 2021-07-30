@@ -122,6 +122,10 @@ TEST_F(TestContraction, 3DCase){
 
   EXPECT_EQ(sum_ten, res_ten);
 
+  // Let
+
+
+
   for(size_t i=0;i<num_qn;i++){
     delete split_tens[i];
   }
@@ -132,19 +136,20 @@ TEST_F(TestContraction, 3DCase){
 TEST(ActualCombat, SSHHubbardD14000){
   using U1U1QN = QN<U1QNVal,U1QNVal>;
   using DGQTensor2 = GQTensor<GQTEN_Double,U1U1QN>;
-  std::ifstream ifs("/Users/hxwang/Downloads/mps_ten680.gqten");
+  std::string file = "mps_ten680.gqten";
+  std::ifstream ifs(file);
   if(!ifs.good()){
-    std::cout << "opening file does not success(680)!" <<std::endl;
+    std::cout << "opening file " << file <<" fails." <<std::endl;
     exit(1);
   }
   DGQTensor2 mps680;
   ifs >> mps680;
   ifs.close();
 
-
-  ifs.open("/Users/hxwang/Downloads/mps_ten681.gqten");
+  file = "mps_ten681.gqten";
+  ifs.open(file);
   if(!ifs.good()){
-    std::cout << "opening file does not success(681)!" <<std::endl;
+    std::cout << "opening file " << file <<" fails." <<std::endl;
     exit(1);
   }
   DGQTensor2 mps681;
@@ -163,7 +168,7 @@ TEST(ActualCombat, SSHHubbardD14000){
 
   
   Timer contract_split_timer("split contract");
-  size_t split_idx = 0;
+  size_t split_idx = 1;
   size_t num_qn = mps680.GetIndexes()[split_idx].GetQNSctNum();
   std::vector<DGQTensor2 *> split_tens( num_qn );
   for(size_t i=0;i<num_qn;i++){

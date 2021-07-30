@@ -19,7 +19,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/Modules/
 
 # Build type.
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
+	set(CMAKE_BUILD_TYPE Debug)
 endif()
 
 if(${CMAKE_BUILD_TYPE} MATCHES Debug)
@@ -28,7 +28,6 @@ endif()
 
 
 # Advanced options.
-option(GQTEN_BUILD_UNITTEST "Build unittests for GraceQ/tensor." OFF)
 option(GQTEN_BUILD_UNITTEST "Build unittests for GraceQ/tensor." ON)
 
 option(GQTEN_TIMING_MODE "Timing mode." ON)
@@ -67,7 +66,7 @@ elseif(UNIX)
   if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     set(MATH_LIB_COMPILE_FLAGS -m64 -I$ENV{MKLROOT}/include)
     # Link the Intel's OpenMP library to avoid performance issue when the library calls the MKL's gesdd function.
-    set(MATH_LIB_LINK_FLAGS -Wl,--start-group $ENV{MKLROOT}/lib/intel64/libmkl_intel_lp64.a $ENV{MKLROOT}/lib/intel64/libmkl_intel_thread.a $ENV{MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -L$ENV{MKLROOT}/lib/intel64 -liomp5 -lpthread -lm -ldl)
+    set(MATH_LIB_LINK_FLAGS -Wl,--start-group $ENV{MKLROOT}/lib/intel64/libmkl_intel_lp64.a $ENV{MKLROOT}/lib/intel64/libmkl_intel_thread.a $ENV{MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -L$ENV{MKLROOT}/lib/intel64 -L/opt/intel/lib/intel64 -liomp5 -lpthread -lm -ldl)
   endif()
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(MATH_LIB_COMPILE_FLAGS -m64 -I$ENV{MKLROOT}/include)
