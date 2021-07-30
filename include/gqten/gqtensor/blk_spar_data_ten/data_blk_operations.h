@@ -56,6 +56,8 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkInsert(
   for (auto &idx_blk : blk_idx_data_blk_map_) {
     if (idx_blk.first < blk_idx) {
       total_data_offset += idx_blk.second.size;
+      //Does this summation is necessary? 
+      //we can use iterator to get idx_blk's last idx_blk and get the offset
     } else if (idx_blk.first > blk_idx) {
       idx_blk.second.data_offset += inserted_data_size;
     } else {

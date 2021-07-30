@@ -152,6 +152,12 @@ std::vector<RawDataCtrctTask> DataBlkGenForTenCtrct(
       const std::map<size_t, size_t> &
   );
 
+  void ConstructMCExpandedDataOnFirstIndex(
+      const BlockSparseDataTensor &,
+      const BlockSparseDataTensor &,
+      const std::map<size_t, int> &
+  );
+
   void CopyFromReal(const BlockSparseDataTensor<GQTEN_Double, QNT> &);
 
   // Operators overload

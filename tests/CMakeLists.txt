@@ -95,3 +95,9 @@ add_unittest(test_ten_fuse_index
   "test_tensor_manipulation/test_ten_fuse_index.cc"
   "${MATH_LIB_COMPILE_FLAGS}" "" "${MATH_LIB_LINK_FLAGS}"
 )
+
+# Test tensor magic changing expansion
+add_unittest(test_ten_mc_expand
+  "test_tensor_manipulation/test_ten_mc_expand.cc"
+  "${MATH_LIB_COMPILE_FLAGS}" "" "${MATH_LIB_LINK_FLAGS}"
+)

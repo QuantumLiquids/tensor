@@ -687,6 +687,64 @@ void BlockSparseDataTensor<ElemT, QNT>::ConstructExpandedDataOnFirstIndex(
 
 
 /**
+Construct tensor (magic changing version) expansion data over the first index, from corresponding BSDTs.
+The DataBlk in new tensor come from `bsdt_a` and `bsdt_b`.
+The new generated DataBlk's index is the same with the index in `bsdt_a`.
+*/
+template <typename ElemT, typename QNT>
+void BlockSparseDataTensor<ElemT, QNT>::ConstructMCExpandedDataOnFirstIndex(
+    const BlockSparseDataTensor &bsdt_a,
+    const BlockSparseDataTensor &bsdt_b,
+    const std::map<size_t, int> &b_idx_qnsct_coor_expanded_idx_qnsct_coor_map
+){
+  blk_idx_data_blk_map_ = bsdt_a.GetBlkIdxDataBlkMap();
+  raw_data_size_ = bsdt_a.GetActualRawDataSize();
+  std::map<size_t,size_t> blk_idx_in_b_mapto_blk_idx_in_expanded_bsdt;
+  auto blk_idx_data_blk_map_b = bsdt_b.GetBlkIdxDataBlkMap();
+  for(auto iter = blk_idx_data_blk_map_b.begin();
+           iter !=  blk_idx_data_blk_map_b.cend();){
+    auto blk_idx_data_blk  = (*iter);
+    DataBlk<QNT> data_blk = blk_idx_data_blk.second;
+    size_t first_coor_in_b = data_blk.blk_coors[0];
+    if(b_idx_qnsct_coor_expanded_idx_qnsct_coor_map.at(first_coor_in_b) == -1 ){
+      blk_idx_data_blk_map_b.erase(iter++);
+    }else{
+      size_t first_coor = b_idx_qnsct_coor_expanded_idx_qnsct_coor_map.at(first_coor_in_b);
+      CoorsT blk_coor = data_blk.blk_coors; blk_coor[0]=first_coor;
+      DataBlkInsert(blk_coor,false);  
+      blk_idx_in_b_mapto_blk_idx_in_expanded_bsdt.insert(
+        std::make_pair(  blk_idx_data_blk.first,  BlkCoorsToBlkIdx(blk_coor)  ) 
+            );
+      iter++;
+    }
+  }
+  std::vector<RawDataCopyTask> tasks;
+  tasks.reserve(blk_idx_in_b_mapto_blk_idx_in_expanded_bsdt.size());
+  for(auto& blk_idx_data_blk: blk_idx_data_blk_map_b){
+    size_t blk_idx = blk_idx_in_b_mapto_blk_idx_in_expanded_bsdt.at(blk_idx_data_blk.first);//dest blk_idx
+    DataBlk<QNT> data_blk = blk_idx_data_blk.second;//src data_blk
+    RawDataCopyTask task(
+      data_blk.blk_coors , //src_blk_coors
+      data_blk.data_offset, //src_data_offset
+      data_blk.size, //src_data_size
+      blk_idx_data_blk_map_[blk_idx].data_offset, //dest_data_offset
+      false);
+      tasks.push_back(task);
+  }
+  
+  Allocate(false);
+  
+  memcpy(
+          pactual_raw_data_,
+          bsdt_a.GetActualRawDataPtr(),
+          bsdt_a.GetActualRawDataSize() * sizeof(ElemT)
+      );
+  RawDataCopy_(tasks, bsdt_b.GetActualRawDataPtr());
+}
+
+
+
+/**
 Copy contents from a real block sparse data tensor.
 
 @param real_bsdt A real block sparse data tensor.
