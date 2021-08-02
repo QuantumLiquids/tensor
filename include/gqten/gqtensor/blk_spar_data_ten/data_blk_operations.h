@@ -144,7 +144,7 @@ void BlockSparseDataTensor<ElemT, QNT>::DataBlkCopyAndScale(
 
 
 // Some helpers for tensor contraction
-std::vector<std::vector<size_t>> TenCtrctGenSavedAxesSet(
+inline std::vector<std::vector<size_t>> TenCtrctGenSavedAxesSet(
     const size_t a_rank,
     const size_t b_rank,
     const std::vector<std::vector<size_t>> &ctrct_axes_set
@@ -175,7 +175,7 @@ std::vector<std::vector<size_t>> TenCtrctGenSavedAxesSet(
 }
 
 
-std::pair<bool, bool> TenCtrctNeedTransCheck(
+inline std::pair<bool, bool> TenCtrctNeedTransCheck(
     const std::vector<std::vector<size_t>> &ctrct_axes_set,
     const std::vector<std::vector<size_t>> &saved_axes_set,
     std::vector<size_t> &a_trans_orders,
@@ -211,7 +211,7 @@ std::pair<bool, bool> TenCtrctNeedTransCheck(
 }
 
 
-CoorsT GenTenCtrctDataBlkCoors(
+inline CoorsT GenTenCtrctDataBlkCoors(
     const CoorsT &a_blk_coors,
     const CoorsT &b_blk_coors,
     const std::vector<std::vector<size_t>> &saved_axes_set
