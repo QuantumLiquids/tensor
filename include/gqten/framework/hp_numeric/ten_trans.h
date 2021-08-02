@@ -30,15 +30,15 @@ namespace hp_numeric {
 const int kTensorTransposeDefaultNumThreads = 4;
 
 
-int tensor_transpose_num_threads = kTensorTransposeDefaultNumThreads;
+inline int tensor_transpose_num_threads = kTensorTransposeDefaultNumThreads;
 
 
-int TensorTransposeNumThreads(void) {
+inline int TensorTransposeNumThreads(void) {
   return tensor_transpose_num_threads;
 }
 
 
-void SetTensorTransposeNumThreads(const int num_threads) {
+inline void SetTensorTransposeNumThreads(const int num_threads) {
   tensor_transpose_num_threads = num_threads;
 }
 
