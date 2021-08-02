@@ -242,7 +242,7 @@ void SVD(
 }
 
 
-GQTEN_Double SumSV2(
+inline GQTEN_Double SumSV2(
     const std::vector<TruncedSVInfo> &trunced_sv_info,
     const size_t beg,
     const size_t end
@@ -343,7 +343,7 @@ std::vector<TruncedSVInfo> TensorSVDExecutor<TenElemT, QNT>::CalcTruncedSVInfo_(
 }
 
 
-std::map<size_t, SDataBlkInfo> GenIdxSDataBlkInfoMap(
+inline std::map<size_t, SDataBlkInfo> GenIdxSDataBlkInfoMap(
     const std::vector<TruncedSVInfo> &trunced_sv_info
 ) {
   std::map<size_t, SDataBlkInfo> idx_s_data_blk_info_map;
