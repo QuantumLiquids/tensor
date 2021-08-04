@@ -30,6 +30,7 @@ namespace hp_numeric {
 
     void SetTensorManipulationTotalThreads(unsigned thread){
         assert(thread>0);
+        tensor_transpose_num_threads = thread;
         tensor_manipulation_total_num_threads = thread;
         tensor_decomp_inner_parallel_num_threads = tensor_manipulation_total_num_threads/tensor_decomp_outer_parallel_num_threads;
     }

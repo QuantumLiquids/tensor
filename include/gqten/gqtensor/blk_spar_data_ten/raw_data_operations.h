@@ -22,7 +22,10 @@
 #include "gqten/framework/hp_numeric/blas_level1.h"                       // VectorAddTo
 #include "gqten/framework/hp_numeric/blas_level3.h"                       // MatMultiply
 #include "gqten/framework/hp_numeric/lapack.h"                            // MatSVD
+#include "gqten/framework/hp_numeric/omp_set.h"
 #include "gqten/utility/utils_inl.h"                                      // Rand, CalcScalarNorm2, CalcConj, SubMatMemCpy
+
+#include <omp.h>
 
 #include <iostream>     // endl, istream, ostream
 #include <cmath>        // sqrt
@@ -213,6 +216,35 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataCopy_(
           task.src_data_size * sizeof(ElemT)
       );
     }
+  }
+}
+
+/**
+Copy a piece of raw data from another place. 
+The destination must be different and there is no addition 
+
+@param raw_data_copy_tasks Raw data copy task list.
+@param psrc_raw_data The pointer to source data.
+*/
+template <typename ElemT, typename QNT>
+void BlockSparseDataTensor<ElemT, QNT>::RawDataCopyNoAdd_(
+    const std::vector<RawDataCopyTask> &raw_data_copy_tasks,
+    const ElemT *psrc_raw_data
+) {
+  size_t task_size = raw_data_copy_tasks.size();
+  size_t ompth = hp_numeric::tensor_manipulation_total_num_threads;
+  
+  #pragma omp parallel for default(none) \
+                shared(task_size, raw_data_copy_tasks)\
+                num_threads(ompth)\
+                schedule(dynamic) 
+  for(size_t i = 0; i < task_size;i++){
+    RawDataCopyTask task = raw_data_copy_tasks[i];
+    memcpy(
+        pactual_raw_data_ + task.dest_data_offset,
+        psrc_raw_data + task.src_data_offset,
+        task.src_data_size * sizeof(ElemT)
+    );
   }
 }
 

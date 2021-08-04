@@ -246,6 +246,7 @@ private:
   void RawDataInsert_(const size_t, const size_t, const bool init = false);
 
   void RawDataCopy_(const std::vector<RawDataCopyTask> &, const ElemT *);
+  void RawDataCopyNoAdd_(const std::vector<RawDataCopyTask> &, const ElemT *);
   void RawDataCopyAndScale_(
       const RawDataCopyAndScaleTask<ElemT> &,
       const ElemT *

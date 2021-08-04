@@ -678,8 +678,8 @@ void BlockSparseDataTensor<ElemT, QNT>::ConstructExpandedDataOnFirstIndex(
   Timer expand_raw_data_cp_timer("   =============> expansion_raw_data_copy");
 #endif
   // Do data copy
-  RawDataCopy_(raw_data_copy_tasks_from_a, bsdt_a.pactual_raw_data_);
-  RawDataCopy_(raw_data_copy_tasks_from_b, bsdt_b.pactual_raw_data_);
+  RawDataCopyNoAdd_(raw_data_copy_tasks_from_a, bsdt_a.pactual_raw_data_);
+  RawDataCopyNoAdd_(raw_data_copy_tasks_from_b, bsdt_b.pactual_raw_data_);
 #ifdef GQTEN_TIMING_MODE
   expand_raw_data_cp_timer.PrintElapsed();
 #endif
