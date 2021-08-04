@@ -235,7 +235,7 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataCopyNoAdd_(
   size_t ompth = hp_numeric::tensor_manipulation_total_num_threads;
   
   #pragma omp parallel for default(none) \
-                shared(task_size, raw_data_copy_tasks)\
+                shared(task_size, raw_data_copy_tasks, pactual_raw_data_, psrc_raw_data)\
                 num_threads(ompth)\
                 schedule(dynamic) 
   for(size_t i = 0; i < task_size;i++){
