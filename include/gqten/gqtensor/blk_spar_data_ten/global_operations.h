@@ -212,7 +212,7 @@ void BlockSparseDataTensor<ElemT, QNT>::FuseFirstTwoIndex(
 #ifdef GQTEN_TIMING_MODE
   Timer fuse_index_bsdt_raw_data_copy("   =============> fuse_index_bsdt_raw_data_copy");
 #endif   
-  new_bsdt.RawDataCopy_( data_copy_tasks, pactual_raw_data_ );
+  new_bsdt.RawDataCopyNoAdd_( data_copy_tasks, pactual_raw_data_ );
 #ifdef GQTEN_TIMING_MODE
   fuse_index_bsdt_raw_data_copy.PrintElapsed();
 #endif   
