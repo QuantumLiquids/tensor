@@ -84,6 +84,7 @@ void BlockSparseDataTensor<ElemT, QNT>::DataBlksInsert(
     const bool init
 ) {
   assert(blk_idx_data_blk_map_.empty());
+  assert( alloc_mem || !init );
   //it's better that every CoorsT is unique.
   auto iter = blk_idxs.begin();
   for(auto &blk_coors: blk_coors_s){

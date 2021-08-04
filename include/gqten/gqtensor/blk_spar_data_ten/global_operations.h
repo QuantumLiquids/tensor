@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 /*
-* Author: Rongyang Sun <sun-rongyang@outlook.com>
+* Author: Hao-Xin Wang <wanghx18@mails.tsinghua.edu.cn>
+*         Rongyang Sun <sun-rongyang@outlook.com>
 * Creation Date: 2020-11-26 21:30
 *
 * Description: GraceQ/tensor project. Global level operations in BlockSparseDataTensor.
@@ -173,7 +174,8 @@ void BlockSparseDataTensor<ElemT, QNT>::FuseFirstTwoIndex(
     new_blk_coors_vector,
     true,
     true
-    );//note here we initial the memory, so need performence test here.
+    );//note here we initial the memory, so should note performence here.
+    //if the performence is good, this stratege can also be used on Expand function
 
   //Assign copy task
   std::vector<RawDataCopyTask> data_copy_tasks;
