@@ -10,6 +10,14 @@ if(NOT GQTEN_USE_EXTERNAL_HPTT_LIB)
   set(hptt_LIBRARY "${CMAKE_BINARY_DIR}/external/hptt/libhptt.a")
 endif()
 
+#set omp flag
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+  set(OMP_FLAGS -qopenmp)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  set(OMP_FLAGS -fopenmp)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  set(OMP_FLAGS -fopenmp)
+endif()
 
 macro(add_unittest
     TEST_NAME TEST_SRC CFLAGS LINK_LIBS LINK_LIB_FLAGS)
@@ -17,7 +25,8 @@ macro(add_unittest
     ${TEST_SRC})
 
     target_compile_options(${TEST_NAME}
-      PRIVATE ${CFLAGS} -DGQTEN_TIMING_MODE=ON
+      PRIVATE ${CFLAGS}
+      PRIVATE ${OMP_FLAGS}
     )
     target_include_directories(${TEST_NAME}
       PRIVATE ${GQTEN_HEADER_PATH}
