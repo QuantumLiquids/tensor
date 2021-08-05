@@ -153,7 +153,7 @@ int main(int argc, char* argv[])
     t2);
   }
 
-
+  #ifdef ACTUALCOMBAT
   std::string file="mps_ten987.gqten";
   const std::string FAIL_SIGNAL = "open file " + file + " fail.";
   if (world.rank() == 0) {
@@ -201,5 +201,6 @@ int main(int argc, char* argv[])
       t2);
     }
   }
+  #endif
   return 0;
 }

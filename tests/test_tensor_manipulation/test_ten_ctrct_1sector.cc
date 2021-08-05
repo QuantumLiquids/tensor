@@ -132,7 +132,7 @@ TEST_F(TestContraction, 3DCase){
   
 }
 
-
+#ifdef ACTUALCOMBAT
 TEST(ActualCombat, SSHHubbardD14000){
   using U1U1QN = QN<U1QNVal,U1QNVal>;
   using DGQTensor2 = GQTensor<GQTEN_Double,U1U1QN>;
@@ -187,6 +187,5 @@ TEST(ActualCombat, SSHHubbardD14000){
   for(size_t i=0;i<num_qn;i++){
     delete split_tens[i];
   }
-
-
 }
+#endif

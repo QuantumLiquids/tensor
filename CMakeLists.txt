@@ -19,7 +19,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/Modules/
 
 # Build type.
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Debug)
+  set(CMAKE_BUILD_TYPE Release)
 endif()
 
 if(${CMAKE_BUILD_TYPE} MATCHES Debug)
@@ -28,7 +28,7 @@ endif()
 
 
 # Advanced options.
-option(GQTEN_BUILD_UNITTEST "Build unittests for GraceQ/tensor." ON)
+option(GQTEN_BUILD_UNITTEST "Build unittests for GraceQ/tensor." OFF)
 
 option(GQTEN_TIMING_MODE "Timing mode." ON)
 if(GQTEN_TIMING_MODE)
