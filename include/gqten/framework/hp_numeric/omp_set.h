@@ -22,33 +22,33 @@ namespace hp_numeric {
     const unsigned kOmpDefaultTotalNumThreads = 4;
     
     //thread for contract, svd, qr
-    unsigned tensor_manipulation_total_num_threads = kOmpDefaultTotalNumThreads;
+    inline unsigned tensor_manipulation_total_num_threads = kOmpDefaultTotalNumThreads;
     
     //nested thread for svd,qr; if tensor_decomp_outer_parallel_num_threads==1, no nested thread
-    unsigned tensor_decomp_outer_parallel_num_threads = 1;
-    unsigned tensor_decomp_inner_parallel_num_threads = tensor_manipulation_total_num_threads/tensor_decomp_outer_parallel_num_threads;
+    inline unsigned tensor_decomp_outer_parallel_num_threads = 1;
+    inline unsigned tensor_decomp_inner_parallel_num_threads = tensor_manipulation_total_num_threads/tensor_decomp_outer_parallel_num_threads;
 
-    void SetTensorManipulationTotalThreads(unsigned thread){
+    inline void SetTensorManipulationTotalThreads(unsigned thread){
         assert(thread>0);
         tensor_transpose_num_threads = thread;
         tensor_manipulation_total_num_threads = thread;
         tensor_decomp_inner_parallel_num_threads = tensor_manipulation_total_num_threads/tensor_decomp_outer_parallel_num_threads;
     }
 
-    void SetTensorDecompOuterParallelThreads(unsigned thread){
+    inline void SetTensorDecompOuterParallelThreads(unsigned thread){
         assert(thread>0);
         tensor_decomp_outer_parallel_num_threads = thread;
         tensor_decomp_inner_parallel_num_threads = tensor_manipulation_total_num_threads/tensor_decomp_outer_parallel_num_threads;
     }
 
-    unsigned GetTensorManipulationTotalThreads(){
+    inline unsigned GetTensorManipulationTotalThreads(){
         return tensor_manipulation_total_num_threads;
     }
 
-    unsigned GetTensorDecompOuterParallelThreads(){
+    inline unsigned GetTensorDecompOuterParallelThreads(){
         return tensor_decomp_outer_parallel_num_threads;
     }
-    unsigned GetTensorDecompInnerParallelThreads(){
+    inline unsigned GetTensorDecompInnerParallelThreads(){
         return tensor_decomp_inner_parallel_num_threads;
     }
 
