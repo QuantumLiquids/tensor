@@ -212,7 +212,7 @@ void BlockSparseDataTensor<ElemT, QNT>::FuseFirstTwoIndex(
 #ifdef GQTEN_TIMING_MODE
   Timer fuse_index_bsdt_raw_data_copy("   =============> fuse_index_bsdt_raw_data_copy");
 #endif   
-  new_bsdt.RawDataCopy_( data_copy_tasks, pactual_raw_data_ );
+  new_bsdt.RawDataCopyNoAdd_( data_copy_tasks, pactual_raw_data_ );
 #ifdef GQTEN_TIMING_MODE
   fuse_index_bsdt_raw_data_copy.PrintElapsed();
 #endif   
@@ -431,6 +431,11 @@ void BlockSparseDataTensor<ElemT, QNT>::CtrctTwoBSDTAndAssignIn(
   RawDataCtrctTask::SortTasksByCBlkIdx(raw_data_ctrct_tasks);
   // Timer contract_mkl_timer("gemm");
   // contract_mkl_timer.Suspend();
+  
+  mkl_set_num_threads_local( 0 );	
+  mkl_set_num_threads(hp_numeric::tensor_manipulation_total_num_threads);
+  mkl_set_dynamic(true);
+ 
   for (auto &task : raw_data_ctrct_tasks) {
     const ElemT *a_data;
     const ElemT *b_data;
@@ -677,8 +682,8 @@ void BlockSparseDataTensor<ElemT, QNT>::ConstructExpandedDataOnFirstIndex(
   Timer expand_raw_data_cp_timer("   =============> expansion_raw_data_copy");
 #endif
   // Do data copy
-  RawDataCopy_(raw_data_copy_tasks_from_a, bsdt_a.pactual_raw_data_);
-  RawDataCopy_(raw_data_copy_tasks_from_b, bsdt_b.pactual_raw_data_);
+  RawDataCopyNoAdd_(raw_data_copy_tasks_from_a, bsdt_a.pactual_raw_data_);
+  RawDataCopyNoAdd_(raw_data_copy_tasks_from_b, bsdt_b.pactual_raw_data_);
 #ifdef GQTEN_TIMING_MODE
   expand_raw_data_cp_timer.PrintElapsed();
 #endif

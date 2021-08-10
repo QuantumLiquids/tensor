@@ -273,6 +273,7 @@ private:
   void RawDataCopy_(const std::vector<ElemT*>&,
                     const std::vector<ElemT*>&,
                     const std::vector<size_t>&);
+  void RawDataCopyNoAdd_(const std::vector<RawDataCopyTask> &, const ElemT *);
   void RawDataCopyAndScale_(
       const RawDataCopyAndScaleTask<ElemT> &,
       const ElemT *

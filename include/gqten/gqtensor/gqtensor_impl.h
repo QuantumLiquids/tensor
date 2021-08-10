@@ -374,7 +374,23 @@ void GQTensor<ElemT, QNT>::Random(const QNT &div) {
   assert(!IsDefault());
   if (IsScalar()) { assert(div == QNT()); }
   pblk_spar_data_ten_->Clear();
-  if (!IsScalar()) {
+  if(IsScalar()){
+    pblk_spar_data_ten_->Random();
+    return;
+  }
+  if(pblk_spar_data_ten_->blk_shape.size()==2){
+    ShapeT shape = pblk_spar_data_ten_->blk_shape;
+    std::vector<CoorsT> blk_coors_s;
+    blk_coors_s.reserve(shape[0]);
+      for(size_t i=0; i<shape[0];i++){
+        for(size_t j=0; j<shape[1];j++){
+          if (CalcDiv(indexes_, {i,j}) == div) {
+            blk_coors_s.push_back({i,j});
+          }
+        }
+      }
+    pblk_spar_data_ten_->DataBlksInsert(blk_coors_s, false,false);     // NO allocate memory on this stage.
+  }else{
     for (auto &blk_coors : GenAllCoors(pblk_spar_data_ten_->blk_shape)) {
       if (CalcDiv(indexes_, blk_coors) == div) {
         pblk_spar_data_ten_->DataBlkInsert(blk_coors, false);     // NO allocate memory on this stage.
