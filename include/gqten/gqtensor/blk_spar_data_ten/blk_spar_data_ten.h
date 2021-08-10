@@ -269,6 +269,15 @@ private:
       const ElemT
   );
 
+  void RawDataTwoMatMultiplyAndAssignInBatch_(
+      const ElemT **,
+      const ElemT **,
+      ElemT **,
+      const int*, const int*, const int*,
+      const ElemT*,
+      size_t group_count
+  );
+
   // Related to tensor decomposition
   ElemT *RawDataGenDenseDataBlkMat_(
       const TenDecompDataBlkMat<QNT> &

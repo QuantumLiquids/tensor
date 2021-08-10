@@ -336,6 +336,25 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataTwoMatMultiplyAndAssignIn_(
   );
 }
 
+template <typename ElemT, typename QNT>
+inline void BlockSparseDataTensor<ElemT, QNT>::RawDataTwoMatMultiplyAndAssignInBatch_(
+    const ElemT **a_array,
+    const ElemT **b_array,
+    ElemT **c_array,
+    const int* m_array, const int* k_array, const int* n_array,
+    const ElemT* beta_array,
+    size_t group_count
+) {
+  assert(actual_raw_data_size_ != 0);
+  hp_numeric::MatMultiplyBatch(
+      a_array,
+      b_array,
+      m_array, k_array, n_array,
+      beta_array,
+      c_array,
+      MKL_INT(group_count)
+  );
+}
 
 template <typename ElemT, typename QNT>
 ElemT *BlockSparseDataTensor<ElemT, QNT>::RawDataGenDenseDataBlkMat_(

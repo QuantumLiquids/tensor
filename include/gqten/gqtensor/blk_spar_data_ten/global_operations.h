@@ -433,26 +433,30 @@ void BlockSparseDataTensor<ElemT, QNT>::CtrctTwoBSDTAndAssignIn(
   RawDataCtrctTask::SortTasksByCBlkIdx(raw_data_ctrct_tasks);
 
   size_t task_size = raw_data_ctrct_tasks.size();
-  // if(std::is_same<ElemT, GQTEN_Double>){
-    const ElemT** a_data_array = new const ElemT*[task_size];
-    const ElemT** b_data_array = new const ElemT*[task_size];
-    ElemT** c_data_array = new ElemT*[task_size];
-    ElemT* beta_array = new ElemT[task_size];
-  // }else if(std::is_same<ElemT, GQTEN_Complex>){
-  //   void** a_data_array = new (void*)[task_size];
-  //   void** b_data_array = new (void*)[task_size];
-  //   void** c_data_array = new (void*)[task_size];
-  // }
+#ifdef GQTEN_TIMING_MODE
+  Timer gemm_timer("tensor_contract_gemm");
+  gemm_timer.Suspend();
+  Timer transpose_timer("tensor_contract_transpose");
+  transpose_timer.Suspend();
+#endif
+
+#ifdef MATRIX_MALTIPLY_BATCH
+  const ElemT** a_data_array = new const ElemT*[task_size];
+  const ElemT** b_data_array = new const ElemT*[task_size];
+  ElemT** c_data_array = new ElemT*[task_size];
+  ElemT* beta_array = new ElemT[task_size];
   MKL_INT* m_array = new MKL_INT[task_size];
   MKL_INT* n_array = new MKL_INT[task_size];
   MKL_INT* k_array = new MKL_INT[task_size];
-
-  
+#endif
 
   for (size_t i = 0;i<task_size;i++) {
     auto &task= raw_data_ctrct_tasks[i];
     const ElemT *a_data;
     const ElemT *b_data;
+#ifdef GQTEN_TIMING_MODE
+  transpose_timer.Restart();
+#endif
     if (a_need_trans) {
       auto poss_it = a_blk_idx_transed_data_map.find(task.a_blk_idx);
       if (poss_it != a_blk_idx_transed_data_map.end()) {
@@ -499,6 +503,10 @@ void BlockSparseDataTensor<ElemT, QNT>::CtrctTwoBSDTAndAssignIn(
     } else {
       b_data = bsdt_b.pactual_raw_data_ + task.b_data_offset;
     }
+#ifdef GQTEN_TIMING_MODE
+  transpose_timer.Suspend();
+#endif
+#ifdef MATRIX_MALTIPLY_BATCH
     a_data_array[i] = a_data;
     b_data_array[i] = b_data;
     c_data_array[i] = pactual_raw_data_ + task.c_data_offset;
@@ -506,16 +514,30 @@ void BlockSparseDataTensor<ElemT, QNT>::CtrctTwoBSDTAndAssignIn(
     n_array[i] = task.n;
     k_array[i] = task.k;
     beta_array[i] = task.beta;
-    // RawDataTwoMatMultiplyAndAssignIn_(
-    //     a_data,
-    //     b_data,
-    //     task.c_data_offset,
-    //     task.m, task.k, task.n,
-    //     task.beta
-    // );
+#else
+  #ifdef GQTEN_TIMING_MODE
+    gemm_timer.Restart();
+  #endif
+    RawDataTwoMatMultiplyAndAssignIn_(
+        a_data,
+        b_data,
+        task.c_data_offset,
+        task.m, task.k, task.n,
+        task.beta
+    );
+  #ifdef GQTEN_TIMING_MODE
+    gemm_timer.Suspend();
+  #endif
+#endif
   }
-  hp_numeric::MatMultiplyBatch(a_data_array, b_data_array, m_array, n_array, k_array,
-                        beta_array,c_data_array,task_size);
+#ifdef MATRIX_MALTIPLY_BATCH
+#ifdef GQTEN_TIMING_MODE
+  gemm_timer.Restart();
+#endif
+  RawDataTwoMatMultiplyAndAssignInBatch_(
+              a_data_array, b_data_array, c_data_array,m_array, k_array, n_array,
+                        beta_array,task_size
+              );
   delete[] a_data_array;
   delete[] b_data_array;
   delete[] c_data_array;
@@ -523,7 +545,14 @@ void BlockSparseDataTensor<ElemT, QNT>::CtrctTwoBSDTAndAssignIn(
   delete[] m_array;
   delete[] n_array;
   delete[] k_array;
-
+#ifdef GQTEN_TIMING_MODE
+  gemm_timer.Suspend();
+#endif
+#endif
+#ifdef GQTEN_TIMING_MODE
+  transpose_timer.PrintElapsed();
+  gemm_timer.PrintElapsed();
+#endif
   for (auto &blk_idx_transed_data : a_blk_idx_transed_data_map) {
     free(blk_idx_transed_data.second);
   }
