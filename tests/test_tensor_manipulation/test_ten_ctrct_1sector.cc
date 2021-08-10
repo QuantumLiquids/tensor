@@ -137,7 +137,7 @@ TEST_F(TestContraction, 3DCase){
   }
   
 }
-#define ACTUALCOMBAT 1
+
 #ifdef ACTUALCOMBAT
 TEST(ActualCombat, SSHHubbardD14000){
   using U1U1QN = QN<U1QNVal,U1QNVal>;

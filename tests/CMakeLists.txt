@@ -71,7 +71,8 @@ macro(add_mpi_unittest
     ${TEST_SRC})
 
     target_compile_options(${TEST_NAME}
-      PRIVATE ${CFLAGS} -DGQTEN_TIMING_MODE=ON
+      PRIVATE ${CFLAGS} 
+      PRIVATE ${OMP_FLAGS}
     )
     target_include_directories(${TEST_NAME}
       PRIVATE ${GQTEN_HEADER_PATH}
