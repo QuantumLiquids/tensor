@@ -122,9 +122,15 @@ TEST_F(TestContraction, 3DCase){
 
   EXPECT_EQ(sum_ten, res_ten);
 
-  // Let
+  //check Collective Linear Combine
+  std::vector<DGQTensor> split_tens2(num_qn);
+  for(size_t i=0;i<num_qn;i++){
+    split_tens2[i] = *split_tens[i];
+  }
+  DGQTensor sum_ten2;
+  CollectiveLinearCombine(split_tens2, sum_ten2);
 
-
+  EXPECT_EQ(sum_ten2, sum_ten);
 
   for(size_t i=0;i<num_qn;i++){
     delete split_tens[i];

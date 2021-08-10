@@ -529,5 +529,9 @@ void BlockSparseDataTensor<ElemT, QNT>::DataBlkClear_(void) {
   blk_idx_data_blk_map_.clear();
   raw_data_size_ = 0;
 }
+
+
+
+
 } /* gqten */
 #endif /* ifndef GQTEN_GQTENSOR_BLK_SPAR_DATA_TEN_DATA_BLK_LEVEL_OPERATIONS_H */

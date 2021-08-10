@@ -217,6 +217,9 @@ public:
       const std::vector<size_t> &
   );
 
+  void CollectiveLinearCombine(
+    const std::vector<const BlockSparseDataTensor *>
+  );
 
   /// Rank of the tensor.
   size_t ten_rank = 0;
@@ -267,6 +270,9 @@ private:
   void RawDataInsert_(const size_t, const size_t, const bool init = false);
 
   void RawDataCopy_(const std::vector<RawDataCopyTask> &, const ElemT *);
+  void RawDataCopy_(const std::vector<ElemT*>&,
+                    const std::vector<ElemT*>&,
+                    const std::vector<size_t>&);
   void RawDataCopyAndScale_(
       const RawDataCopyAndScaleTask<ElemT> &,
       const ElemT *

@@ -712,5 +712,50 @@ void BlockSparseDataTensor<ElemT, QNT>::CopyFromReal(
     assert(false);    // TODO: To-be implemented!
   }
 }
+template <typename ElemT, typename QNT>
+void BlockSparseDataTensor<ElemT, QNT>::CollectiveLinearCombine(
+    const std::vector<const BlockSparseDataTensor *> pbsdts
+){
+  const size_t tensor_num = pbsdts.size();
+  for(size_t i=0;i<tensor_num;i++){
+    const BlockSparseDataTensor<ElemT, QNT>* pbsdt = pbsdts[i];
+    const decltype(blk_idx_data_blk_map_)& blk_idx_data_blk_map_out = pbsdt->GetBlkIdxDataBlkMap();
+    blk_idx_data_blk_map_.insert(blk_idx_data_blk_map_out.cbegin(), blk_idx_data_blk_map_out.cend() );
+  }
+  size_t total_data_offset = 0;
+  for (auto &idx_blk : blk_idx_data_blk_map_) {
+    idx_blk.second.data_offset = total_data_offset;
+    total_data_offset += idx_blk.second.size;
+  }
+  raw_data_size_ += total_data_offset;
+  Allocate(false);
+
+  size_t data_blk_size = blk_idx_data_blk_map_.size();
+#ifndef NDEBUG
+  size_t out_data_blk_size=0;
+  for(size_t i=0;i<tensor_num;i++){
+    const BlockSparseDataTensor<ElemT, QNT>* pbsdt = pbsdts[i];
+    const decltype(blk_idx_data_blk_map_)& blk_idx_data_blk_map_out = pbsdt->GetBlkIdxDataBlkMap();
+    out_data_blk_size += blk_idx_data_blk_map_out.size();
+  }
+  assert(out_data_blk_size == data_blk_size);
+#endif
+  std::vector<ElemT*> source_pointers(data_blk_size);
+  std::vector<ElemT*> dest_pointers(data_blk_size);
+  std::vector<size_t> copy_size(data_blk_size);
+  size_t task_idx = 0;
+  for(size_t i=0;i<tensor_num;i++){
+    const BlockSparseDataTensor<ElemT, QNT>* pbsdt = pbsdts[i];
+    const decltype(blk_idx_data_blk_map_)& blk_idx_data_blk_map_out = pbsdt->GetBlkIdxDataBlkMap();
+    for(auto& [idx, datablk]: blk_idx_data_blk_map_out ){
+      source_pointers[task_idx] = pbsdt->pactual_raw_data_ + datablk.data_offset;
+      DataBlk<QNT>& this_data_blk = blk_idx_data_blk_map_[idx];
+      dest_pointers[task_idx] = pactual_raw_data_ + this_data_blk.data_offset;
+      copy_size[task_idx] = this_data_blk.size;
+      task_idx++;
+    }
+  }
+  RawDataCopy_(source_pointers,dest_pointers,copy_size);
+}
 } /* gqten */
 #endif /* ifndef GQTEN_GQTENSOR_BLK_SPAR_DATA_TEN_GLOBAL_OPERATIONS_H */

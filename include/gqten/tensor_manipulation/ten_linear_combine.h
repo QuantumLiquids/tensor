@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 /*
 * Author: Rongyang Sun <sun-rongyang@outlook.com>
+*         Hao-Xin Wang
 * Creation Date: 2020-12-10 18:23
 *
 * Description: GraceQ/tensor project. Perform linear combination of tensors.
@@ -266,5 +267,27 @@ void LinearCombine(
   std::copy_n(tens.begin(), size, actual_tens.begin());
   LinearCombine(coefs, actual_tens, beta, pres);
 }
+
+/**
+ * @param tens  tens should have different data_blks
+ * @return summation of tens
+ */
+template <typename ElemT, typename QNT>
+void CollectiveLinearCombine(
+  std::vector<GQTensor<ElemT, QNT>>& tens,
+  GQTensor<ElemT, QNT>& summation_tensor
+){
+  using std::vector;
+  std::vector<Index<QNT>> indexes = tens[1].GetIndexes();
+  summation_tensor = GQTensor<ElemT, QNT>(indexes);
+  size_t ten_num = tens.size();
+  vector<const BlockSparseDataTensor<ElemT, QNT> *> pbsdts(ten_num);
+  for(size_t i = 0; i < ten_num ;i++){
+    pbsdts[i] = tens[i].GetBlkSparDataTenPtr();
+  }
+  BlockSparseDataTensor<ElemT, QNT>& bsdt = summation_tensor.GetBlkSparDataTen();
+  bsdt.CollectiveLinearCombine(pbsdts);
+}
+
 } /* gqten */
 #endif /* ifndef GQTEN_TENSOR_MANIPULATION_TEN_LINEAR_COMBINE_H */

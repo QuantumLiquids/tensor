@@ -216,6 +216,20 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataCopy_(
   }
 }
 
+template <typename ElemT, typename QNT>
+void BlockSparseDataTensor<ElemT, QNT>::RawDataCopy_(
+  const std::vector<ElemT*>& src_pointers,
+  const std::vector<ElemT*>& dest_pointers,
+  const std::vector<size_t>& copy_sizes
+){
+  for(size_t i = 0;i<src_pointers.size();i++){
+    memcpy(
+      dest_pointers[i],
+      src_pointers[i],
+      copy_sizes[i] * sizeof(ElemT)
+    );
+  }
+}
 
 /**
 Copy and scale a piece of raw data from another place. You can decided whether
