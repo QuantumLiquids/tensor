@@ -137,7 +137,7 @@ TEST_F(TestContraction, 3DCase){
   }
   
 }
-
+#define ACTUALCOMBAT 1
 #ifdef ACTUALCOMBAT
 TEST(ActualCombat, SSHHubbardD14000){
   using U1U1QN = QN<U1QNVal,U1QNVal>;
@@ -176,22 +176,17 @@ TEST(ActualCombat, SSHHubbardD14000){
   Timer contract_split_timer("split contract");
   size_t split_idx = 1;
   size_t num_qn = mps680.GetIndexes()[split_idx].GetQNSctNum();
-  std::vector<DGQTensor2 *> split_tens( num_qn );
+  std::vector<DGQTensor2> split_tens( num_qn );
   for(size_t i=0;i<num_qn;i++){
-      split_tens[i] = new DGQTensor2();
-      Contract1Sector(&mps680, split_idx, i ,&mps681,contract_axes,split_tens[i]);
+      Contract1Sector(&mps680, split_idx, i ,&mps681,contract_axes,&split_tens[i]);
   }
-  std::vector<GQTEN_Double> coefs(num_qn,1.0);
   DGQTensor2 sum_ten;
   Timer sum_timer("summation");
-  LinearCombine(coefs, split_tens, 0.0, &sum_ten);
+  CollectiveLinearCombine(split_tens, sum_ten);
   sum_timer.PrintElapsed();
   contract_split_timer.PrintElapsed();
   std::cout << "\n";
   EXPECT_EQ(res, sum_ten);
 
-  for(size_t i=0;i<num_qn;i++){
-    delete split_tens[i];
-  }
 }
 #endif
