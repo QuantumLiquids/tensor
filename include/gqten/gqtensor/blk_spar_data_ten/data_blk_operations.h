@@ -95,7 +95,8 @@ void BlockSparseDataTensor<ElemT, QNT>::DataBlksInsert(
     iter++;
   }
   raw_data_size_ = 0;
-  for (auto &[idx, data_blk] : blk_idx_data_blk_map_) {
+  for (auto &idx_data_blk : blk_idx_data_blk_map_) {
+    auto& data_blk = idx_data_blk.second;
     data_blk.data_offset = raw_data_size_;
     raw_data_size_ += data_blk.size;
   }

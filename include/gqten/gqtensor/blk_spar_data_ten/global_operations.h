@@ -429,8 +429,11 @@ void BlockSparseDataTensor<ElemT, QNT>::CtrctTwoBSDTAndAssignIn(
   std::unordered_map<size_t, ElemT *> a_blk_idx_transed_data_map;
   std::unordered_map<size_t, ElemT *> b_blk_idx_transed_data_map;
   RawDataCtrctTask::SortTasksByCBlkIdx(raw_data_ctrct_tasks);
-  // Timer contract_mkl_timer("gemm");
-  // contract_mkl_timer.Suspend();
+
+#ifdef GQTEN_TIMING_MODE
+  Timer contract_mkl_timer("gemm");
+  contract_mkl_timer.Suspend();
+#endif
   
   mkl_set_num_threads_local( 0 );	
   mkl_set_num_threads(hp_numeric::tensor_manipulation_total_num_threads);
@@ -485,7 +488,9 @@ void BlockSparseDataTensor<ElemT, QNT>::CtrctTwoBSDTAndAssignIn(
     } else {
       b_data = bsdt_b.pactual_raw_data_ + task.b_data_offset;
     }
-    // contract_mkl_timer.Restart();
+#ifdef GQTEN_TIMING_MODE
+    contract_mkl_timer.Restart();
+#endif
     RawDataTwoMatMultiplyAndAssignIn_(
         a_data,
         b_data,
@@ -493,9 +498,13 @@ void BlockSparseDataTensor<ElemT, QNT>::CtrctTwoBSDTAndAssignIn(
         task.m, task.k, task.n,
         task.beta
     );
-    // contract_mkl_timer.Suspend();
+#ifdef GQTEN_TIMING_MODE
+    contract_mkl_timer.Suspend();
+#endif
   }
-  // contract_mkl_timer.PrintElapsed();
+#ifdef GQTEN_TIMING_MODE  
+  contract_mkl_timer.PrintElapsed();
+#endif
   for (auto &blk_idx_transed_data : a_blk_idx_transed_data_map) {
     free(blk_idx_transed_data.second);
   }

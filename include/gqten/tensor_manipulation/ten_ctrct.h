@@ -80,7 +80,7 @@ TensorContractionExecutor<TenElemT, QNT>::TensorContractionExecutor(
     const GQTensor<TenElemT, QNT> *pb,
     const std::vector<std::vector<size_t>> &axes_set,
     GQTensor<TenElemT, QNT> *pc
-) : pa_(pa), pb_(pb), axes_set_(axes_set), pc_(pc) {
+) : pa_(pa), pb_(pb), pc_(pc), axes_set_(axes_set) {
   assert(pc_->IsDefault());    // Only empty tensor can take the result
   // Check indexes matching
 #ifndef NDEBUG

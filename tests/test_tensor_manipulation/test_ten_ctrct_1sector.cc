@@ -137,7 +137,7 @@ TEST_F(TestContraction, 3DCase){
   }
   
 }
-
+#define ACTUALCOMBAT 1
 #ifdef ACTUALCOMBAT
 TEST(ActualCombat, SSHHubbardD14000){
   using U1U1QN = QN<U1QNVal,U1QNVal>;
@@ -165,7 +165,8 @@ TEST(ActualCombat, SSHHubbardD14000){
   vector<vector<size_t>> contract_axes = {{2},{0}};
   DGQTensor2 res;
 
-
+  hp_numeric::SetTensorManipulationTotalThreads(10);
+  hp_numeric::SetTensorTransposeNumThreads(10);
   std::cout << "\n";
   Timer contract_timer("directly contract");
   Contract(&mps680, &mps681, contract_axes, &res);
@@ -187,6 +188,44 @@ TEST(ActualCombat, SSHHubbardD14000){
   contract_split_timer.PrintElapsed();
   std::cout << "\n";
   EXPECT_EQ(res, sum_ten);
+
+  std::cout << "So we get an example of an initial state for Lanczos" <<std::endl;
+  res.ConciseShow();
+
+  // Also contract one more mps, we can see it as left env tensor
+  file = "mps_ten679.gqten";
+  ifs.open(file);
+  if(!ifs.good()){
+    std::cout << "opening file " << file <<" fails." <<std::endl;
+    exit(1);
+  }
+  DGQTensor2 mps679;
+  ifs >> mps679;
+  ifs.close();
+
+
+  DGQTensor2 res2;
+  std::cout << "\n";
+  contract_timer.ClearAndRestart();
+  Contract(&mps679, &res, contract_axes, &res2);
+  contract_timer.PrintElapsed();
+  std::cout << "\n";
+
+  
+  sum_ten=DGQTensor2();
+  contract_split_timer.ClearAndRestart();
+  split_idx = 0;
+  num_qn = mps679.GetIndexes()[split_idx].GetQNSctNum();
+  std::vector<DGQTensor2> split_tens2( num_qn );
+  for(size_t i=0;i<num_qn;i++){
+      Contract1Sector(&mps679, split_idx, i ,&res,contract_axes,&split_tens2[i]);
+  }
+  sum_timer.ClearAndRestart();
+  CollectiveLinearCombine(split_tens2, sum_ten);
+  sum_timer.PrintElapsed();
+  contract_split_timer.PrintElapsed();
+  std::cout << "\n";
+  EXPECT_EQ(res2, sum_ten);
 
 }
 #endif
