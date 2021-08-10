@@ -144,9 +144,9 @@ inline void MatMultiplyBatch(
 
 
 inline void MatMultiplyBatch(
-    const MKL_INT *m_array, const MKL_INT *n_array, const MKL_INT *k_array,
     const GQTEN_Complex **a_array, 
     const GQTEN_Complex **b_array, 
+    const MKL_INT *m_array, const MKL_INT *n_array, const MKL_INT *k_array,
     const GQTEN_Complex *beta_array,
     GQTEN_Complex **c_array,
     const MKL_INT group_count) {

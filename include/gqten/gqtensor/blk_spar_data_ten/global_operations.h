@@ -431,7 +431,26 @@ void BlockSparseDataTensor<ElemT, QNT>::CtrctTwoBSDTAndAssignIn(
   std::unordered_map<size_t, ElemT *> a_blk_idx_transed_data_map;
   std::unordered_map<size_t, ElemT *> b_blk_idx_transed_data_map;
   RawDataCtrctTask::SortTasksByCBlkIdx(raw_data_ctrct_tasks);
-  for (auto &task : raw_data_ctrct_tasks) {
+
+  size_t task_size = raw_data_ctrct_tasks.size();
+  // if(std::is_same<ElemT, GQTEN_Double>){
+    const ElemT** a_data_array = new const ElemT*[task_size];
+    const ElemT** b_data_array = new const ElemT*[task_size];
+    ElemT** c_data_array = new ElemT*[task_size];
+    ElemT* beta_array = new ElemT[task_size];
+  // }else if(std::is_same<ElemT, GQTEN_Complex>){
+  //   void** a_data_array = new (void*)[task_size];
+  //   void** b_data_array = new (void*)[task_size];
+  //   void** c_data_array = new (void*)[task_size];
+  // }
+  MKL_INT* m_array = new MKL_INT[task_size];
+  MKL_INT* n_array = new MKL_INT[task_size];
+  MKL_INT* k_array = new MKL_INT[task_size];
+
+  
+
+  for (size_t i = 0;i<task_size;i++) {
+    auto &task= raw_data_ctrct_tasks[i];
     const ElemT *a_data;
     const ElemT *b_data;
     if (a_need_trans) {
@@ -480,14 +499,30 @@ void BlockSparseDataTensor<ElemT, QNT>::CtrctTwoBSDTAndAssignIn(
     } else {
       b_data = bsdt_b.pactual_raw_data_ + task.b_data_offset;
     }
-    RawDataTwoMatMultiplyAndAssignIn_(
-        a_data,
-        b_data,
-        task.c_data_offset,
-        task.m, task.k, task.n,
-        task.beta
-    );
+    a_data_array[i] = a_data;
+    b_data_array[i] = b_data;
+    c_data_array[i] = pactual_raw_data_ + task.c_data_offset;
+    m_array[i] = task.m;
+    n_array[i] = task.n;
+    k_array[i] = task.k;
+    beta_array[i] = task.beta;
+    // RawDataTwoMatMultiplyAndAssignIn_(
+    //     a_data,
+    //     b_data,
+    //     task.c_data_offset,
+    //     task.m, task.k, task.n,
+    //     task.beta
+    // );
   }
+  hp_numeric::MatMultiplyBatch(a_data_array, b_data_array, m_array, n_array, k_array,
+                        beta_array,c_data_array,task_size);
+  delete[] a_data_array;
+  delete[] b_data_array;
+  delete[] c_data_array;
+  delete[] beta_array;
+  delete[] m_array;
+  delete[] n_array;
+  delete[] k_array;
 
   for (auto &blk_idx_transed_data : a_blk_idx_transed_data_map) {
     free(blk_idx_transed_data.second);
