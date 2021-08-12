@@ -139,8 +139,10 @@ int main(int argc, char* argv[])
     t3);
 
     mpi_double_transf_timer.PrintElapsed();
-    assert(t1==t3);
+    EXPECT_EQ(t1, t3);
     std::cout << "Send-Receive-Send For Random Tensor Success." << std::endl;
+
+    SendBroadCastGQTensor(world, t1, 0);
   }else {
     DGQTensor t2;
 
@@ -151,10 +153,14 @@ int main(int argc, char* argv[])
     send_gqten(world,0,
     37,
     t2);
+    DGQTensor t3;
+    RecvBroadCastGQTensor(world, t3, 0);
+    EXPECT_EQ(t2, t3);
+    std::cout << "BroadCast success." <<std::endl;
   }
 
   #ifdef ACTUALCOMBAT
-  std::string file="mps_ten987.gqten";
+  std::string file="mps_ten.gqten";
   const std::string FAIL_SIGNAL = "open file " + file + " fail.";
   if (world.rank() == 0) {
     std::cout << "Test for loaded mps tensor" <<std::endl;

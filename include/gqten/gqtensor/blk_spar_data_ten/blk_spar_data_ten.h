@@ -320,7 +320,7 @@ private:
   
   template <typename ElemT2, typename QNT2>
   friend inline void RecvBroadCastGQTensor(boost::mpi::communicator world,
-                GQTensor<ElemT, QNT>& gqten,
+                GQTensor<ElemT2, QNT2>& gqten,
                 const int root);
 };
 
