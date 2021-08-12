@@ -317,6 +317,11 @@ private:
   friend inline boost::mpi::status recv_gqten(boost::mpi::communicator world,
                 int source, int tag,
                 GQTensor<ElemT2, QNT2>& gqten);
+  
+  template <typename ElemT2, typename QNT2>
+  friend inline void RecvBroadCastGQTensor(boost::mpi::communicator world,
+                GQTensor<ElemT, QNT>& gqten,
+                const int root);
 };
 
 
