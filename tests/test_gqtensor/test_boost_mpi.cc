@@ -134,8 +134,8 @@ int main(int argc, char* argv[])
     t1);
     
     DGQTensor t3;// will receive the t2 in process1
-    recv_gqten(world,1,// from process1
-    37,//tag 
+    recv_gqten(world,mpi::any_source,
+    mpi::any_tag,
     t3);
 
     mpi_double_transf_timer.PrintElapsed();

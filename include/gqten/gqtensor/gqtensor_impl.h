@@ -714,7 +714,7 @@ template <typename ElemT, typename QNT>
 inline void send_gqten(boost::mpi::communicator world,
                 int dest, int tag,
                 const GQTensor<ElemT, QNT>& gqten){
-  world.send(dest,tag+11,gqten.IsDefault());
+  world.send(dest,tag,gqten.IsDefault());
   if(gqten.IsDefault()){
     return;
   }
@@ -745,9 +745,13 @@ inline boost::mpi::status recv_gqten(boost::mpi::communicator world,
                 GQTensor<ElemT, QNT>& gqten){
   assert(gqten.IsDefault());
   bool is_default;
-  world.recv(source,tag+11,is_default);
+  boost::mpi::status recv_ten_status=world.recv(source,tag,is_default);
   if(is_default){
-    return boost::mpi::status();
+    return recv_ten_status;
+  }
+  if(source == boost::mpi::any_source){
+    source = recv_ten_status.source();
+    tag = recv_ten_status.tag();
   }
   // boost::mpi::request reqs[2];
   Timer recv_gqten_wrap_timer("recv_gqten_wrap");

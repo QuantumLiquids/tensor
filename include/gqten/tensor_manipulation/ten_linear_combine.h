@@ -277,8 +277,9 @@ void CollectiveLinearCombine(
   std::vector<GQTensor<ElemT, QNT>>& tens,
   GQTensor<ElemT, QNT>& summation_tensor
 ){
+  assert(tens.size()>0);
   using std::vector;
-  std::vector<Index<QNT>> indexes = tens[1].GetIndexes();
+  std::vector<Index<QNT>> indexes = tens[0].GetIndexes();
   summation_tensor = GQTensor<ElemT, QNT>(indexes);
   size_t ten_num = tens.size();
   vector<const BlockSparseDataTensor<ElemT, QNT> *> pbsdts(ten_num);
