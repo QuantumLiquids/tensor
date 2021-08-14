@@ -692,7 +692,7 @@ TEST(bench_mark_for_nested_omp_parallel, 2Dcase){
 
     RunTestSvdOmpCase(t1, 1, 1,
                  1e-8,10,10, 10,2);
-
+#ifdef TEST_LARGE_MATRIX
     //Below test cases should run on many cpus
     auto index2_in = RandIndex(200,1200,gqten::IN);
     auto index2_out = RandIndex(200,1000, gqten::OUT);
@@ -700,6 +700,7 @@ TEST(bench_mark_for_nested_omp_parallel, 2Dcase){
 
     RunTestSvdOmpCase(t2, 1, 1,
                  1e-8, 30, 30, 20, 5);
+#endif
 }
 
 
@@ -714,7 +715,7 @@ TEST(bench_mark_for_nested_omp_parallel, 3Dcase){
     DGQTensor t2({index1_in,index2_in,index1_out});
     RunTestSvdOmpCase(t2, 2, 1,
                  1e-8,10,10, 10,2);
-
+#ifdef TEST_LARGE_MATRIX
     //Below test cases should run on many cpus
     auto index3_in = RandIndex(100,400,gqten::IN);
     auto index3_out = RandIndex(50,500, gqten::OUT);
@@ -726,4 +727,5 @@ TEST(bench_mark_for_nested_omp_parallel, 3Dcase){
     DGQTensor t4({index3_in,index2_in,index3_out});
      RunTestSvdOmpCase(t4, 2, 1,
                  1e-8, 30, 50, 20, 5);
+#endif
 }

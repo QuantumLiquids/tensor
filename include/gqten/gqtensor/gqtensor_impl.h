@@ -719,11 +719,15 @@ inline void send_gqten(boost::mpi::communicator world,
     return;
   }
   boost::mpi::request reqs[2];
+#ifdef GQTEN_MPI_TIMING_MODE
   Timer send_gqten_wrap_timer("send_gqten_wrap");
+#endif
   reqs[0] = world.isend(dest, tag, gqten);
+#ifdef GQTEN_MPI_TIMING_MODE
   send_gqten_wrap_timer.PrintElapsed();
-  
+
   Timer send_gqten_data_timer("send_gqten_data");
+#endif
   int tag_data = tag*kMPIDataTagMultiplyFactor+1;
   const BlockSparseDataTensor<ElemT, QNT>& bsdt=gqten.GetBlkSparDataTen();
   const ElemT* data_pointer = bsdt.GetActualRawDataPtr();
@@ -734,7 +738,9 @@ inline void send_gqten(boost::mpi::communicator world,
     data_size = 1;
   }
   reqs[1] = world.isend(dest, tag_data, data_pointer, data_size);
+#ifdef GQTEN_MPI_TIMING_MODE
   send_gqten_data_timer.PrintElapsed();
+#endif
   boost::mpi::wait_all(reqs,reqs+2);
 }
 
@@ -754,18 +760,23 @@ inline boost::mpi::status recv_gqten(boost::mpi::communicator world,
     tag = recv_ten_status.tag();
   }
   // boost::mpi::request reqs[2];
+#ifdef GQTEN_MPI_TIMING_MODE
   Timer recv_gqten_wrap_timer("recv_gqten_wrap");
+#endif
   auto s1 = world.recv(source, tag, gqten);
+#ifdef GQTEN_MPI_TIMING_MODE
   recv_gqten_wrap_timer.PrintElapsed();
 
   Timer recv_gqten_data_timer("recv_gqten_data");
+#endif
   int tag_data = tag*kMPIDataTagMultiplyFactor+1;
   BlockSparseDataTensor<ElemT, QNT>& bsdt=gqten.GetBlkSparDataTen();
   ElemT* data_pointer = bsdt.pactual_raw_data_;
   int data_size = bsdt.GetActualRawDataSize();
   auto s = world.recv(source, tag_data, data_pointer, data_size);
-
+#ifdef GQTEN_MPI_TIMING_MODE
   recv_gqten_data_timer.PrintElapsed();
+#endif
   
   // boost::mpi::wait_all(reqs+1,reqs+2);
   return s;

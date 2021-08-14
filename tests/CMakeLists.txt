@@ -23,6 +23,11 @@ if(TEST_ACTUAL_COMBAT)
   add_definitions(-DACTUALCOMBAT)
 endif()
 
+option(TEST_LARGE_MATRIX "test large matrixs(only for omp parallel svd upto now)." OFF)
+if(TEST_LARGE_MATRIX)
+  add_definitions(-DTEST_LARGE_MATRIX)
+endif()
+
 #set omp flag
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
   set(OMP_FLAGS -qopenmp)

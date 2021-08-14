@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 /*
 * Author: Rongyang Sun <sun-rongyang@outlook.com>
+*         Hao-Xin Wang <wanghx18@mails.tsinghua.edu.cn>
 * Creation Date: 2020-11-30 11:57
 *
 * Description: GraceQ/tensor project. Data block level operations for block
@@ -53,14 +54,19 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkInsert(
   blk_idx_data_blk_map_[blk_idx] = DataBlk<QNT>(blk_coors, *pgqten_indexes);
   size_t inserted_data_size = blk_idx_data_blk_map_[blk_idx].size;
   size_t total_data_offset = 0;
-  for (auto &idx_blk : blk_idx_data_blk_map_) {
-    if (idx_blk.first < blk_idx) {
-      total_data_offset += idx_blk.second.size;
-    } else if (idx_blk.first > blk_idx) {
-      idx_blk.second.data_offset += inserted_data_size;
-    } else {
-      idx_blk.second.data_offset = total_data_offset;
-    }
+
+  auto iter = blk_idx_data_blk_map_.find(blk_idx);
+  if(iter!=blk_idx_data_blk_map_.cbegin()){
+    --iter;
+    total_data_offset = iter->second.data_offset + iter->second.size;
+    ++iter;
+    iter->second.data_offset = total_data_offset;
+  }else{
+    iter->second.data_offset = 0;
+  }
+  
+  for(++iter; iter!=blk_idx_data_blk_map_.cend();++iter){
+    iter->second.data_offset += inserted_data_size;
   }
   raw_data_size_ += inserted_data_size;
 

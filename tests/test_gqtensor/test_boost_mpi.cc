@@ -133,10 +133,9 @@ int main(int argc, char* argv[])
     35,//tag 
     t1);
     
-    DGQTensor t3;// will receive the t2 in process1
-    recv_gqten(world,mpi::any_source,
-    mpi::any_tag,
-    t3);
+    DGQTensor t3 = DGQTensor( t1.GetIndexes() ) ;// will receive the t2 in process1
+    auto& bsdt3 = t3.GetBlkSparDataTen();
+    bsdt3.MPIRecv(world, 1, 3);
 
     mpi_double_transf_timer.PrintElapsed();
     EXPECT_EQ(t1, t3);
@@ -146,13 +145,14 @@ int main(int argc, char* argv[])
   }else {
     DGQTensor t2;
 
-    recv_gqten(world,0,// from process1
-    35,//tag 
+    recv_gqten(world,mpi::any_source,// from process1
+    mpi::any_tag,//tag 
     t2);
 
-    send_gqten(world,0,
-    37,
-    t2);
+    auto& bsdt2 = t2.GetBlkSparDataTen();
+    bsdt2.MPISend(world, 0, 3);
+
+    
     DGQTensor t3;
     RecvBroadCastGQTensor(world, t3, 0);
     EXPECT_EQ(t2, t3);

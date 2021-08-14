@@ -221,6 +221,18 @@ public:
     const std::vector<const BlockSparseDataTensor *>
   );
 
+  void MPISend(
+    boost::mpi::communicator& world,
+    const int dest,
+    const int tag
+  );
+
+  boost::mpi::status MPIRecv(
+    boost::mpi::communicator& world,
+    int source,
+    int tag
+  );
+
   /// Rank of the tensor.
   size_t ten_rank = 0;
   /// Block shape.
@@ -556,9 +568,10 @@ template <class Archive>
 void BlockSparseDataTensor<ElemT, QNT>::save(Archive & ar, const unsigned int version) const{
   ar & blk_idx_data_blk_map_.size();
   for (auto &blk_idx_data_blk : blk_idx_data_blk_map_) {
-    for (auto &blk_coor : blk_idx_data_blk.second.blk_coors) {
-      ar & blk_coor;
-    }
+      ar & blk_idx_data_blk.first;
+      for (auto &blk_coor : blk_idx_data_blk.second.blk_coors) {
+        ar & blk_coor;
+      }
   }
 
   // if (IsScalar() && actual_raw_data_size_ == 0) {     // Empty scalar case
@@ -579,14 +592,16 @@ template <class Archive>
 void BlockSparseDataTensor<ElemT, QNT>::load(Archive & ar, const unsigned int version){
   size_t data_blk_num;
   ar & data_blk_num;
+  std::vector< CoorsT > blk_coors_s(data_blk_num, CoorsT(ten_rank));
+  std::vector< size_t > idxs(data_blk_num);
   for (size_t i = 0; i < data_blk_num; ++i) {
-    CoorsT blk_coors(ten_rank);
+    ar & idxs[i];
     for (size_t j = 0; j < ten_rank; ++j) {
-      ar & blk_coors[j];
+      ar & blk_coors_s[i][j];
     }
-    DataBlkInsert(blk_coors, false);
   }
 
+  DataBlksInsert(idxs, blk_coors_s, false, false);
   if (IsScalar()) { raw_data_size_ = 1; }
 
   Allocate();
@@ -596,6 +611,40 @@ void BlockSparseDataTensor<ElemT, QNT>::load(Archive & ar, const unsigned int ve
   // ar & pactual_raw_data_;
 }
 
+
+template <typename ElemT, typename QNT>
+inline void BlockSparseDataTensor<ElemT, QNT>::MPISend(
+  boost::mpi::communicator& world,
+  const int dest,
+  const int tag){
+  boost::mpi::request reqs[2];
+  reqs[0] = world.isend(dest, tag, *this);
+  int tag_data = 2*tag+1;
+  if(IsScalar() && actual_raw_data_size_ ==0 ){
+    ElemT zero = ElemT(0.0);
+    ElemT* data_pointer = &zero;
+    int data_size = 1;
+    reqs[1] = world.isend(dest, tag_data, data_pointer, data_size);
+  }else{
+    reqs[1] = world.isend(dest, tag_data, pactual_raw_data_, actual_raw_data_size_);
+  }
+  boost::mpi::wait_all(reqs,reqs+2);
+}
+
+template <typename ElemT, typename QNT>
+inline boost::mpi::status BlockSparseDataTensor<ElemT, QNT>::MPIRecv(
+    boost::mpi::communicator& world,
+    int source,
+    int tag){
+  boost::mpi::status recv_ten_status=world.recv(source, tag, *this);
+  if(source == boost::mpi::any_source){
+    source = recv_ten_status.source();
+    tag = recv_ten_status.tag();
+  }
+  int tag_data = 2*tag+1;
+  recv_ten_status=world.recv(source, tag_data, pactual_raw_data_, actual_raw_data_size_);
+  return recv_ten_status;
+}
 
 /**
 Re-calculate and reset the data offset of each data block in a BlkIdxDataBlkMap.
