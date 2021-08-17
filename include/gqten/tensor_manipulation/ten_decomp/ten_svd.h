@@ -267,8 +267,6 @@ std::vector<TruncedSVInfo> TensorSVDExecutor<TenElemT, QNT>::CalcTruncedSVInfo_(
   for (auto &idx_svd_res : idx_svd_res_map) {
     auto idx = idx_svd_res.first;
     auto svd_res = idx_svd_res.second;
-    auto m = svd_res.m;
-    auto n = svd_res.n;
     auto k = svd_res.k;
     auto s = svd_res.s;
     for (size_t i = 0; i < k; ++i) {

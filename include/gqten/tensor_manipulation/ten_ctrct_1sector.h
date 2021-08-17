@@ -7,8 +7,9 @@
 */
 
 /**
-@file ten_ctrct_1sector.h
-@brief Contract two tensors, one outer index are restrict on only one qn sector
+  @file ten_ctrct_1sector.h
+  @brief Contract two tensors, one outer index are restrict on only one qn sector
+  @note the restriction only support on first tensor's index
 */
 #ifndef GQTEN_TENSOR_MANIPULATION_TEN_CTRCT_ONE_SECTOR_H
 #define GQTEN_TENSOR_MANIPULATION_TEN_CTRCT_ONE_SECTOR_H
@@ -60,27 +61,67 @@ public:
       GQTensor<TenElemT, QNT> * pc
   );// split the index of pa->GetIndexes[idx_a], contract restrict on qn_sector_idx_a's qnsector
 
-  TensorContraction1SectorExecutor(
-    const GQTensor<TenElemT, QNT> * pa,
-    const GQTensor<TenElemT, QNT> * pb,
-    const size_t idx_b,
-    const size_t qn_sector_idx_b,
-    const std::vector<std::vector<size_t>> &,
-    GQTensor<TenElemT, QNT> * pc
-  );// split the index of pb->GetIndexes[idx_b], contract restrict on qn_sector_idx_b's qnsector
+  inline void SetSelectedQNSect(const size_t qn_sector_idx_a){
+    qn_sector_idx_a_ = qn_sector_idx_a;
+    ClearResBSDT_();
+  }
 
   void Execute(void) override;
 
+ 
 private:
+  void ClearResBSDT_(void){
+      pc_->GetBlkSparDataTen().Clear();
+      raw_data_ctrct_tasks_.clear();
+      a_blk_idx_data_blk_map_select_.clear();
+  }
+
+  void SelectBlkIdxDataBlkMap_(){
+    const auto& bsdt_a = pa_->GetBlkSparDataTen();
+    const auto& a_blk_idx_data_blk_map_total = bsdt_a.GetBlkIdxDataBlkMap();
+    for(auto& [idx, data_blk]: a_blk_idx_data_blk_map_total){
+      if( data_blk.blk_coors[idx_a_] == qn_sector_idx_a_ ){
+        a_blk_idx_data_blk_map_select_.insert(std::make_pair(idx, data_blk ));
+      }
+    }
+  }
+
+  inline void DataBlkGenForTenCtrct_(void){
+  raw_data_ctrct_tasks_ = pc_->GetBlkSparDataTen().DataBlkGenForTenCtrct(
+                          a_blk_idx_data_blk_map_select_,
+                          pb_->GetBlkSparDataTen().GetBlkIdxDataBlkMap(),
+                          axes_set_,
+                          saved_axes_set_,
+                          a_b_need_trans_,
+                          b_blk_idx_qnblk_info_part_hash_map_
+                        );
+  }
+
+  void SettingRawDataContractTaskTranspose_(){
+    if(a_b_need_trans_.first){
+      for (auto &task : raw_data_ctrct_tasks_) {
+        task.a_trans_orders = a_trans_orders_;
+      }
+    }
+    if(a_b_need_trans_.second) {
+      for (auto &task : raw_data_ctrct_tasks_) {
+        task.b_trans_orders = b_trans_orders_;
+      }
+    }
+  }
   const GQTensor<TenElemT, QNT> *pa_;
   const size_t idx_a_;
-  const size_t qn_sector_idx_a_;
+  size_t qn_sector_idx_a_;
   const GQTensor<TenElemT, QNT> *pb_;
-  const size_t idx_b_;
-  const size_t qn_sector_idx_b_;
   GQTensor<TenElemT, QNT> *pc_;
-  const std::vector<std::vector<size_t>> &axes_set_;
+  const std::vector<std::vector<size_t>> axes_set_;
+  std::vector<std::vector<size_t>> saved_axes_set_;
+  std::pair<bool, bool> a_b_need_trans_;
+  std::vector<size_t> a_trans_orders_;
+  std::vector<size_t> b_trans_orders_;
   std::vector<RawDataCtrctTask> raw_data_ctrct_tasks_;
+   std::map<size_t, gqten::DataBlk<QNT>> a_blk_idx_data_blk_map_select_;
+  std::unordered_map<size_t, size_t> b_blk_idx_qnblk_info_part_hash_map_;
 };
 
 
@@ -101,8 +142,7 @@ TensorContraction1SectorExecutor<TenElemT, QNT>::TensorContraction1SectorExecuto
     const std::vector<std::vector<size_t>> &axes_set,
     GQTensor<TenElemT, QNT> *pc
 ) : pa_(pa), idx_a_(idx_a), qn_sector_idx_a_(qn_sector_idx_a),
-    pb_(pb), idx_b_(pb->Rank()+10), qn_sector_idx_b_(0),
-    pc_(pc), axes_set_(axes_set)
+    pb_(pb), pc_(pc), axes_set_(axes_set)
    {
   assert(pc_->IsDefault());    // Only empty tensor can take the result
 #ifndef NDEBUG
@@ -120,69 +160,27 @@ TensorContraction1SectorExecutor<TenElemT, QNT>::TensorContraction1SectorExecuto
 #endif
   TenCtrctInitResTen(pa_, pb_, axes_set_, pc_);
   //Then we assign the DataBlk and and contract tasks
-  raw_data_ctrct_tasks_ = pc_->GetBlkSparDataTen().DataBlkGenForTenCtrct(
-                              pa_->GetBlkSparDataTen(),
-                              idx_a_,
-                              qn_sector_idx_a_,
-                              pb_->GetBlkSparDataTen(),
-                              idx_b_,
-                              qn_sector_idx_b_,
-                              axes_set_
-                          );
+  auto& bsdt_a = pa_->GetBlkSparDataTen();
+  auto& bsdt_b = pb_->GetBlkSparDataTen();
+  assert(!(bsdt_a.IsScalar() || bsdt_b.IsScalar()));
+  saved_axes_set_ = TenCtrctGenSavedAxesSet(
+                            bsdt_a.ten_rank,
+                            bsdt_b.ten_rank,
+                            axes_set_
+                        );
+  a_b_need_trans_ = TenCtrctNeedTransCheck(
+                            axes_set_,
+                            saved_axes_set_,
+                            a_trans_orders_,
+                            b_trans_orders_
+                        );
+  auto& b_blk_idx_data_blk_map = bsdt_b.GetBlkIdxDataBlkMap();
+  b_blk_idx_qnblk_info_part_hash_map_ = bsdt_b.GenBlkIdxQNBlkInfoPartHashMap(
+                                                b_blk_idx_data_blk_map,
+                                                axes_set_[1]
+                                            );
   SetStatus(ExecutorStatus::INITED);
 }
-
-
-/**
-Initialize a tensor contraction executor.
-
-@param pa Pointer to input tensor \f$ A \f$.
-@param pb Pointer to input tensor \f$ B \f$.
-@param axes_set To-be contracted tensor axes indexes. For example, {{0, 1}, {3, 2}}.
-@param pc Pointer to result tensor \f$ C \f$.
-*/
-template <typename TenElemT, typename QNT>
-TensorContraction1SectorExecutor<TenElemT, QNT>::TensorContraction1SectorExecutor(
-    const GQTensor<TenElemT, QNT> *pa,
-    const GQTensor<TenElemT, QNT> *pb,
-    const size_t idx_b,
-    const size_t qn_sector_idx_b,
-    const std::vector<std::vector<size_t>> &axes_set,
-    GQTensor<TenElemT, QNT> *pc
-) : pa_(pa), idx_a_(pa->Rank()+10), qn_sector_idx_a_(0),
-    pb_(pb), idx_b_(idx_b), qn_sector_idx_b_(qn_sector_idx_b),
-    pc_(pc), axes_set_(axes_set)
-   {
-  assert(pc_->IsDefault());    // Only empty tensor can take the result
-#ifndef NDEBUG
-  // Check indexes matching
-  auto indexesa = pa->GetIndexes();
-  auto indexesb = pb->GetIndexes();
-  for(size_t i = 0; i < axes_set[0].size(); ++i){
-    assert(indexesa[axes_set[0][i]] == InverseIndex(indexesb[axes_set[1][i]]));
-  }
-  // Check if idx_a_ is in the outer legs
-  auto iter = find(axes_set[1].begin(),axes_set[1].end(), idx_b);
-  assert(iter == axes_set[1].cend());
-  // Check if qn_sector_idx_a_ < number of quantum number sector
-  assert(qn_sector_idx_b_ < pb->GetIndexes()[idx_b_].GetQNSctNum());
-#endif
-  TenCtrctInitResTen(pa_, pb_, axes_set_, pc_);
-  //Then we assign the DataBlk and Allocate the memory with set 0 for pc_
-  
-  raw_data_ctrct_tasks_ = pc_->GetBlkSparDataTen().DataBlkGenForTenCtrct(
-                              pa_->GetBlkSparDataTen(),
-                              idx_a_,
-                              qn_sector_idx_a_,
-                              pb_->GetBlkSparDataTen(),
-                              idx_b_,
-                              qn_sector_idx_b_,
-                              axes_set_
-                          );
-
-  SetStatus(ExecutorStatus::INITED);
-}
-
 
 
 /**
@@ -191,6 +189,9 @@ Allocate memory and perform raw data contraction calculation.
 template <typename TenElemT, typename QNT>
 void TensorContraction1SectorExecutor<TenElemT, QNT>::Execute(void) {
   SetStatus(ExecutorStatus::EXEING);
+  SelectBlkIdxDataBlkMap_();
+  DataBlkGenForTenCtrct_();
+  SettingRawDataContractTaskTranspose_();
 
   pc_->GetBlkSparDataTen().CtrctTwoBSDTAndAssignIn(
       pa_->GetBlkSparDataTen(),
@@ -262,30 +263,6 @@ void Contract1Sector(
   auto cplx_b = ToComplex(*pb);
   Contract1Sector(pa, idx_a, qn_sector_idx_a, &cplx_b, axes_set, pc);
 }
-
-
-
-
-template <typename TenElemT, typename QNT>
-void Contract1Sector(
-    const GQTensor<TenElemT, QNT> *pa,
-    const GQTensor<TenElemT, QNT> *pb,
-    const size_t idx_b,
-    const size_t qn_sector_idx_b,
-    const std::vector<std::vector<size_t>> &axes_set,
-    GQTensor<TenElemT, QNT> *pc
-) {
-  TensorContraction1SectorExecutor<TenElemT, QNT> ten_ctrct_1sector_executor(
-      pa,
-      pb,
-      idx_b,
-      qn_sector_idx_b,
-      axes_set,
-      pc
-  );
-  ten_ctrct_1sector_executor.Execute();
-}
-
 
 
 } /* gqten */

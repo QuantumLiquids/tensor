@@ -660,7 +660,6 @@ void BlockSparseDataTensor<ElemT, QNT>::ConstructExpandedDataOnFirstIndex(
         raw_data_copy_tasks_from_b.push_back(task);
       } else {
         int blk_idx_a = blk_idx_expand_mapto_blk_map_a[blk_idx];
-        assert(blk_idx_a == blk_idx);
         auto pblk_idx_data_blk_pair_a = blk_idx_data_blk_map_a.find(
                                             static_cast<size_t>(blk_idx_a)
                                         );

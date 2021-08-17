@@ -402,7 +402,10 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
   using hp_numeric::tensor_decomp_inner_parallel_num_threads;
   using std::map;
   const unsigned ompth = tensor_decomp_outer_parallel_num_threads;
-  const unsigned mklth = tensor_decomp_inner_parallel_num_threads;
+  unsigned mklth = tensor_decomp_inner_parallel_num_threads;
+  //no const specifier on mklth for set mklth as shared variable when using omp
+  //some version gcc complier need mklth be declare as shared variable, some not need
+  //which do not need require is not a const.
 
 
   if(tensor_decomp_outer_parallel_num_threads>1 ){
@@ -432,7 +435,7 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
       iter++;
     }
     #pragma omp parallel for default(none) \
-                shared(iter_vector, map_size, idx_svd_res_map)\
+                shared(iter_vector, map_size, idx_svd_res_map, mklth)\
                 num_threads(ompth)\
                 schedule(dynamic) 
     for (size_t i = 0;i<map_size;i++) {

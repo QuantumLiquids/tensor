@@ -103,24 +103,7 @@ TEST_F(TestContraction, 3DCase){
   Contract(&dten_3d_s, &dten_3d_s3,{{2},{0}}, &res_ten);
   EXPECT_EQ(sum_ten, res_ten);
 
-  for(size_t i=0;i<num_qn;i++){
-    delete split_tens[i];
-  }
 
-
-  //split for b
-  split_idx = 1;
-  num_qn = dten_3d_s3.GetIndexes()[split_idx].GetQNSctNum();
-  split_tens = std::vector<DGQTensor *>(num_qn);
-  for(size_t i=0;i<num_qn;i++){
-      split_tens[i] = new DGQTensor();
-      Contract1Sector(&dten_3d_s, &dten_3d_s3,split_idx, i ,{{2},{0}},split_tens[i]);
-  }
-  coefs = std::vector<GQTEN_Double>(num_qn,1.0);
-  sum_ten = DGQTensor();
-  LinearCombine(coefs, split_tens, 0.0, &sum_ten );
-
-  EXPECT_EQ(sum_ten, res_ten);
 
   //check Collective Linear Combine
   std::vector<DGQTensor> split_tens2(num_qn);
@@ -135,6 +118,27 @@ TEST_F(TestContraction, 3DCase){
   for(size_t i=0;i<num_qn;i++){
     delete split_tens[i];
   }
+
+  /* not support from Aug 15
+  //split for b
+  split_idx = 1;
+  num_qn = dten_3d_s3.GetIndexes()[split_idx].GetQNSctNum();
+  split_tens = std::vector<DGQTensor *>(num_qn);
+  for(size_t i=0;i<num_qn;i++){
+      split_tens[i] = new DGQTensor();
+      Contract1Sector(&dten_3d_s, &dten_3d_s3,split_idx, i ,{{2},{0}},split_tens[i]);
+  }
+  coefs = std::vector<GQTEN_Double>(num_qn,1.0);
+  sum_ten = DGQTensor();
+  LinearCombine(coefs, split_tens, 0.0, &sum_ten );
+
+  EXPECT_EQ(sum_ten, res_ten);
+  for(size_t i=0;i<num_qn;i++){
+    delete split_tens[i];
+  }
+  */
+
+  
   
 }
 

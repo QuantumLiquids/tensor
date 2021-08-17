@@ -22,66 +22,23 @@ namespace gqten{
 /**
 Generate data blocks for two tensor contraction.
 
-@param bsdt_a Block sparse data tensor A.
-@param bsdt_b Block sparse data tensor B.
+
 @param ctrct_axes_set To-be contracted tensor axes indexes.
        For example, {{0, 1}, {3, 2}}.
 */
 template <typename ElemT, typename QNT>
 std::vector<RawDataCtrctTask>
 BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
-    const BlockSparseDataTensor &bsdt_a,
-    const size_t idx_a,
-    const size_t qn_sector_idx_a,
-    const BlockSparseDataTensor &bsdt_b,
-    const size_t idx_b,
-    const size_t qn_sector_idx_b,
-    const std::vector<std::vector<size_t>> &ctrct_axes_set
+    const std::map<size_t, gqten::DataBlk<QNT>>& a_blk_idx_data_blk_map_select,
+    const std::map<size_t, gqten::DataBlk<QNT>>& b_blk_idx_data_blk_map,
+    const std::vector<std::vector<size_t>> &ctrct_axes_set,
+    const std::vector<std::vector<size_t>>& saved_axes_set,
+    std::pair<bool, bool> a_b_need_trans,
+    std::unordered_map<size_t, size_t>& b_blk_idx_qnblk_info_part_hash_map
 ) {
-  assert(!(bsdt_a.IsScalar() || bsdt_b.IsScalar()));
-  auto saved_axes_set = TenCtrctGenSavedAxesSet(
-                            bsdt_a.ten_rank,
-                            bsdt_b.ten_rank,
-                            ctrct_axes_set
-                        );
-  std::vector<size_t> a_trans_orders, b_trans_orders;
-  auto a_b_need_trans = TenCtrctNeedTransCheck(
-                            ctrct_axes_set,
-                            saved_axes_set,
-                            a_trans_orders,
-                            b_trans_orders
-                        );
-  std::map<size_t, gqten::DataBlk<QNT>> a_blk_idx_data_blk_map = bsdt_a.GetBlkIdxDataBlkMap();
-  std::map<size_t, gqten::DataBlk<QNT>> b_blk_idx_data_blk_map = bsdt_b.GetBlkIdxDataBlkMap();
-  if(idx_a < bsdt_a.ten_rank ){
-    for(auto iter = a_blk_idx_data_blk_map.begin();
-             iter != a_blk_idx_data_blk_map.end();){
-      DataBlk<QNT>& data_blk = iter->second;
-      if( data_blk.blk_coors[idx_a] != qn_sector_idx_a ){
-        a_blk_idx_data_blk_map.erase(iter++);
-      }else{
-        iter++;
-      }
-    }
-  }
-  if(idx_b < bsdt_b.ten_rank ){
-    for(auto iter = b_blk_idx_data_blk_map.begin();
-             iter != b_blk_idx_data_blk_map.end();){
-      DataBlk<QNT> data_blk = iter->second;
-      if( data_blk.blk_coors[idx_b] != qn_sector_idx_b ){
-        b_blk_idx_data_blk_map.erase(iter++);
-      }else{
-        iter++;
-      }
-    }
-  }
   auto a_blk_idx_qnblk_info_part_hash_map = GenBlkIdxQNBlkInfoPartHashMap(
-                                                a_blk_idx_data_blk_map,
+                                                a_blk_idx_data_blk_map_select,
                                                 ctrct_axes_set[0]
-                                            );
-  auto b_blk_idx_qnblk_info_part_hash_map = GenBlkIdxQNBlkInfoPartHashMap(
-                                                b_blk_idx_data_blk_map,
-                                                ctrct_axes_set[1]
                                             );
   std::vector<RawDataCtrctTask> raw_data_ctrct_tasks;
   std::unordered_map<size_t, size_t>
@@ -100,8 +57,8 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
       if (a_blk_idx_part_hash.second == b_blk_idx_part_hash.second) {
         auto a_blk_idx = a_blk_idx_part_hash.first;
         auto b_blk_idx = b_blk_idx_part_hash.first;
-        auto a_data_blk = a_blk_idx_data_blk_map[a_blk_idx];
-        auto b_data_blk = b_blk_idx_data_blk_map[b_blk_idx];
+        auto a_data_blk = a_blk_idx_data_blk_map_select.at(a_blk_idx);
+        auto b_data_blk = b_blk_idx_data_blk_map.at(b_blk_idx);
         // Calculate m, k, n
         size_t m, k, n;
         if (c_is_scalar) {
@@ -185,12 +142,6 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
   }
 
   for (auto &task : raw_data_ctrct_tasks) {
-    if (a_b_need_trans.first) {
-      task.a_trans_orders = a_trans_orders;
-    }
-    if (a_b_need_trans.second) {
-      task.b_trans_orders = b_trans_orders;
-    }
     if (!c_is_scalar) {
       task.c_data_offset = blk_idx_data_blk_map_[task.c_blk_idx].data_offset;
     } else {
@@ -201,55 +152,4 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
   return raw_data_ctrct_tasks;
 }
 
-
-
-
-/**
-Generate data blocks for two tensor contraction.
-
-@param bsdt_a Block sparse data tensor A.
-@param bsdt_b Block sparse data tensor B.
-@param ctrct_axes_a To-be contracted tensor axes indexes in A
-@param ctrct_axes_b To-be contracted tensor axes indexes in B
-
-This arguement list has the same meaning with the other same name function.
-The difference of this function is here only generate the DataBlk for tensor contraction.
-*/  /*
-template <typename ElemT, typename QNT>
-void BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
-    const BlockSparseDataTensor &bsdt_a,
-    const BlockSparseDataTensor &bsdt_b,
-    const std::vector<size_t> &ctrct_axes_a,
-    const std::vector<size_t> &ctrct_axes_b
-) {
-    assert(!(bsdt_a.IsScalar() || bsdt_b.IsScalar()));
-    auto saved_axes_set = TenCtrctGenSavedAxesSet(
-                            bsdt_a.ten_rank,
-                            bsdt_b.ten_rank,
-                            {ctrct_axes_a, ctrct_axes_b}
-                        );
-    auto a_b_need_trans = TenCtrctNeedTransCheck(
-                            ctrct_axes_set,
-                            saved_axes_set,
-                            a_trans_orders,
-                            b_trans_orders
-                        );
-    auto a_blk_idx_data_blk_map = bsdt_a.GetBlkIdxDataBlkMap();
-    auto b_blk_idx_data_blk_map = bsdt_b.GetBlkIdxDataBlkMap();
-    auto a_blk_idx_qnblk_info_part_hash_map = GenBlkIdxQNBlkInfoPartHashMap(
-                                                a_blk_idx_data_blk_map,
-                                                ctrct_axes_set[0]
-                                            );
-    auto b_blk_idx_qnblk_info_part_hash_map = GenBlkIdxQNBlkInfoPartHashMap(
-                                                b_blk_idx_data_blk_map,
-                                                ctrct_axes_set[1]
-                                            );
-    
-
-
-}
-
-
-
-*/
 }

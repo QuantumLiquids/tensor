@@ -763,7 +763,7 @@ inline boost::mpi::status recv_gqten(boost::mpi::communicator world,
 #ifdef GQTEN_MPI_TIMING_MODE
   Timer recv_gqten_wrap_timer("recv_gqten_wrap");
 #endif
-  auto s1 = world.recv(source, tag, gqten);
+  world.recv(source, tag, gqten);
 #ifdef GQTEN_MPI_TIMING_MODE
   recv_gqten_wrap_timer.PrintElapsed();
 

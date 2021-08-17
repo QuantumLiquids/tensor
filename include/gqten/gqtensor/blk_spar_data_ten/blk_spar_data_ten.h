@@ -100,13 +100,12 @@ public:
   );
 
     std::vector<RawDataCtrctTask> DataBlkGenForTenCtrct(
-      const BlockSparseDataTensor &,
-      const size_t, 
-      const size_t,
-      const BlockSparseDataTensor &,
-      const size_t,
-      const size_t,
-      const std::vector<std::vector<size_t>> &
+      const std::map<size_t, gqten::DataBlk<QNT>>&,
+      const std::map<size_t, gqten::DataBlk<QNT>>&,
+      const std::vector<std::vector<size_t>> &,
+      const std::vector<std::vector<size_t>> &,
+      std::pair<bool, bool>,
+      std::unordered_map<size_t, size_t>&
   );
 
   std::map<size_t, DataBlkMatSvdRes<ElemT>> DataBlkDecompSVD(
@@ -229,8 +228,20 @@ public:
 
   boost::mpi::status MPIRecv(
     boost::mpi::communicator& world,
-    int source,
-    int tag
+    const int source,
+    const int tag
+  );
+
+  boost::mpi::status MPIRecvIdxDataBlkMap(
+    boost::mpi::communicator& world,
+    const int source,
+    const int tag
+  );
+
+  boost::mpi::status MPIRecvActualData(
+    boost::mpi::communicator& world,
+    const int source,
+    const int tag
   );
 
   /// Rank of the tensor.
@@ -634,15 +645,32 @@ inline void BlockSparseDataTensor<ElemT, QNT>::MPISend(
 template <typename ElemT, typename QNT>
 inline boost::mpi::status BlockSparseDataTensor<ElemT, QNT>::MPIRecv(
     boost::mpi::communicator& world,
-    int source,
-    int tag){
+    const int source,
+    const int tag){
   boost::mpi::status recv_ten_status=world.recv(source, tag, *this);
-  if(source == boost::mpi::any_source){
-    source = recv_ten_status.source();
-    tag = recv_ten_status.tag();
-  }
-  int tag_data = 2*tag+1;
-  recv_ten_status=world.recv(source, tag_data, pactual_raw_data_, actual_raw_data_size_);
+  const int source_data = recv_ten_status.source();
+  const int tag_data = 2*recv_ten_status.tag() +1;
+  recv_ten_status=world.recv(source_data, tag_data, pactual_raw_data_, actual_raw_data_size_);
+  return recv_ten_status;
+}
+
+template <typename ElemT, typename QNT>
+inline boost::mpi::status BlockSparseDataTensor<ElemT, QNT>::MPIRecvIdxDataBlkMap(
+    boost::mpi::communicator& world,
+    const int source,
+    const int tag
+){
+  return world.recv(source, tag, *this) ;
+}
+
+template <typename ElemT, typename QNT>
+inline boost::mpi::status BlockSparseDataTensor<ElemT, QNT>::MPIRecvActualData(
+    boost::mpi::communicator& world,
+    const int source,
+    const int tag_data
+){
+  assert(source != boost::mpi::any_source);
+  boost::mpi::status recv_ten_status=world.recv(source, tag_data, pactual_raw_data_, actual_raw_data_size_);
   return recv_ten_status;
 }
 
