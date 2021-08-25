@@ -23,5 +23,11 @@ const double kDoubleEpsilon = 1.0E-15;
 
 // Default tensor transpose threads number.
 const int kTensorTransposeDefaultNumThreads = 4;
+
+// Default OpenMP thread number(in every processor)
+const unsigned kOmpDefaultTotalNumThreads = 4;
+
+// MPI master's rank
+const size_t kMPIMasterRank = 0;
 } /* gqten */ 
 #endif /* ifndef GQTEN_FRAMEWORK_CONSTS_H */

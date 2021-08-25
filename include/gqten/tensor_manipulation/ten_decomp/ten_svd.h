@@ -103,19 +103,7 @@ public:
 
   void Execute(void) override;
 
-private:
-  const GQTensor<TenElemT, QNT> *pt_;
-  const size_t ldims_;
-  const QNT &lqndiv_;
-  const GQTEN_Double trunc_err_;
-  const size_t Dmin_;
-  const size_t Dmax_;
-  GQTensor<TenElemT, QNT> *pu_;
-  GQTensor<GQTEN_Double, QNT> *ps_;
-  GQTensor<TenElemT, QNT> *pvt_;
-  GQTEN_Double *pactual_trunc_err_;
-  size_t *pD_;
-  IdxDataBlkMatMap<QNT> idx_ten_decomp_data_blk_mat_map_;
+protected: 
   std::vector<TruncedSVInfo> CalcTruncedSVInfo_(
     const std::map<size_t, DataBlkMatSvdRes<TenElemT>> &
   );
@@ -131,6 +119,20 @@ private:
       const std::map<size_t, SDataBlkInfo> &,
       const UVtDataBlkInfoVecPair &
   );
+
+  const GQTensor<TenElemT, QNT> *pt_;
+  IdxDataBlkMatMap<QNT> idx_ten_decomp_data_blk_mat_map_;
+private:
+  const size_t ldims_;
+  const QNT &lqndiv_;
+  const GQTEN_Double trunc_err_;
+  const size_t Dmin_;
+  const size_t Dmax_;
+  GQTensor<TenElemT, QNT> *pu_;
+  GQTensor<GQTEN_Double, QNT> *ps_;
+  GQTensor<TenElemT, QNT> *pvt_;
+  GQTEN_Double *pactual_trunc_err_;
+  size_t *pD_;
 };
 
 
