@@ -461,7 +461,7 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
     delete[] iter_vector;
   }else{
 #ifdef GQTEN_TIMING_MODE
-  Timer svd_mkl_timer("   =============> svd raw mkl");
+  Timer svd_mkl_timer("matrix svd");
   svd_mkl_timer.Suspend();
 #endif
     for(auto&[idx, data_blk_mat]: idx_data_blk_mat_map){
@@ -491,6 +491,118 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
   }
   return idx_svd_res_map;
 }
+
+
+
+/**
+SVD decomposition.
+*/
+template <typename ElemT, typename QNT>
+std::map<size_t, DataBlkMatSvdRes<ElemT>>
+BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVDMaster(
+    const IdxDataBlkMatMap<QNT> &idx_data_blk_mat_map,
+    boost::mpi::communicator& world
+) const {
+  using namespace std;
+  /// This setting give Slave
+  std::map<size_t, DataBlkMatSvdRes<ElemT>> idx_svd_res_map;
+
+  auto iter = idx_data_blk_mat_map.begin();
+
+  size_t slave_num = world.size()-1;
+  size_t task_size = idx_data_blk_mat_map.size();
+  // if task_size < slave num the code should also work
+  // suppose procs num >= slave num
+  // for parallel do not need in order
+  #pragma omp parallel for default(none) \
+                shared(task_size, idx_svd_res_map, iter, world, cout)\
+                num_threads(slave_num)\
+                schedule(dynamic) 
+  for(size_t i = 0; i < task_size; i++){
+    size_t controlling_slave = omp_get_thread_num()+1;// both number from 1
+    // size_t threads =  omp_get_num_threads();
+    TenDecompDataBlkMat<QNT> data_blk_mat;
+    size_t idx;
+    #pragma omp critical
+    {
+      idx = iter->first;
+      data_blk_mat = iter->second;
+      iter++;
+    }
+    ElemT *mat = RawDataGenDenseDataBlkMat_(data_blk_mat);
+    const size_t m = data_blk_mat.rows;
+    const size_t n = data_blk_mat.cols;
+    world.send(controlling_slave, 2*controlling_slave, m);
+    world.send(controlling_slave, 3*controlling_slave, n);
+    world.send(controlling_slave, 4*controlling_slave, mat, m*n);
+
+    const size_t ld = std::min(m,n);
+    ElemT* u  = (ElemT *) malloc((ld * m) * sizeof(ElemT));
+    ElemT* vt = (ElemT *) malloc((ld * n) * sizeof(ElemT));
+    GQTEN_Double* s = (GQTEN_Double *) malloc(ld * sizeof(GQTEN_Double));
+    const size_t k = m > n ? n : m;
+
+    //TODO change to non-block
+    world.recv(controlling_slave, 5*controlling_slave, u, ld*m);
+    world.recv(controlling_slave, 6*controlling_slave, vt, ld*n);
+    world.recv(controlling_slave, 7*controlling_slave, s, ld);
+    free(mat);
+    #pragma omp critical
+    {
+      idx_svd_res_map[idx] =  DataBlkMatSvdRes<ElemT>(m, n, k, u, s, vt);
+    }
+  }
+  //make sure thread is safe
+  assert(iter == idx_data_blk_mat_map.end());
+
+  for(int slave=1;slave<world.size();slave++){
+    //send finish signal
+    const size_t m = 0;
+    const size_t n = 0;
+    world.send(slave, 2*slave, m);
+    world.send(slave, 3*slave, n);
+  }
+  return idx_svd_res_map;
+}
+
+template <typename ElemT>
+void DataBlkDecompSVDSlave(boost::mpi::communicator& world){
+//TODO: count the calculation time and wait time, also Master total time
+  const unsigned mklth = hp_numeric::tensor_manipulation_total_num_threads;
+  mkl_set_num_threads_local(0);
+  mkl_set_num_threads(mklth);
+  mkl_set_dynamic(true);
+
+  size_t m, n;//check if IdxDataBlkMatMap must have >0 row and  column
+  size_t slave_identifier = world.rank();
+  world.recv(kMPIMasterRank, 2*slave_identifier, m);
+  world.recv(kMPIMasterRank, 3*slave_identifier, n);
+  while(m>0 && n>0){
+    size_t data_size = m*n;
+    ElemT *mat = (ElemT *) malloc(data_size * sizeof(ElemT));
+    world.recv(kMPIMasterRank, 4*slave_identifier, mat, data_size);
+
+
+    ElemT *u = nullptr;
+    ElemT *vt = nullptr;
+    GQTEN_Double *s = nullptr;
+    hp_numeric::MatSVD(mat, m, n, u, s, vt);
+
+    size_t ld = std::min(m,n);
+    world.send(kMPIMasterRank, 5*slave_identifier, u, ld*m);
+    world.send(kMPIMasterRank, 6*slave_identifier, vt, ld*n);
+    world.send(kMPIMasterRank, 7*slave_identifier, s, ld);
+
+    free(mat);
+    free(u);
+    free(vt);
+    free(s);
+
+    world.recv(kMPIMasterRank, 2*slave_identifier, m);
+    world.recv(kMPIMasterRank, 3*slave_identifier, n);
+  }
+}
+
 
 
 template <typename ElemT, typename QNT>

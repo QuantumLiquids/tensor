@@ -19,7 +19,6 @@
 namespace gqten {
 /// High performance numerical functions.
 namespace hp_numeric {
-    const unsigned kOmpDefaultTotalNumThreads = 4;
     
     //thread for contract, svd, qr
     inline unsigned tensor_manipulation_total_num_threads = kOmpDefaultTotalNumThreads;

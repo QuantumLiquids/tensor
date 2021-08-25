@@ -112,6 +112,11 @@ public:
       const IdxDataBlkMatMap<QNT> &
   ) const;
 
+  std::map<size_t, DataBlkMatSvdRes<ElemT>> DataBlkDecompSVDMaster(
+    const IdxDataBlkMatMap<QNT> &,
+    boost::mpi::communicator& 
+  ) const;
+
   void DataBlkCopySVDUdata(
       const CoorsT &, const size_t, const size_t,
       const size_t,

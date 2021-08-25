@@ -24,4 +24,7 @@
 #include "gqten/tensor_manipulation/ten_fuse_index.h"         // Fuse Index
 #include "gqten/tensor_manipulation/ten_ctrct_1sector.h"
 
+
+#include "gqten/mpi_tensor_manipulation/ten_decomp/mpi_svd.h" // MPISVDMaster, MPISVDSlave
+
 #endif /* ifndef GQTEN_TENSOR_MANIPULATION_ALL */

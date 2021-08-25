@@ -105,6 +105,35 @@ macro(add_mpi_unittest
 endmacro()
 
 
+macro(compile_unittest
+    TEST_NAME TEST_SRC CFLAGS LINK_LIBS LINK_LIB_FLAGS)
+  add_executable(${TEST_NAME}
+    ${TEST_SRC})
+
+    target_compile_options(${TEST_NAME}
+      PRIVATE ${CFLAGS} 
+      PRIVATE ${OMP_FLAGS}
+    )
+    target_include_directories(${TEST_NAME}
+      PRIVATE ${GQMPS2_HEADER_PATH}
+      PRIVATE ${GQMPS2_TENSOR_LIB_HEADER_PATH}
+      PRIVATE ${hptt_INCLUDE_DIR}
+      PRIVATE ${Boost_INCLUDE_DIR}
+      PRIVATE ${MPI_CXX_HEADER_DIR})
+    target_link_libraries(${TEST_NAME}
+      GTest::GTest GTest::Main
+      ${hptt_LIBRARY}
+      Boost::serialization
+      Boost::mpi
+      ${MPI_CXX_LINK_FLAGS}
+      ${MPI_mpi_LIBRARY}
+      "${LINK_LIBS}" "${LINK_LIB_FLAGS}"
+      )
+    set_target_properties(${TEST_NAME} PROPERTIES FOLDER tests)
+endmacro()
+
+
+
 ## Test quantum number related objects
 # Test quantum number vaules
 add_unittest(test_qnval_u1 "test_gqtensor/test_qnval/test_qnval_u1.cc" "" "" "")
@@ -184,4 +213,11 @@ add_mpi_unittest(test_boost_mpi
 add_unittest(test_ten_ctrct_1sector
   "test_tensor_manipulation/test_ten_ctrct_1sector.cc"
   "${MATH_LIB_COMPILE_FLAGS}" "" "${MATH_LIB_LINK_FLAGS}"
+)
+
+
+# Test mpi svd performance
+add_mpi_unittest(test_mpi_svd
+  "test_mpi_functionality/test_mpi_svd.cc"
+  "${MATH_LIB_COMPILE_FLAGS}" "" "${MATH_LIB_LINK_FLAGS}" "3"
 )
