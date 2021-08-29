@@ -563,7 +563,7 @@ void GQTensor<ElemT, QNT>::load(Archive &ar, const unsigned int version){
 template <typename ElemT, typename QNT>
 void GQTensor<ElemT, QNT>::StreamWrite(std::ostream &os) const {
   assert(!IsDefault());
-  os << rank_ << std::endl;
+  os << rank_ << "\n";
   for (auto &index : indexes_) { os << index; }
   os << (*pblk_spar_data_ten_);
 }

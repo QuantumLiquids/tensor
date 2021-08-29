@@ -542,13 +542,16 @@ template <typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::StreamRead(std::istream &is) {
   size_t data_blk_num;
   is >> data_blk_num;
+  std::vector<CoorsT> blk_coors_s;
+  blk_coors_s.reserve(data_blk_num);
   for (size_t i = 0; i < data_blk_num; ++i) {
     CoorsT blk_coors(ten_rank);
     for (size_t j = 0; j < ten_rank; ++j) {
       is >> blk_coors[j];
     }
-    DataBlkInsert(blk_coors, false);
+    blk_coors_s.emplace_back(blk_coors);
   }
+  DataBlksInsert(blk_coors_s, false, false);
 
   if (IsScalar()) { raw_data_size_ = 1; }
   Allocate();
@@ -561,24 +564,26 @@ Write a BlockSparseDataTensor to a stream.
 */
 template <typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::StreamWrite(std::ostream &os) const {
-  os << blk_idx_data_blk_map_.size() << std::endl;
+  os << blk_idx_data_blk_map_.size() << "\n";
   for (auto &blk_idx_data_blk : blk_idx_data_blk_map_) {
     for (auto &blk_coor : blk_idx_data_blk.second.blk_coors) {
-      os << blk_coor << std::endl;
+      os << blk_coor << "\n";
     }
   }
 
   if (IsScalar() && actual_raw_data_size_ == 0) {     // Empty scalar case
     ElemT *pscalar0 = new ElemT();
     os.write((char *) pscalar0, sizeof(ElemT));
-    os << std::endl;
+    os << "\n";
     delete pscalar0;
   } else {
     RawDataWrite_(os);
   }
 }
 
-
+/**
+ * @note only save the shell, no data!
+ */
 template <typename ElemT, typename QNT>
 template <class Archive>
 void BlockSparseDataTensor<ElemT, QNT>::save(Archive & ar, const unsigned int version) const{
@@ -589,20 +594,11 @@ void BlockSparseDataTensor<ElemT, QNT>::save(Archive & ar, const unsigned int ve
         ar & blk_coor;
       }
   }
-
-  // if (IsScalar() && actual_raw_data_size_ == 0) {     // Empty scalar case
-  //   // std::cout << "This is a keng for IsScalar() && actual_raw_data_size_ == 0" <<std::endl;
-  //   // assert(0);
-  //   // ElemT zero=0.0;
-  //   // ar & zero;
-  //   // ar & boost::serialization::make_array<ElemT>(&zero, 1);
-  // } else {
-  //   // ar & boost::serialization::make_array<ElemT>(pactual_raw_data_, actual_raw_data_size_);
-  //   // for(ElemT* point = pactual_raw_data_; point<pactual_raw_data_+actual_raw_data_size_;point++ )
-  //   // ar & (*point);
-  // }
 }
 
+/** 
+ * load the shell and allocate the memory, no data is read.
+ */
 template <typename ElemT, typename QNT>
 template <class Archive>
 void BlockSparseDataTensor<ElemT, QNT>::load(Archive & ar, const unsigned int version){
@@ -621,10 +617,6 @@ void BlockSparseDataTensor<ElemT, QNT>::load(Archive & ar, const unsigned int ve
   if (IsScalar()) { raw_data_size_ = 1; }
 
   Allocate();
-  // ar & boost::serialization::make_array<ElemT>(pactual_raw_data_, raw_data_size_);
-  // for(ElemT* point = pactual_raw_data_; point<pactual_raw_data_+actual_raw_data_size_;point++ )
-  //   ar & (*point);
-  // ar & pactual_raw_data_;
 }
 
 

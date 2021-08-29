@@ -192,12 +192,12 @@ public:
   }
 
   void StreamWrite(std::ostream &os) const override {
-    os << qnscts_.size() << std::endl;
+    os << qnscts_.size() << "\n";
     for (auto &qnsct : qnscts_) { os << qnsct; }
     int dir_int_repr = dir_;
-    os << dir_int_repr << std::endl;
-    os << dim_ << std::endl;
-    os << hash_ << std::endl;
+    os << dir_int_repr << "\n";
+    os << dim_ << "\n";
+    os << hash_ << "\n";
   }
 
   void Show(const size_t indent_level = 0) const override {

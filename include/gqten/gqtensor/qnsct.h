@@ -118,8 +118,8 @@ public:
 
   void StreamWrite(std::ostream &os) const override {
     os << qn_;
-    os << dgnc_ << std::endl;
-    os << hash_ << std::endl;
+    os << dgnc_ << "\n";
+    os << hash_ << "\n";
   }
 
   void Show(const size_t indent_level = 0) const override {

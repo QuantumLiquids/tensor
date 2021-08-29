@@ -256,9 +256,9 @@ void QN<QNValTs...>::StreamRead(std::istream &is) {
 template <typename... QNValTs>
 void QN<QNValTs...>::StreamWrite(std::ostream &os) const {
   for (auto &qnval : pqnvals_) {
-    os << (*qnval) << std::endl;
+    os << (*qnval) << "\n";
   }
-  os << hash_ << std::endl;
+  os << hash_ << "\n";
 }
 
 
