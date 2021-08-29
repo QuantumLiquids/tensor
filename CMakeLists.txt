@@ -35,6 +35,11 @@ if(GQTEN_TIMING_MODE)
   add_definitions(-DGQTEN_TIMING_MODE)
 endif()
 
+option(GQTEN_MPI_TIMING_MODE "Timing mode." ON)
+if(GQTEN_MPI_TIMING_MODE)
+  add_definitions(-DGQTEN_MPI_TIMING_MODE)
+endif()
+
 option(GQTEN_USE_EXTERNAL_HPTT_LIB "Use external hptt library" OFF)
 
 

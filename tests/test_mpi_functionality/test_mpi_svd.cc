@@ -51,6 +51,9 @@ int main(int argc, char *argv[]){
   hp_numeric::SetTensorTransposeNumThreads(thread_num);
 
   if( world.rank() == kMPIMasterRank){
+    if (env.thread_level() < mpi::threading::multiple){
+      std::cout << "warning: env.thread_level() < mt::threading::multiple" << std::endl;
+    }
     DGQTensor state;
     std::string file = "state.gqten";
 
