@@ -22,6 +22,8 @@
 #include "gqten/framework/bases/showable.h"     // Showable
 #include "gqten/framework/vec_hash.h"           // VecHasher
 #include "gqten/gqtensor/qnsct.h"               // QNSectorVec
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/vector.hpp>
 
 #include <functional>     // std::hash
 #include <string>         // string
@@ -190,12 +192,12 @@ public:
   }
 
   void StreamWrite(std::ostream &os) const override {
-    os << qnscts_.size() << std::endl;
+    os << qnscts_.size() << "\n";
     for (auto &qnsct : qnscts_) { os << qnsct; }
     int dir_int_repr = dir_;
-    os << dir_int_repr << std::endl;
-    os << dim_ << std::endl;
-    os << hash_ << std::endl;
+    os << dir_int_repr << "\n";
+    os << dim_ << "\n";
+    os << hash_ << "\n";
   }
 
   void Show(const size_t indent_level = 0) const override {
@@ -240,6 +242,15 @@ private:
   size_t CalcHash_(void) {
     std::hash<int> int_hasher;
     return VecHasher(qnscts_) ^ int_hasher(dir_);
+  }
+
+  friend class boost::serialization::access;
+  template<class Archive>
+  void serialize(Archive & ar, const unsigned int version){
+    ar & dir_;
+    ar & dim_;
+    ar & hash_;
+    ar & qnscts_;
   }
 };
 

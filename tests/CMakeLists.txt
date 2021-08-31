@@ -10,6 +10,24 @@ if(NOT GQTEN_USE_EXTERNAL_HPTT_LIB)
   set(hptt_LIBRARY "${CMAKE_BINARY_DIR}/external/hptt/libhptt.a")
 endif()
 
+find_package(Boost
+  1.76.0
+  REQUIRED 
+  COMPONENTS serialization mpi)
+
+find_package(MPI REQUIRED)
+
+option(TEST_ACTUAL_COMBAT "test the actual examples of mps tensors" OFF)
+
+if(TEST_ACTUAL_COMBAT)
+  add_definitions(-DACTUALCOMBAT)
+endif()
+
+option(TEST_LARGE_MATRIX "test large matrixs(only for omp parallel svd upto now)." OFF)
+if(TEST_LARGE_MATRIX)
+  add_definitions(-DTEST_LARGE_MATRIX)
+endif()
+
 #set omp flag
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
   set(OMP_FLAGS -qopenmp)
@@ -30,11 +48,18 @@ macro(add_unittest
     )
     target_include_directories(${TEST_NAME}
       PRIVATE ${GQTEN_HEADER_PATH}
-      PRIVATE ${hptt_INCLUDE_DIR})
+      PRIVATE ${hptt_INCLUDE_DIR}
+      PRIVATE ${Boost_INCLUDE_DIR}
+      PRIVATE ${MPI_CXX_HEADER_DIR})
     target_link_libraries(${TEST_NAME}
       GTest::GTest GTest::Main
       ${hptt_LIBRARY}
-      "${LINK_LIBS}" "${LINK_LIB_FLAGS}")
+      Boost::serialization
+      Boost::mpi
+      ${MPI_CXX_LINK_FLAGS}
+      ${MPI_mpi_LIBRARY}
+      "${LINK_LIBS}" "${LINK_LIB_FLAGS}"
+      )
 
     add_test(
       NAME ${TEST_NAME}
@@ -42,6 +67,71 @@ macro(add_unittest
 
   set_target_properties(${TEST_NAME} PROPERTIES FOLDER tests)
 endmacro()
+
+
+
+macro(add_mpi_unittest
+    TEST_NAME TEST_SRC CFLAGS LINK_LIBS LINK_LIB_FLAGS PROCESSOR_NUM)
+  add_executable(${TEST_NAME}
+    ${TEST_SRC})
+
+    target_compile_options(${TEST_NAME}
+      PRIVATE ${CFLAGS} 
+      PRIVATE ${OMP_FLAGS}
+    )
+    target_include_directories(${TEST_NAME}
+      PRIVATE ${GQTEN_HEADER_PATH}
+      PRIVATE ${hptt_INCLUDE_DIR}
+      PRIVATE ${Boost_INCLUDE_DIR}
+      PRIVATE ${MPI_CXX_HEADER_DIR})
+    target_link_libraries(${TEST_NAME}
+      GTest::GTest GTest::Main
+      ${hptt_LIBRARY}
+      Boost::serialization
+      Boost::mpi
+      ${MPI_CXX_LINK_FLAGS}
+      ${MPI_mpi_LIBRARY}
+      "${LINK_LIBS}" "${LINK_LIB_FLAGS}"
+      )
+
+    if( NOT(MPIEXEC_MAX_NUMPROCS MATCHES "1"))
+      add_test(
+        NAME ${TEST_NAME}
+        COMMAND ${MPIEXEC_EXECUTABLE}
+            ${MPIEXEC_NUMPROC_FLAG} ${PROCESSOR_NUM} 
+            $<TARGET_FILE:${TEST_NAME}>)
+    endif()
+    set_target_properties(${TEST_NAME} PROPERTIES FOLDER tests)
+endmacro()
+
+
+macro(compile_unittest
+    TEST_NAME TEST_SRC CFLAGS LINK_LIBS LINK_LIB_FLAGS)
+  add_executable(${TEST_NAME}
+    ${TEST_SRC})
+
+    target_compile_options(${TEST_NAME}
+      PRIVATE ${CFLAGS} 
+      PRIVATE ${OMP_FLAGS}
+    )
+    target_include_directories(${TEST_NAME}
+      PRIVATE ${GQMPS2_HEADER_PATH}
+      PRIVATE ${GQMPS2_TENSOR_LIB_HEADER_PATH}
+      PRIVATE ${hptt_INCLUDE_DIR}
+      PRIVATE ${Boost_INCLUDE_DIR}
+      PRIVATE ${MPI_CXX_HEADER_DIR})
+    target_link_libraries(${TEST_NAME}
+      GTest::GTest GTest::Main
+      ${hptt_LIBRARY}
+      Boost::serialization
+      Boost::mpi
+      ${MPI_CXX_LINK_FLAGS}
+      ${MPI_mpi_LIBRARY}
+      "${LINK_LIBS}" "${LINK_LIB_FLAGS}"
+      )
+    set_target_properties(${TEST_NAME} PROPERTIES FOLDER tests)
+endmacro()
+
 
 
 ## Test quantum number related objects
@@ -109,4 +199,30 @@ add_unittest(test_ten_fuse_index
 add_unittest(test_ten_mc_expand
   "test_tensor_manipulation/test_ten_mc_expand.cc"
   "${MATH_LIB_COMPILE_FLAGS}" "" "${MATH_LIB_LINK_FLAGS}"
+)
+# Test tensor comminutation for serialization
+add_unittest(test_boost_serialization
+  "test_gqtensor/test_boost_serialization.cc"
+  "${MATH_LIB_COMPILE_FLAGS}" "" "${MATH_LIB_LINK_FLAGS}"
+)
+
+
+# Test tensor comminutation for mpi
+add_mpi_unittest(test_boost_mpi
+  "test_gqtensor/test_boost_mpi.cc"
+  "${MATH_LIB_COMPILE_FLAGS}" "" "${MATH_LIB_LINK_FLAGS}" "2"
+)
+
+
+#Test tensor restriction contract 
+add_unittest(test_ten_ctrct_1sector
+  "test_tensor_manipulation/test_ten_ctrct_1sector.cc"
+  "${MATH_LIB_COMPILE_FLAGS}" "" "${MATH_LIB_LINK_FLAGS}"
+)
+
+
+# Test mpi svd performance
+add_mpi_unittest(test_mpi_svd
+  "test_mpi_functionality/test_mpi_svd.cc"
+  "${MATH_LIB_COMPILE_FLAGS}" "" "${MATH_LIB_LINK_FLAGS}" "3"
 )

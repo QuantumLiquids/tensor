@@ -24,7 +24,10 @@
 #include <vector>       // vector
 #include <iostream>     // istream, ostream
 
-
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/split_member.hpp> 
+// #include <boost/mpi.hpp>
 namespace gqten {
 
 
@@ -153,6 +156,14 @@ private:
   size_t CalcSize_(void) const;
 
   std::pair<CoorsT, CoorsT> CoorsToBlkCoorsDataCoors_(const CoorsT &) const;
+
+  /// serialization of data,  for the mpi paralization, 
+  friend class boost::serialization::access;
+  template<class Archive>
+  void save(Archive & ar, const unsigned int version) const;
+  template<class Archive>
+  void load(Archive & ar, const unsigned int version);
+  BOOST_SERIALIZATION_SPLIT_MEMBER()
 };
 
 // Out-of-class declaration and definition.

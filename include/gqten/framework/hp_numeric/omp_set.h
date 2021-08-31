@@ -19,37 +19,29 @@
 namespace gqten {
 /// High performance numerical functions.
 namespace hp_numeric {
-    const unsigned kOmpDefaultTotalNumThreads = 4;
     
     //thread for contract, svd, qr
-    inline unsigned tensor_manipulation_total_num_threads = kOmpDefaultTotalNumThreads;
+    inline unsigned tensor_manipulation_num_threads = kOmpDefaultNumThreads;
     
-    //nested thread for svd,qr; if tensor_decomp_outer_parallel_num_threads==1, no nested thread
-    inline unsigned tensor_decomp_outer_parallel_num_threads = 1;
-    inline unsigned tensor_decomp_inner_parallel_num_threads = tensor_manipulation_total_num_threads/tensor_decomp_outer_parallel_num_threads;
-
+    inline void SetTensorManipulationThreads(unsigned thread){
+        assert(thread>0);
+        tensor_manipulation_num_threads = thread;
+        mkl_set_num_threads_local( 0 );	
+        mkl_set_num_threads(thread);
+        mkl_set_dynamic(true);
+    }
+    //just for compitable. TODO: remove this API
     inline void SetTensorManipulationTotalThreads(unsigned thread){
         assert(thread>0);
-        tensor_transpose_num_threads = thread;
-        tensor_manipulation_total_num_threads = thread;
-        tensor_decomp_inner_parallel_num_threads = tensor_manipulation_total_num_threads/tensor_decomp_outer_parallel_num_threads;
+        tensor_manipulation_num_threads = thread;
+        mkl_set_num_threads_local( 0 );	
+        mkl_set_num_threads(thread);
+        mkl_set_dynamic(true);        
     }
 
-    inline void SetTensorDecompOuterParallelThreads(unsigned thread){
-        assert(thread>0);
-        tensor_decomp_outer_parallel_num_threads = thread;
-        tensor_decomp_inner_parallel_num_threads = tensor_manipulation_total_num_threads/tensor_decomp_outer_parallel_num_threads;
-    }
 
-    inline unsigned GetTensorManipulationTotalThreads(){
-        return tensor_manipulation_total_num_threads;
-    }
-
-    inline unsigned GetTensorDecompOuterParallelThreads(){
-        return tensor_decomp_outer_parallel_num_threads;
-    }
-    inline unsigned GetTensorDecompInnerParallelThreads(){
-        return tensor_decomp_inner_parallel_num_threads;
+    inline unsigned GetTensorManipulationThreads(){
+        return tensor_manipulation_num_threads;
     }
 
 } /* hp_numeric */

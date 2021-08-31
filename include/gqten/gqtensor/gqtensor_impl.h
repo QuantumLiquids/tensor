@@ -24,6 +24,11 @@
 #include <iterator>     // next
 #include <algorithm>    // is_sorted
 
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/mpi.hpp>
+#include <boost/mpi/request.hpp>
+
 #ifdef Release
   #define NDEBUG
 #endif
@@ -537,13 +542,49 @@ void GQTensor<ElemT, QNT>::StreamRead(std::istream &is) {
 }
 
 
+/**
+Boost serialization
+*/
+template <typename ElemT, typename QNT>
+template <class Archive>
+void GQTensor<ElemT, QNT>::load(Archive &ar, const unsigned int version){
+  assert(IsDefault());
+  ar & rank_;
+  ar & indexes_;
+  ar & shape_;
+  ar & size_;
+  if(size_>0){// not default
+    pblk_spar_data_ten_ = new BlockSparseDataTensor<ElemT, QNT>(&indexes_);
+    ar & (*pblk_spar_data_ten_);
+  }
+}
+
+
 template <typename ElemT, typename QNT>
 void GQTensor<ElemT, QNT>::StreamWrite(std::ostream &os) const {
   assert(!IsDefault());
-  os << rank_ << std::endl;
+  os << rank_ << "\n";
   for (auto &index : indexes_) { os << index; }
   os << (*pblk_spar_data_ten_);
 }
+
+
+/**
+Boost serialization
+*/
+template <typename ElemT, typename QNT>
+template <class Archive>
+void GQTensor<ElemT, QNT>::save(Archive &ar, const unsigned int version) const{
+  assert(!IsDefault());
+  ar & rank_;
+  ar & indexes_;
+  ar & shape_;
+  ar & size_;
+  ar & (*pblk_spar_data_ten_);
+}
+
+
+
 
 
 template <typename VecElemT>
@@ -609,6 +650,10 @@ void GQTensor<ElemT, QNT>::ConciseShow(const size_t indent_level) const{
           << GetQNBlkNum() << "\n";
     cout  << IndentPrinter(indent_level+1)  
           << "tensor size(product of shape):\t" << size_ <<"\n";
+    if(IsDefault()){
+      cout << IndentPrinter(indent_level+1)  << "default tensor" <<endl;
+      return;
+    }
     unsigned data_size = pblk_spar_data_ten_->GetActualRawDataSize();
     cout  << IndentPrinter(indent_level+1) 
           << "actual data size:\t" << data_size << "\n";
@@ -652,14 +697,138 @@ std::pair<CoorsT, CoorsT> GQTensor<ElemT, QNT>::CoorsToBlkCoorsDataCoors_(
     const CoorsT &coors
 ) const {
   assert(coors.size() == rank_);
-  CoorsT blk_coors {};
-  CoorsT data_coors {};
-  for (size_t i = 0; i < coors.size(); ++i) {
+  CoorsT blk_coors {}; blk_coors.reserve(rank_);
+  CoorsT data_coors {}; data_coors.reserve(rank_);
+  for (size_t i = 0; i < rank_; ++i) {
     auto blk_coor_data_coor = indexes_[i].CoorToBlkCoorDataCoor(coors[i]);
     blk_coors.push_back(blk_coor_data_coor.first);
     data_coors.push_back(blk_coor_data_coor.second);
   }
   return make_pair(blk_coors, data_coors);
 }
+
+
+const int kMPIDataTagMultiplyFactor=11;
+
+template <typename ElemT, typename QNT>
+inline void send_gqten(boost::mpi::communicator world,
+                int dest, int tag,
+                const GQTensor<ElemT, QNT>& gqten){
+  world.send(dest,tag,gqten.IsDefault());
+  if(gqten.IsDefault()){
+    return;
+  }
+  boost::mpi::request reqs[2];
+#ifdef GQTEN_MPI_TIMING_MODE
+  Timer send_gqten_wrap_timer("send_gqten_wrap");
+#endif
+  reqs[0] = world.isend(dest, tag, gqten);
+#ifdef GQTEN_MPI_TIMING_MODE
+  send_gqten_wrap_timer.PrintElapsed();
+
+  Timer send_gqten_data_timer("send_gqten_data");
+#endif
+  int tag_data = tag*kMPIDataTagMultiplyFactor+1;
+  const BlockSparseDataTensor<ElemT, QNT>& bsdt=gqten.GetBlkSparDataTen();
+  const ElemT* data_pointer = bsdt.GetActualRawDataPtr();
+  int data_size = bsdt.GetActualRawDataSize();
+  ElemT zero = ElemT(0.0);
+  if( gqten.IsScalar() && data_size==0 ){
+    data_pointer = &zero;
+    data_size = 1;
+  }
+  reqs[1] = world.isend(dest, tag_data, data_pointer, data_size);
+#ifdef GQTEN_MPI_TIMING_MODE
+  send_gqten_data_timer.PrintElapsed();
+#endif
+  boost::mpi::wait_all(reqs,reqs+2);
+}
+
+
+template <typename ElemT, typename QNT>
+inline boost::mpi::status recv_gqten(boost::mpi::communicator world,
+                int source, int tag,
+                GQTensor<ElemT, QNT>& gqten){
+  assert(gqten.IsDefault());
+  bool is_default;
+  boost::mpi::status recv_ten_status=world.recv(source,tag,is_default);
+  if(is_default){
+    return recv_ten_status;
+  }
+  if(source == boost::mpi::any_source){
+    source = recv_ten_status.source();
+    tag = recv_ten_status.tag();
+  }
+  // boost::mpi::request reqs[2];
+#ifdef GQTEN_MPI_TIMING_MODE
+  Timer recv_gqten_wrap_timer("recv_gqten_wrap");
+#endif
+  world.recv(source, tag, gqten);
+#ifdef GQTEN_MPI_TIMING_MODE
+  recv_gqten_wrap_timer.PrintElapsed();
+
+  Timer recv_gqten_data_timer("recv_gqten_data");
+#endif
+  int tag_data = tag*kMPIDataTagMultiplyFactor+1;
+  BlockSparseDataTensor<ElemT, QNT>& bsdt=gqten.GetBlkSparDataTen();
+  ElemT* data_pointer = bsdt.pactual_raw_data_;
+  int data_size = bsdt.GetActualRawDataSize();
+  auto s = world.recv(source, tag_data, data_pointer, data_size);
+#ifdef GQTEN_MPI_TIMING_MODE
+  recv_gqten_data_timer.PrintElapsed();
+#endif
+  
+  // boost::mpi::wait_all(reqs+1,reqs+2);
+  return s;
+}
+
+
+template <typename ElemT, typename QNT>
+inline void SendBroadCastGQTensor(
+  boost::mpi::communicator world,
+  const GQTensor<ElemT, QNT>& gqten,
+  const int root
+){
+  assert(world.rank() == root );
+  bool is_default = gqten.IsDefault();
+  boost::mpi::broadcast(world, is_default, root ); //also a signal start communication
+  if(gqten.IsDefault()){
+    return;
+  }
+  boost::mpi::broadcast(world, const_cast<GQTensor<ElemT, QNT>&>(gqten), root);
+
+  const BlockSparseDataTensor<ElemT, QNT>& bsdt=gqten.GetBlkSparDataTen();
+  const ElemT* raw_data_pointer = bsdt.GetActualRawDataPtr();
+  int raw_data_size = bsdt.GetActualRawDataSize();
+  ElemT zero = ElemT(0.0);
+  if( gqten.IsScalar() && raw_data_size==0 ){
+    raw_data_pointer = &zero;
+    raw_data_size = 1;
+  }
+  //below broadcast need safely remove const
+  boost::mpi::broadcast(world, const_cast<ElemT*>(raw_data_pointer), raw_data_size, root);
+}
+
+template <typename ElemT, typename QNT>
+inline void RecvBroadCastGQTensor(
+  boost::mpi::communicator world,
+  GQTensor<ElemT, QNT>& gqten,
+  const int root
+){
+  assert(world.rank() != root );
+  assert(gqten.IsDefault());
+  bool is_default;
+  boost::mpi::broadcast(world, is_default, root);
+  if(is_default){
+    return;
+  }
+  boost::mpi::broadcast(world, gqten,root);
+
+  BlockSparseDataTensor<ElemT, QNT>& bsdt=gqten.GetBlkSparDataTen();
+  ElemT* raw_data_pointer = bsdt.pactual_raw_data_;
+  int raw_data_size = bsdt.GetActualRawDataSize();
+  boost::mpi::broadcast(world, raw_data_pointer, raw_data_size, root);
+}
+
 } /* gqten */
 #endif /* ifndef GQTEN_GQTENSOR_GQTENSOR_IMPL_H */

@@ -219,6 +219,26 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataCopy_(
   }
 }
 
+template <typename ElemT, typename QNT>
+void BlockSparseDataTensor<ElemT, QNT>::RawDataCopy_(
+  const std::vector<ElemT*>& src_pointers,
+  const std::vector<ElemT*>& dest_pointers,
+  const std::vector<size_t>& copy_sizes
+){
+  size_t task_size = src_pointers.size();
+  int ompth = hp_numeric::tensor_manipulation_num_threads;
+  #pragma omp parallel for default(none) \
+                shared(task_size, dest_pointers, src_pointers, copy_sizes)\
+                num_threads(ompth)\
+                schedule(dynamic) 
+  for(size_t i = 0;i<task_size;i++){
+    memcpy(
+      dest_pointers[i],
+      src_pointers[i],
+      copy_sizes[i] * sizeof(ElemT)
+    );
+  }
+}
 /**
 Copy a piece of raw data from another place. 
 The destination must be different and there is no addition 
@@ -232,7 +252,7 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataCopyNoAdd_(
     const ElemT *psrc_raw_data
 ) {
   size_t task_size = raw_data_copy_tasks.size();
-  size_t ompth = hp_numeric::tensor_manipulation_total_num_threads;
+  size_t ompth = hp_numeric::tensor_manipulation_num_threads;
   
   #pragma omp parallel for default(none) \
                 shared(task_size, raw_data_copy_tasks, pactual_raw_data_, psrc_raw_data)\

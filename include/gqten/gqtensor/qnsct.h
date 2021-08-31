@@ -19,6 +19,8 @@
 #include "gqten/framework/bases/hashable.h"       // Hashable
 #include "gqten/framework/bases/streamable.h"     // Streamable
 #include "gqten/framework/bases/showable.h"       // Showable
+#include <boost/serialization/serialization.hpp>
+// #include <boost/serialization/vector.hpp>
 
 #include <vector>     // vector
 
@@ -116,8 +118,8 @@ public:
 
   void StreamWrite(std::ostream &os) const override {
     os << qn_;
-    os << dgnc_ << std::endl;
-    os << hash_ << std::endl;
+    os << dgnc_ << "\n";
+    os << hash_ << "\n";
   }
 
   void Show(const size_t indent_level = 0) const override {
@@ -133,6 +135,15 @@ private:
   size_t hash_;
 
   size_t CalcHash_(void) const { return qn_.Hash() ^ dgnc_; }
+
+  friend class boost::serialization::access;
+  template<class Archive>
+  void serialize(Archive & ar, const unsigned int version){
+    ar & dgnc_;
+    ar & dim_;
+    ar & hash_;
+    ar & qn_;
+  }
 };
 
 

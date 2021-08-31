@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 /*
 * Author: Rongyang Sun <sun-rongyang@outlook.com>
+*         Hao-Xin Wang
 * Creation Date: 2020-12-10 18:23
 *
 * Description: GraceQ/tensor project. Perform linear combination of tensors.
@@ -16,7 +17,7 @@
 
 #include "gqten/framework/bases/executor.h"                         // Executor
 #include "gqten/gqtensor_all.h"
-
+#include "gqten/utility/timer.h"
 #include <unordered_set>    // unordered_set
 #include <map>              // map
 
@@ -131,6 +132,7 @@ void TensorLinearCombinationExecutor<TenElemT, QNT>::Execute(void) {
   SetStatus(ExecutorStatus::EXEING);
 
   actual_res_.GetBlkSparDataTen().Allocate();
+  Timer raw_data_cp_and_scale("raw_data_copy_and_scale");
   for (auto &ten_idx_tasks : ten_idx_ten_lin_cmb_data_copy_tasks_map_) {
     auto ten_idx = ten_idx_tasks.first;
     auto ten_bsdt_raw_data = tens_[
@@ -141,6 +143,7 @@ void TensorLinearCombinationExecutor<TenElemT, QNT>::Execute(void) {
       actual_res_.GetBlkSparDataTen().DataBlkCopyAndScale(task, ten_bsdt_raw_data);
     }
   }
+  raw_data_cp_and_scale.PrintElapsed();
   (*pres_) = std::move(actual_res_);
 
   SetStatus(ExecutorStatus::FINISH);
@@ -264,5 +267,28 @@ void LinearCombine(
   std::copy_n(tens.begin(), size, actual_tens.begin());
   LinearCombine(coefs, actual_tens, beta, pres);
 }
+
+/**
+ * @param tens  tens should have different data_blks
+ * @return summation of tens
+ */
+template <typename ElemT, typename QNT>
+void CollectiveLinearCombine(
+  std::vector<GQTensor<ElemT, QNT>>& tens,
+  GQTensor<ElemT, QNT>& summation_tensor
+){
+  assert(tens.size()>0);
+  using std::vector;
+  std::vector<Index<QNT>> indexes = tens[0].GetIndexes();
+  summation_tensor = GQTensor<ElemT, QNT>(indexes);
+  size_t ten_num = tens.size();
+  vector<const BlockSparseDataTensor<ElemT, QNT> *> pbsdts(ten_num);
+  for(size_t i = 0; i < ten_num ;i++){
+    pbsdts[i] = tens[i].GetBlkSparDataTenPtr();
+  }
+  BlockSparseDataTensor<ElemT, QNT>& bsdt = summation_tensor.GetBlkSparDataTen();
+  bsdt.CollectiveLinearCombine(pbsdts);
+}
+
 } /* gqten */
 #endif /* ifndef GQTEN_TENSOR_MANIPULATION_TEN_LINEAR_COMBINE_H */

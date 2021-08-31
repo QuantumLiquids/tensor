@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 /*
 * Author: Rongyang Sun <sun-rongyang@outlook.com>
+*         Hao-Xin Wang <wanghx18@mails.tsinghua.edu.cn>
 * Creation Date: 2020-11-30 11:57
 *
 * Description: GraceQ/tensor project. Data block level operations for block
@@ -53,16 +54,19 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkInsert(
   blk_idx_data_blk_map_[blk_idx] = DataBlk<QNT>(blk_coors, *pgqten_indexes);
   size_t inserted_data_size = blk_idx_data_blk_map_[blk_idx].size;
   size_t total_data_offset = 0;
-  for (auto &idx_blk : blk_idx_data_blk_map_) {
-    if (idx_blk.first < blk_idx) {
-      total_data_offset += idx_blk.second.size;
-      //Does this summation is necessary? 
-      //we can use iterator to get idx_blk's last idx_blk and get the offset
-    } else if (idx_blk.first > blk_idx) {
-      idx_blk.second.data_offset += inserted_data_size;
-    } else {
-      idx_blk.second.data_offset = total_data_offset;
-    }
+
+  auto iter = blk_idx_data_blk_map_.find(blk_idx);
+  if(iter!=blk_idx_data_blk_map_.cbegin()){
+    --iter;
+    total_data_offset = iter->second.data_offset + iter->second.size;
+    ++iter;
+    iter->second.data_offset = total_data_offset;
+  }else{
+    iter->second.data_offset = 0;
+  }
+  
+  for(++iter; iter!=blk_idx_data_blk_map_.cend();++iter){
+    iter->second.data_offset += inserted_data_size;
   }
   raw_data_size_ += inserted_data_size;
 
@@ -97,7 +101,8 @@ void BlockSparseDataTensor<ElemT, QNT>::DataBlksInsert(
     iter++;
   }
   raw_data_size_ = 0;
-  for (auto &[idx, data_blk] : blk_idx_data_blk_map_) {
+  for (auto &idx_data_blk : blk_idx_data_blk_map_) {
+    auto& data_blk = idx_data_blk.second;
     data_blk.data_offset = raw_data_size_;
     raw_data_size_ += data_blk.size;
   }
@@ -393,67 +398,10 @@ std::map<size_t, DataBlkMatSvdRes<ElemT>>
 BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
     const IdxDataBlkMatMap<QNT> &idx_data_blk_mat_map
 ) const {
-  using hp_numeric::tensor_decomp_outer_parallel_num_threads;
-  using hp_numeric::tensor_decomp_inner_parallel_num_threads;
-  using std::map;
-  const unsigned ompth = tensor_decomp_outer_parallel_num_threads;
-  const unsigned mklth = tensor_decomp_inner_parallel_num_threads;
-
-
-  if(tensor_decomp_outer_parallel_num_threads>1 ){
-    mkl_set_dynamic(false);
-    omp_set_max_active_levels(2);
-    omp_set_nested(true);
-  }else if(tensor_decomp_outer_parallel_num_threads<=1){
-    if(tensor_decomp_outer_parallel_num_threads==0){
-      std::cout << "warning: tensor_decomp_outer_parallel_num_threads==0,"
-                << "treat tensor_decomp_outer_parallel_num_threads as 1."
-                << std::endl;
-    }
-    mkl_set_num_threads_local(0);
-    mkl_set_num_threads(mklth);
-    mkl_set_dynamic(true);
-  }
-  
-
   std::map<size_t, DataBlkMatSvdRes<ElemT>> idx_svd_res_map;
 
-  if(ompth > 1 ){
-    auto iter = idx_data_blk_mat_map.begin();
-    size_t map_size = idx_data_blk_mat_map.size();
-    decltype(iter)* iter_vector = new decltype(iter)[map_size];
-    for(size_t i=0 ;i<map_size;i++){
-      iter_vector[i] = iter;
-      iter++;
-    }
-    #pragma omp parallel for default(none) \
-                shared(iter_vector, map_size, idx_svd_res_map)\
-                num_threads(ompth)\
-                schedule(dynamic) 
-    for (size_t i = 0;i<map_size;i++) {
-      mkl_set_num_threads_local(mklth);
-      auto iter = iter_vector[i];
-      auto idx = iter->first;
-      auto data_blk_mat = iter->second;
-      ElemT *mat = RawDataGenDenseDataBlkMat_(data_blk_mat);
-      ElemT *u = nullptr;
-      ElemT *vt = nullptr;
-      GQTEN_Double *s = nullptr;
-      size_t m = data_blk_mat.rows;
-      size_t n = data_blk_mat.cols;
-      size_t k = m > n ? n : m;
-      hp_numeric::MatSVD(mat, m, n, u, s, vt);
-      free(mat);
-      auto svd_res = DataBlkMatSvdRes<ElemT>(m, n, k, u, s, vt);
-      #pragma omp critical (insert_svd_res)
-      {
-        idx_svd_res_map[idx] = svd_res;
-      }
-    }
-    delete[] iter_vector;
-  }else{
 #ifdef GQTEN_TIMING_MODE
-  Timer svd_mkl_timer("   =============> svd raw mkl");
+  Timer svd_mkl_timer("matrix svd");
   svd_mkl_timer.Suspend();
 #endif
     for(auto&[idx, data_blk_mat]: idx_data_blk_mat_map){
@@ -477,12 +425,136 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
 #ifdef GQTEN_TIMING_MODE
   svd_mkl_timer.PrintElapsed();
 #endif
-  }
-  if(tensor_decomp_outer_parallel_num_threads>1 ){
-    mkl_set_num_threads_local(0);
-  }
   return idx_svd_res_map;
 }
+
+
+
+/**
+SVD decomposition.
+*/
+template <typename ElemT, typename QNT>
+std::map<size_t, DataBlkMatSvdRes<ElemT>>
+BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVDMaster(
+    const IdxDataBlkMatMap<QNT> &idx_data_blk_mat_map,
+    boost::mpi::communicator& world
+) const {
+#ifdef GQTEN_MPI_TIMING_MODE
+  Timer data_blk_decomp_svd_master_timer("data_blk_decomp_svd_master_func");
+#endif 
+  using namespace std;
+  /// This setting give Slave
+  std::map<size_t, DataBlkMatSvdRes<ElemT>> idx_svd_res_map;
+
+  auto iter = idx_data_blk_mat_map.begin();
+
+  size_t slave_num = world.size()-1;
+  size_t task_size = idx_data_blk_mat_map.size();
+  // if task_size < slave num the code should also work
+  // suppose procs num >= slave num
+  // for parallel do not need in order
+  #pragma omp parallel for default(none) \
+                shared(task_size, idx_svd_res_map, iter, world, cout)\
+                num_threads(slave_num)\
+                schedule(dynamic) 
+  for(size_t i = 0; i < task_size; i++){
+    size_t controlling_slave = omp_get_thread_num()+1;
+    // size_t threads =  omp_get_num_threads();
+    TenDecompDataBlkMat<QNT> data_blk_mat;
+    size_t idx;
+    #pragma omp critical
+    {
+      idx = iter->first;
+      data_blk_mat = iter->second;
+      iter++;
+    }
+    ElemT *mat = RawDataGenDenseDataBlkMat_(data_blk_mat);
+    const size_t m = data_blk_mat.rows;
+    const size_t n = data_blk_mat.cols;
+    world.send(controlling_slave, 2*controlling_slave, m);
+    world.send(controlling_slave, 3*controlling_slave, n);
+    world.send(controlling_slave, 4*controlling_slave, mat, m*n);
+
+    const size_t ld = std::min(m,n);
+    ElemT* u  = (ElemT *) malloc((ld * m) * sizeof(ElemT));
+    ElemT* vt = (ElemT *) malloc((ld * n) * sizeof(ElemT));
+    GQTEN_Double* s = (GQTEN_Double *) malloc(ld * sizeof(GQTEN_Double));
+    const size_t k = m > n ? n : m;
+
+    //TODO change to non-block
+    world.recv(controlling_slave, 5*controlling_slave, u, ld*m);
+    world.recv(controlling_slave, 6*controlling_slave, vt, ld*n);
+    world.recv(controlling_slave, 7*controlling_slave, s, ld);
+    free(mat);
+    #pragma omp critical
+    {
+      idx_svd_res_map[idx] =  DataBlkMatSvdRes<ElemT>(m, n, k, u, s, vt);
+    }
+  }
+  //make sure thread is safe
+  assert(iter == idx_data_blk_mat_map.end());
+
+  for(int slave=1;slave<world.size();slave++){
+    //send finish signal
+    const size_t m = 0;
+    const size_t n = 0;
+    world.send(slave, 2*slave, m);
+    world.send(slave, 3*slave, n);
+  }
+#ifdef GQTEN_MPI_TIMING_MODE
+  data_blk_decomp_svd_master_timer.PrintElapsed();
+#endif
+  return idx_svd_res_map;
+}
+
+template <typename ElemT>
+void DataBlkDecompSVDSlave(boost::mpi::communicator& world){
+  size_t task_done = 0;
+  size_t m, n;//check if IdxDataBlkMatMap must have >0 row and  column
+  size_t slave_identifier = world.rank();
+  world.recv(kMPIMasterRank, 2*slave_identifier, m);
+  world.recv(kMPIMasterRank, 3*slave_identifier, n);
+#ifdef GQTEN_MPI_TIMING_MODE
+  Timer slave_total_work_timer("slave "+ std::to_string(slave_identifier) +" total work");
+  Timer slave_commu_timer("slave " + std::to_string(slave_identifier) + " communication and wait");
+#endif
+  while(m>0 && n>0){
+    size_t data_size = m*n;
+    ElemT *mat = (ElemT *) malloc(data_size * sizeof(ElemT));
+    world.recv(kMPIMasterRank, 4*slave_identifier, mat, data_size);
+  #ifdef GQTEN_MPI_TIMING_MODE
+    slave_commu_timer.Suspend();
+  #endif
+    ElemT *u = nullptr;
+    ElemT *vt = nullptr;
+    GQTEN_Double *s = nullptr;
+    hp_numeric::MatSVD(mat, m, n, u, s, vt);
+
+    size_t ld = std::min(m,n);
+  #ifdef GQTEN_MPI_TIMING_MODE  
+    slave_commu_timer.Restart();
+  #endif
+    world.send(kMPIMasterRank, 5*slave_identifier, u, ld*m);
+    world.send(kMPIMasterRank, 6*slave_identifier, vt, ld*n);
+    world.send(kMPIMasterRank, 7*slave_identifier, s, ld);
+
+    free(mat);
+    free(u);
+    free(vt);
+    free(s);
+
+    task_done++;
+
+    world.recv(kMPIMasterRank, 2*slave_identifier, m);
+    world.recv(kMPIMasterRank, 3*slave_identifier, n);
+  }
+#ifdef GQTEN_MPI_TIMING_MODE 
+  std::cout << "slave " << slave_identifier << " has done " << task_done << " tasks." << std::endl;
+  slave_total_work_timer.PrintElapsed();
+  slave_commu_timer.PrintElapsed();
+#endif
+}
+
 
 
 template <typename ElemT, typename QNT>
@@ -595,5 +667,9 @@ void BlockSparseDataTensor<ElemT, QNT>::DataBlkClear_(void) {
   blk_idx_data_blk_map_.clear();
   raw_data_size_ = 0;
 }
+
+
+
+
 } /* gqten */
 #endif /* ifndef GQTEN_GQTENSOR_BLK_SPAR_DATA_TEN_DATA_BLK_LEVEL_OPERATIONS_H */

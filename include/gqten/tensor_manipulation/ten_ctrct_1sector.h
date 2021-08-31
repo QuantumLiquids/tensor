@@ -1,0 +1,269 @@
+// SPDX-License-Identifier: LGPL-3.0-only
+/*
+* Author: Hao-Xin Wang <wanghx18@mails.tsinghua.edu.cn>
+* Creation Date: 2021-7-29
+*
+* Description: GraceQ/tensor project. Contract two tensors, one outer index are restrict on only one qn sector
+*/
+
+/**
+  @file ten_ctrct_1sector.h
+  @brief Contract two tensors, one outer index are restrict on only one qn sector
+  @note the restriction only support on first tensor's index
+*/
+#ifndef GQTEN_TENSOR_MANIPULATION_TEN_CTRCT_ONE_SECTOR_H
+#define GQTEN_TENSOR_MANIPULATION_TEN_CTRCT_ONE_SECTOR_H
+
+
+#include "gqten/framework/bases/executor.h"                 // Executor
+#include "gqten/gqtensor_all.h"
+#include "gqten/tensor_manipulation/basic_operations.h"     // ToComplex
+#include "gqten/gqtensor/blk_spar_data_ten/data_blk_operator_seperate_ctrct.h"
+
+#include <vector>     // vector
+
+#ifdef Release
+  #define NDEBUG
+#endif
+#include <assert.h>     // assert
+
+
+namespace gqten {
+
+
+/// Forward declarations. 
+/// TenCtrctInitResTen only gives the Indexes of GQTensor *pc,
+/// pointer to BSDT = nullptr.
+template <typename TenElemT, typename QNT>
+void TenCtrctInitResTen(
+    const GQTensor<TenElemT, QNT> *,
+    const GQTensor<TenElemT, QNT> *,
+    const std::vector<std::vector<size_t>> &,
+    GQTensor<TenElemT, QNT> *
+);
+
+
+/**
+Tensor contraction executor.
+
+@tparam TenElemT The type of tensor elements.
+@tparam QNT The quantum number type of the tensors.
+*/
+template <typename TenElemT, typename QNT>
+class TensorContraction1SectorExecutor : public Executor {
+public:
+  TensorContraction1SectorExecutor(
+      const GQTensor<TenElemT, QNT> * pa,
+      const size_t idx_a,
+      const size_t qn_sector_idx_a,
+      const GQTensor<TenElemT, QNT> * pb,
+      const std::vector<std::vector<size_t>> &,
+      GQTensor<TenElemT, QNT> * pc
+  );// split the index of pa->GetIndexes[idx_a], contract restrict on qn_sector_idx_a's qnsector
+
+  inline void SetSelectedQNSect(const size_t qn_sector_idx_a){
+    qn_sector_idx_a_ = qn_sector_idx_a;
+    ClearResBSDT_();
+  }
+
+  void Execute(void) override;
+
+ 
+private:
+  void ClearResBSDT_(void){
+      pc_->GetBlkSparDataTen().Clear();
+      raw_data_ctrct_tasks_.clear();
+      a_blk_idx_data_blk_map_select_.clear();
+  }
+
+  void SelectBlkIdxDataBlkMap_(){
+    const auto& bsdt_a = pa_->GetBlkSparDataTen();
+    const auto& a_blk_idx_data_blk_map_total = bsdt_a.GetBlkIdxDataBlkMap();
+    for(auto& [idx, data_blk]: a_blk_idx_data_blk_map_total){
+      if( data_blk.blk_coors[idx_a_] == qn_sector_idx_a_ ){
+        a_blk_idx_data_blk_map_select_.insert(std::make_pair(idx, data_blk ));
+      }
+    }
+  }
+
+  inline void DataBlkGenForTenCtrct_(void){
+  raw_data_ctrct_tasks_ = pc_->GetBlkSparDataTen().DataBlkGenForTenCtrct(
+                          a_blk_idx_data_blk_map_select_,
+                          pb_->GetBlkSparDataTen().GetBlkIdxDataBlkMap(),
+                          axes_set_,
+                          saved_axes_set_,
+                          a_b_need_trans_,
+                          b_blk_idx_qnblk_info_part_hash_map_
+                        );
+  }
+
+  void SettingRawDataContractTaskTranspose_(){
+    if(a_b_need_trans_.first){
+      for (auto &task : raw_data_ctrct_tasks_) {
+        task.a_trans_orders = a_trans_orders_;
+      }
+    }
+    if(a_b_need_trans_.second) {
+      for (auto &task : raw_data_ctrct_tasks_) {
+        task.b_trans_orders = b_trans_orders_;
+      }
+    }
+  }
+  const GQTensor<TenElemT, QNT> *pa_;
+  const size_t idx_a_;
+  size_t qn_sector_idx_a_;
+  const GQTensor<TenElemT, QNT> *pb_;
+  GQTensor<TenElemT, QNT> *pc_;
+  const std::vector<std::vector<size_t>> axes_set_;
+  std::vector<std::vector<size_t>> saved_axes_set_;
+  std::pair<bool, bool> a_b_need_trans_;
+  std::vector<size_t> a_trans_orders_;
+  std::vector<size_t> b_trans_orders_;
+  std::vector<RawDataCtrctTask> raw_data_ctrct_tasks_;
+   std::map<size_t, gqten::DataBlk<QNT>> a_blk_idx_data_blk_map_select_;
+  std::unordered_map<size_t, size_t> b_blk_idx_qnblk_info_part_hash_map_;
+};
+
+
+/**
+Initialize a tensor contraction executor.
+
+@param pa Pointer to input tensor \f$ A \f$.
+@param pb Pointer to input tensor \f$ B \f$.
+@param axes_set To-be contracted tensor axes indexes. For example, {{0, 1}, {3, 2}}.
+@param pc Pointer to result tensor \f$ C \f$.
+*/
+template <typename TenElemT, typename QNT>
+TensorContraction1SectorExecutor<TenElemT, QNT>::TensorContraction1SectorExecutor(
+    const GQTensor<TenElemT, QNT> *pa,
+    const size_t idx_a,
+    const size_t qn_sector_idx_a,
+    const GQTensor<TenElemT, QNT> *pb,
+    const std::vector<std::vector<size_t>> &axes_set,
+    GQTensor<TenElemT, QNT> *pc
+) : pa_(pa), idx_a_(idx_a), qn_sector_idx_a_(qn_sector_idx_a),
+    pb_(pb), pc_(pc), axes_set_(axes_set)
+   {
+  assert(pc_->IsDefault());    // Only empty tensor can take the result
+#ifndef NDEBUG
+  // Check indexes matching
+  auto indexesa = pa->GetIndexes();
+  auto indexesb = pb->GetIndexes();
+  for(size_t i = 0; i < axes_set[0].size(); ++i){
+    assert(indexesa[axes_set[0][i]] == InverseIndex(indexesb[axes_set[1][i]]));
+  }
+  // Check if idx_a_ is in the outer legs
+  auto iter = find(axes_set[0].begin(),axes_set[0].end(), idx_a);
+  assert(iter == axes_set[0].cend());
+  // Check if qn_sector_idx_a_ < number of quantum number sector
+  assert(qn_sector_idx_a_ < pa->GetIndexes()[idx_a_].GetQNSctNum());
+#endif
+  TenCtrctInitResTen(pa_, pb_, axes_set_, pc_);
+  //Then we assign the DataBlk and and contract tasks
+  auto& bsdt_a = pa_->GetBlkSparDataTen();
+  auto& bsdt_b = pb_->GetBlkSparDataTen();
+  assert(!(bsdt_a.IsScalar() || bsdt_b.IsScalar()));
+  saved_axes_set_ = TenCtrctGenSavedAxesSet(
+                            bsdt_a.ten_rank,
+                            bsdt_b.ten_rank,
+                            axes_set_
+                        );
+  a_b_need_trans_ = TenCtrctNeedTransCheck(
+                            axes_set_,
+                            saved_axes_set_,
+                            a_trans_orders_,
+                            b_trans_orders_
+                        );
+  auto& b_blk_idx_data_blk_map = bsdt_b.GetBlkIdxDataBlkMap();
+  b_blk_idx_qnblk_info_part_hash_map_ = bsdt_b.GenBlkIdxQNBlkInfoPartHashMap(
+                                                b_blk_idx_data_blk_map,
+                                                axes_set_[1]
+                                            );
+  SetStatus(ExecutorStatus::INITED);
+}
+
+
+/**
+Allocate memory and perform raw data contraction calculation.
+*/
+template <typename TenElemT, typename QNT>
+void TensorContraction1SectorExecutor<TenElemT, QNT>::Execute(void) {
+  SetStatus(ExecutorStatus::EXEING);
+  SelectBlkIdxDataBlkMap_();
+  DataBlkGenForTenCtrct_();
+  SettingRawDataContractTaskTranspose_();
+
+  pc_->GetBlkSparDataTen().CtrctTwoBSDTAndAssignIn(
+      pa_->GetBlkSparDataTen(),
+      pb_->GetBlkSparDataTen(),
+      raw_data_ctrct_tasks_
+  );
+
+  SetStatus(ExecutorStatus::FINISH);
+}
+
+
+/**
+Function version for tensor contraction, with one of index restrict on only one sector
+
+@tparam TenElemT The type of tensor elements.
+@tparam QNT The quantum number type of the tensors.
+
+@param pa Pointer to input tensor \f$ A \f$.
+@param idx_a the idx_a-th leg is restrict.
+@param qn_sector_idx_a restrict on qn_sector_idx_a-th quantum number sector.
+@param pb Pointer to input tensor \f$ B \f$.
+@param axes_set To-be contracted tensor axes indexes. For example, {{0, 1}, {3, 2}}.
+@param pc Pointer to result tensor \f$ C \f$.
+*/
+template <typename TenElemT, typename QNT>
+void Contract1Sector(
+    const GQTensor<TenElemT, QNT> *pa,
+    const size_t idx_a,
+    const size_t qn_sector_idx_a,
+    const GQTensor<TenElemT, QNT> *pb,
+    const std::vector<std::vector<size_t>> &axes_set,
+    GQTensor<TenElemT, QNT> *pc
+) {
+  TensorContraction1SectorExecutor<TenElemT, QNT> ten_ctrct_1sector_executor(
+      pa,
+      idx_a,
+      qn_sector_idx_a,
+      pb,
+      axes_set,
+      pc
+  );
+  ten_ctrct_1sector_executor.Execute();
+}
+
+
+template <typename QNT>
+void Contract1Sector(
+    const GQTensor<GQTEN_Double, QNT> *pa,
+    const size_t idx_a,
+    const size_t qn_sector_idx_a,
+    const GQTensor<GQTEN_Complex, QNT> *pb,
+    const std::vector<std::vector<size_t>> &axes_set,
+    GQTensor<GQTEN_Complex, QNT> *pc
+) {
+  auto cplx_a = ToComplex(*pa);
+  Contract1Sector(&cplx_a, idx_a, qn_sector_idx_a,  pb, axes_set, pc);
+}
+
+
+template <typename QNT>
+void Contract1Sector(
+    const GQTensor<GQTEN_Complex, QNT> *pa,
+    const size_t idx_a,
+    const size_t qn_sector_idx_a,
+    const GQTensor<GQTEN_Double, QNT> *pb,
+    const std::vector<std::vector<size_t>> &axes_set,
+    GQTensor<GQTEN_Complex, QNT> *pc
+) {
+  auto cplx_b = ToComplex(*pb);
+  Contract1Sector(pa, idx_a, qn_sector_idx_a, &cplx_b, axes_set, pc);
+}
+
+
+} /* gqten */
+#endif /* ifndef GQTEN_TENSOR_MANIPULATION_TEN_CTRCT_H */
