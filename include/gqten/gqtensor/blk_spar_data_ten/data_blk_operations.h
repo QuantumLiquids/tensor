@@ -398,68 +398,8 @@ std::map<size_t, DataBlkMatSvdRes<ElemT>>
 BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
     const IdxDataBlkMatMap<QNT> &idx_data_blk_mat_map
 ) const {
-  using hp_numeric::tensor_decomp_outer_parallel_num_threads;
-  using hp_numeric::tensor_decomp_inner_parallel_num_threads;
-  using std::map;
-  const unsigned ompth = tensor_decomp_outer_parallel_num_threads;
-  unsigned mklth = tensor_decomp_inner_parallel_num_threads;
-  //no const specifier on mklth for set mklth as shared variable when using omp
-  //some version gcc complier need mklth be declare as shared variable, some not need
-  //which do not need require is not a const.
-
-
-  if(tensor_decomp_outer_parallel_num_threads>1 ){
-    mkl_set_dynamic(false);
-    omp_set_max_active_levels(2);
-    omp_set_nested(true);
-  }else if(tensor_decomp_outer_parallel_num_threads<=1){
-    if(tensor_decomp_outer_parallel_num_threads==0){
-      std::cout << "warning: tensor_decomp_outer_parallel_num_threads==0,"
-                << "treat tensor_decomp_outer_parallel_num_threads as 1."
-                << std::endl;
-    }
-    mkl_set_num_threads_local(0);
-    mkl_set_num_threads(mklth);
-    mkl_set_dynamic(true);
-  }
-  
-
   std::map<size_t, DataBlkMatSvdRes<ElemT>> idx_svd_res_map;
 
-  if(ompth > 1 ){
-    auto iter = idx_data_blk_mat_map.begin();
-    size_t map_size = idx_data_blk_mat_map.size();
-    decltype(iter)* iter_vector = new decltype(iter)[map_size];
-    for(size_t i=0 ;i<map_size;i++){
-      iter_vector[i] = iter;
-      iter++;
-    }
-    #pragma omp parallel for default(none) \
-                shared(iter_vector, map_size, idx_svd_res_map, mklth)\
-                num_threads(ompth)\
-                schedule(dynamic) 
-    for (size_t i = 0;i<map_size;i++) {
-      mkl_set_num_threads_local(mklth);
-      auto iter = iter_vector[i];
-      auto idx = iter->first;
-      auto data_blk_mat = iter->second;
-      ElemT *mat = RawDataGenDenseDataBlkMat_(data_blk_mat);
-      ElemT *u = nullptr;
-      ElemT *vt = nullptr;
-      GQTEN_Double *s = nullptr;
-      size_t m = data_blk_mat.rows;
-      size_t n = data_blk_mat.cols;
-      size_t k = m > n ? n : m;
-      hp_numeric::MatSVD(mat, m, n, u, s, vt);
-      free(mat);
-      auto svd_res = DataBlkMatSvdRes<ElemT>(m, n, k, u, s, vt);
-      #pragma omp critical (insert_svd_res)
-      {
-        idx_svd_res_map[idx] = svd_res;
-      }
-    }
-    delete[] iter_vector;
-  }else{
 #ifdef GQTEN_TIMING_MODE
   Timer svd_mkl_timer("matrix svd");
   svd_mkl_timer.Suspend();
@@ -485,10 +425,6 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
 #ifdef GQTEN_TIMING_MODE
   svd_mkl_timer.PrintElapsed();
 #endif
-  }
-  if(tensor_decomp_outer_parallel_num_threads>1 ){
-    mkl_set_num_threads_local(0);
-  }
   return idx_svd_res_map;
 }
 
@@ -522,7 +458,7 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVDMaster(
                 num_threads(slave_num)\
                 schedule(dynamic) 
   for(size_t i = 0; i < task_size; i++){
-    size_t controlling_slave = omp_get_thread_num()+1;// both number from 1
+    size_t controlling_slave = omp_get_thread_num()+1;
     // size_t threads =  omp_get_num_threads();
     TenDecompDataBlkMat<QNT> data_blk_mat;
     size_t idx;
@@ -573,11 +509,6 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVDMaster(
 
 template <typename ElemT>
 void DataBlkDecompSVDSlave(boost::mpi::communicator& world){
-  const unsigned mklth = hp_numeric::tensor_manipulation_total_num_threads;
-  mkl_set_num_threads_local(0);
-  mkl_set_num_threads(mklth);
-  mkl_set_dynamic(true);
-
   size_t task_done = 0;
   size_t m, n;//check if IdxDataBlkMatMap must have >0 row and  column
   size_t slave_identifier = world.rank();

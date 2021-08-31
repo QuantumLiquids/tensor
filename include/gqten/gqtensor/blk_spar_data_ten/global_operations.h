@@ -431,13 +431,9 @@ void BlockSparseDataTensor<ElemT, QNT>::CtrctTwoBSDTAndAssignIn(
   RawDataCtrctTask::SortTasksByCBlkIdx(raw_data_ctrct_tasks);
 
 #ifdef GQTEN_TIMING_MODE
-  Timer contract_mkl_timer("gemm");
+  Timer contract_mkl_timer("matrix multiplication");
   contract_mkl_timer.Suspend();
 #endif
-  
-  mkl_set_num_threads_local( 0 );	
-  mkl_set_num_threads(hp_numeric::tensor_manipulation_total_num_threads);
-  mkl_set_dynamic(true);
  
   for (auto &task : raw_data_ctrct_tasks) {
     const ElemT *a_data;

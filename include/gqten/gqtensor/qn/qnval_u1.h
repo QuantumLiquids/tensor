@@ -7,8 +7,11 @@
 */
 
 /**
-@file quval_u1.h
-@brief Quantum number value with U1 symmetry.
+  @file quval_u1.h
+  @brief Quantum number value with U1 symmetry.
+  @note If boost serialization of this class is needed,
+        add macro `BOOST_CLASS_EXPORT(gqten::U1QNVal)` at the end of all the include macros of main file.
+        Note only one compiler unit can include this marco.
 */
 #ifndef GQTEN_GQTENSOR_QN_QNVAL_U1_H
 #define GQTEN_GQTENSOR_QN_QNVAL_U1_H
@@ -74,7 +77,5 @@ private:
     ar & val_;
   }
 };
-// BOOST_CLASS_EXPORT_GUID(U1QNVal, "U1QNVal")
 } /* gqten */
-BOOST_CLASS_EXPORT(gqten::U1QNVal)
 #endif /* ifndef GQTEN_GQTENSOR_QN_QNVAL_U1_H */

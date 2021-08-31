@@ -25,7 +25,7 @@ const double kDoubleEpsilon = 1.0E-15;
 const int kTensorTransposeDefaultNumThreads = 4;
 
 // Default OpenMP thread number(in every processor)
-const unsigned kOmpDefaultTotalNumThreads = 4;
+const unsigned kOmpDefaultNumThreads = 4;
 
 // MPI master's rank
 const size_t kMPIMasterRank = 0;
