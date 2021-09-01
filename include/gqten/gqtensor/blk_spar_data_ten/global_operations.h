@@ -128,6 +128,7 @@ template <typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::FuseFirstTwoIndex(
   const std::vector<std::tuple<size_t,size_t,size_t,size_t>>& qnscts_offset_info_list
   ){
+if(actual_raw_data_size_ != 0){
 #ifdef GQTEN_TIMING_MODE
   Timer fuse_index_bsdt_pre_timer("   =============> fuse_index_bsdt_prepare");
 #endif  
@@ -228,6 +229,9 @@ void BlockSparseDataTensor<ElemT, QNT>::FuseFirstTwoIndex(
 
   new_bsdt.pactual_raw_data_ = nullptr;
   new_bsdt.pgqten_indexes = nullptr;
+}else{
+  (*this) = BlockSparseDataTensor<ElemT, QNT>(pgqten_indexes);
+}
 }
 
 

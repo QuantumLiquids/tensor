@@ -75,6 +75,7 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataAlloc_(
     const bool init
 ) {
   free(pactual_raw_data_);
+  ///< @question: if need to justify size!=0
   if (!init) {
     pactual_raw_data_ = (ElemT *) malloc(size * sizeof(ElemT));
   } else {
