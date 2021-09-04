@@ -109,7 +109,13 @@ void ExpandMC(
   }
 
 #ifndef NDEBUG
-  ExpandedTenDivChecker(*pa, *pb, *pc);
+  if (pa->GetQNBlkNum() != 0) {
+    assert(pc->Div() == pa->Div());
+  } else if (pb->GetQNBlkNum() == 0) {
+    assert(pc->Div() == QNT());
+  } else {
+    assert(pc->Div() == QNT() || pc->Div() == pb->Div());
+  }
 #endif /* ifndef NDEBUG */
 }
 
@@ -231,7 +237,7 @@ void ExpandMCOneIdx_(
   expand_latter_transpose_timer.PrintElapsed();
 #endif
 #ifndef NDEBUG
-  ExpandedTenDivChecker(*pa, *pb, *pc);
+// Div checker, but repeat
 #endif /* ifndef NDEBUG */
 }
 } /* gqten */
