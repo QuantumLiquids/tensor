@@ -92,6 +92,22 @@ inline void VectorScale(
   cblas_zscal(size, &a, x, 1);
 }
 
+/**
+ * @note return sqrt(sum(x^2)) not sum(x^2)
+ */
+inline double Vector2Norm(
+  GQTEN_Double *x,
+  const size_t size
+){
+  return cblas_dnrm2(size, x, 1);
+}
+
+inline double Vector2Norm(
+  GQTEN_Complex *x,
+  const size_t size
+){
+  return cblas_dznrm2(size, x, 1);
+}
 
 inline void VectorRealToCplx(
     const GQTEN_Double *real,

@@ -626,7 +626,7 @@ void RunTestGQTensorNormalizeCase(GQTensorT &t) {
     norm2 += std::norm(t.GetElem(coors));
   }
   auto norm = t.Normalize();
-  EXPECT_DOUBLE_EQ(norm, std::sqrt(norm2));
+  EXPECT_NEAR(norm, std::sqrt(norm2), 1e-14);
 
   norm2 = 0.0;
   for (auto &coors : GenAllCoors(t.GetShape())) {
