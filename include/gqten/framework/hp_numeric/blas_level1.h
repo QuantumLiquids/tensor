@@ -59,7 +59,7 @@ inline void VectorScaleCopy(
     GQTEN_Double *y,
     const GQTEN_Double a = 1.0
 ) {
-  memcpy(y, x, size * sizeof(GQTEN_Double));
+  cblas_dcopy(size, x, 1, y, 1);
   cblas_dscal(size, a, y, 1);
 }
 
@@ -70,10 +70,25 @@ inline void VectorScaleCopy(
     GQTEN_Complex *y,
     const GQTEN_Complex a = 1.0
 ) {
-  memcpy(y, x, size * sizeof(GQTEN_Complex));
+  cblas_zcopy(size, x, 1, y, 1);
   cblas_zscal(size, &a, y, 1);
 }
 
+inline void VectorCopy(
+  const GQTEN_Double* source,
+  const size_t size,
+  GQTEN_Double* dest
+){
+  cblas_dcopy(size, source, 1, dest, 1);
+}
+
+inline void VectorCopy(
+  const GQTEN_Complex* source,
+  const size_t size,
+  GQTEN_Complex* dest
+){
+  cblas_zcopy(size, source, 1, dest, 1);
+}
 
 inline void VectorScale(
     GQTEN_Double *x,
