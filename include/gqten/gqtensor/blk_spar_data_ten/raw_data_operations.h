@@ -76,6 +76,8 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataAlloc_(
 ) {
   free(pactual_raw_data_);
   ///< @question: if need to justify size!=0
+  ///< @todo use mkl_malloc to align data, note to be careful when doing this change.
+  /// but this may not very useful because all of the data is a set
   if (!init) {
     pactual_raw_data_ = (ElemT *) malloc(size * sizeof(ElemT));
   } else {
@@ -107,11 +109,11 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataInsert_(
   } else {
     size_t new_data_size = actual_raw_data_size_ + size;
     ElemT *new_pdata = (ElemT *) malloc(new_data_size * sizeof(ElemT));
-    memcpy(new_pdata, pactual_raw_data_, offset * sizeof(ElemT));
-    memcpy(
-        new_pdata + (offset + size),
+    hp_numeric::VectorCopy(pactual_raw_data_, offset, new_pdata );
+    hp_numeric::VectorCopy(
         pactual_raw_data_ + offset,
-        (actual_raw_data_size_ - offset) * sizeof(ElemT)
+        actual_raw_data_size_ - offset,
+        new_pdata + (offset + size)
     );
     free(pactual_raw_data_);
     pactual_raw_data_ = new_pdata;
@@ -165,7 +167,7 @@ Normalize the raw data array.
 template <typename ElemT, typename QNT>
 GQTEN_Double BlockSparseDataTensor<ElemT, QNT>::RawDataNormalize_(void) {
   double norm = hp_numeric::Vector2Norm(pactual_raw_data_, actual_raw_data_size_);
-  double inv_norm = 1/norm;
+  double inv_norm = 1.0/norm;
   size_t thread = std::min(
           actual_raw_data_size_, 
           (size_t)hp_numeric::tensor_manipulation_num_threads
@@ -216,10 +218,10 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataCopy_(
           pactual_raw_data_ + task.dest_data_offset
       );
     } else {
-      memcpy(
-          pactual_raw_data_ + task.dest_data_offset,
-          psrc_raw_data + task.src_data_offset,
-          task.src_data_size * sizeof(ElemT)
+      hp_numeric::VectorCopy(
+        psrc_raw_data + task.src_data_offset,
+        task.src_data_size,
+        pactual_raw_data_ + task.dest_data_offset
       );
     }
   }
