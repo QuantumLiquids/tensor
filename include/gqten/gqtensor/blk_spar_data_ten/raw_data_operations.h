@@ -168,17 +168,7 @@ template <typename ElemT, typename QNT>
 GQTEN_Double BlockSparseDataTensor<ElemT, QNT>::RawDataNormalize_(void) {
   double norm = hp_numeric::Vector2Norm(pactual_raw_data_, actual_raw_data_size_);
   double inv_norm = 1.0/norm;
-  size_t thread = std::min(
-          actual_raw_data_size_, 
-          (size_t)hp_numeric::tensor_manipulation_num_threads
-        );
-  #pragma omp parallel for default(none)\
-            shared(actual_raw_data_size_, pactual_raw_data_, inv_norm)\
-            num_threads(thread)\
-            schedule(static)
-  for (size_t i = 0; i < actual_raw_data_size_; ++i) {
-    pactual_raw_data_[i] *= inv_norm;
-  }
+  hp_numeric::VectorScale(pactual_raw_data_, actual_raw_data_size_, inv_norm);
   return norm;
 }
 
