@@ -132,7 +132,6 @@ void TensorLinearCombinationExecutor<TenElemT, QNT>::Execute(void) {
   SetStatus(ExecutorStatus::EXEING);
 
   actual_res_.GetBlkSparDataTen().Allocate();
-  Timer raw_data_cp_and_scale("raw_data_copy_and_scale");
   for (auto &ten_idx_tasks : ten_idx_ten_lin_cmb_data_copy_tasks_map_) {
     auto ten_idx = ten_idx_tasks.first;
     auto ten_bsdt_raw_data = tens_[
@@ -143,7 +142,6 @@ void TensorLinearCombinationExecutor<TenElemT, QNT>::Execute(void) {
       actual_res_.GetBlkSparDataTen().DataBlkCopyAndScale(task, ten_bsdt_raw_data);
     }
   }
-  raw_data_cp_and_scale.PrintElapsed();
   (*pres_) = std::move(actual_res_);
 
   SetStatus(ExecutorStatus::FINISH);
