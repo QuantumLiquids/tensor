@@ -21,6 +21,7 @@
 #include "gqten/gqtensor/blk_spar_data_ten/raw_data_operation_tasks.h"
 #include "gqten/framework/hp_numeric/lapack.h"    // MatSVD, MatQR
 #include "gqten/framework/hp_numeric/omp_set.h"
+#include "gqten/framework/hp_numeric/mpi_fun.h"   // MPI_Send, MPI_Recv
 #include "gqten/utility/timer.h"
 #include <omp.h>
 
@@ -473,7 +474,7 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVDMaster(
     const size_t n = data_blk_mat.cols;
     world.send(controlling_slave, 2*controlling_slave, m);
     world.send(controlling_slave, 3*controlling_slave, n);
-    world.send(controlling_slave, 4*controlling_slave, mat, m*n);
+    hp_numeric::MPI_Send(mat, m*n, controlling_slave, 4*controlling_slave, MPI_Comm(world));
 
     const size_t ld = std::min(m,n);
     ElemT* u  = (ElemT *) malloc((ld * m) * sizeof(ElemT));
@@ -482,9 +483,9 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVDMaster(
     const size_t k = m > n ? n : m;
 
     //TODO change to non-block
-    world.recv(controlling_slave, 5*controlling_slave, u, ld*m);
-    world.recv(controlling_slave, 6*controlling_slave, vt, ld*n);
-    world.recv(controlling_slave, 7*controlling_slave, s, ld);
+    hp_numeric::MPI_Recv(u, ld*m,  controlling_slave, 5*controlling_slave, MPI_Comm(world));
+    hp_numeric::MPI_Recv(vt, ld*n,  controlling_slave, 6*controlling_slave, MPI_Comm(world));
+    hp_numeric::MPI_Recv(s, ld,  controlling_slave, 7*controlling_slave, MPI_Comm(world));
     free(mat);
     #pragma omp critical
     {
@@ -521,7 +522,7 @@ void DataBlkDecompSVDSlave(boost::mpi::communicator& world){
   while(m>0 && n>0){
     size_t data_size = m*n;
     ElemT *mat = (ElemT *) malloc(data_size * sizeof(ElemT));
-    world.recv(kMPIMasterRank, 4*slave_identifier, mat, data_size);
+    hp_numeric::MPI_Recv(mat, data_size, kMPIMasterRank, 4*slave_identifier, MPI_Comm(world));
   #ifdef GQTEN_MPI_TIMING_MODE
     slave_commu_timer.Suspend();
   #endif
@@ -534,9 +535,9 @@ void DataBlkDecompSVDSlave(boost::mpi::communicator& world){
   #ifdef GQTEN_MPI_TIMING_MODE  
     slave_commu_timer.Restart();
   #endif
-    world.send(kMPIMasterRank, 5*slave_identifier, u, ld*m);
-    world.send(kMPIMasterRank, 6*slave_identifier, vt, ld*n);
-    world.send(kMPIMasterRank, 7*slave_identifier, s, ld);
+    hp_numeric::MPI_Send(u, ld*m, kMPIMasterRank, 5*slave_identifier, MPI_Comm(world));
+    hp_numeric::MPI_Send(vt, ld*n, kMPIMasterRank, 6*slave_identifier, MPI_Comm(world));
+    hp_numeric::MPI_Send(s, ld, kMPIMasterRank, 7*slave_identifier, MPI_Comm(world));
 
     free(mat);
     free(u);

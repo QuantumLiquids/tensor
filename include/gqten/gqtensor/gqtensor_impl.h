@@ -768,11 +768,11 @@ inline boost::mpi::status recv_gqten(boost::mpi::communicator world,
 
   Timer recv_gqten_data_timer("recv_gqten_data");
 #endif
-  int data_data = tag*kMPIDataTagMultiplyFactor+1;
+  int tag_data = tag*kMPIDataTagMultiplyFactor+1;
   BlockSparseDataTensor<ElemT, QNT>& bsdt=gqten.GetBlkSparDataTen();
   ElemT* data_pointer = bsdt.pactual_raw_data_;
   int data_size = bsdt.GetActualRawDataSize();
-  hp_numeric::MPI_Recv(data_pointer, data_size, source, data_data, MPI_Comm(world));
+  hp_numeric::MPI_Recv(data_pointer, data_size, source, tag_data, MPI_Comm(world));
 #ifdef GQTEN_MPI_TIMING_MODE
   recv_gqten_data_timer.PrintElapsed();
 #endif
