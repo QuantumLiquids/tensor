@@ -22,7 +22,7 @@
 #include "gqten/gqtensor/blk_spar_data_ten/data_blk_mat.h"                // IdxDataBlkMatMap
 #include "gqten/utility/utils_inl.h"                                      // CalcEffOneDimArrayOffset, CalcMultiDimDataOffsets, Reorder, ArrayEq, VecMultiSelectElemts
 
-
+#include "gqten/framework/hp_numeric/mpi_fun.h"
 #include <boost/serialization/serialization.hpp>  
 // #include <boost/serialization/map.hpp>    
 #include <boost/serialization/split_member.hpp>
@@ -631,18 +631,16 @@ inline void BlockSparseDataTensor<ElemT, QNT>::MPISend(
   boost::mpi::communicator& world,
   const int dest,
   const int tag){
-  boost::mpi::request reqs[2];
-  reqs[0] = world.isend(dest, tag, *this);
+  world.send(dest, tag, *this);
   int tag_data = 2*tag+1;
   if(IsScalar() && actual_raw_data_size_ ==0 ){
     ElemT zero = ElemT(0.0);
     ElemT* data_pointer = &zero;
     int data_size = 1;
-    reqs[1] = world.isend(dest, tag_data, data_pointer, data_size);
+    hp_numeric::MPI_Send(data_pointer, data_size, dest, tag_data, MPI_Comm(world));
   }else{
-    reqs[1] = world.isend(dest, tag_data, pactual_raw_data_, actual_raw_data_size_);
+    hp_numeric::MPI_Send(pactual_raw_data_, actual_raw_data_size_, dest, tag_data, MPI_Comm(world));
   }
-  boost::mpi::wait_all(reqs,reqs+2);
 }
 
 template <typename ElemT, typename QNT>
@@ -651,9 +649,9 @@ inline boost::mpi::status BlockSparseDataTensor<ElemT, QNT>::MPIRecv(
     const int source,
     const int tag){
   boost::mpi::status recv_ten_status=world.recv(source, tag, *this);
-  const int source_data = recv_ten_status.source();
-  const int tag_data = 2*recv_ten_status.tag() +1;
-  recv_ten_status=world.recv(source_data, tag_data, pactual_raw_data_, actual_raw_data_size_);
+  const int data_source = recv_ten_status.source();
+  const int data_tag = 2*recv_ten_status.tag() +1;
+  hp_numeric::MPI_Recv(pactual_raw_data_, actual_raw_data_size_, data_source, data_tag, MPI_Comm(world));
   return recv_ten_status;
 }
 

@@ -24,6 +24,7 @@
 #include <iterator>     // next
 #include <algorithm>    // is_sorted
 
+#include "gqten/framework/hp_numeric/mpi_fun.h"
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/mpi.hpp>
@@ -718,11 +719,10 @@ inline void send_gqten(boost::mpi::communicator world,
   if(gqten.IsDefault()){
     return;
   }
-  boost::mpi::request reqs[2];
 #ifdef GQTEN_MPI_TIMING_MODE
   Timer send_gqten_wrap_timer("send_gqten_wrap");
 #endif
-  reqs[0] = world.isend(dest, tag, gqten);
+  world.send(dest, tag, gqten);
 #ifdef GQTEN_MPI_TIMING_MODE
   send_gqten_wrap_timer.PrintElapsed();
 
@@ -737,11 +737,10 @@ inline void send_gqten(boost::mpi::communicator world,
     data_pointer = &zero;
     data_size = 1;
   }
-  reqs[1] = world.isend(dest, tag_data, data_pointer, data_size);
+  hp_numeric::MPI_Send(data_pointer, data_size, dest, tag_data, MPI_Comm(world));
 #ifdef GQTEN_MPI_TIMING_MODE
   send_gqten_data_timer.PrintElapsed();
 #endif
-  boost::mpi::wait_all(reqs,reqs+2);
 }
 
 
@@ -763,17 +762,17 @@ inline boost::mpi::status recv_gqten(boost::mpi::communicator world,
 #ifdef GQTEN_MPI_TIMING_MODE
   Timer recv_gqten_wrap_timer("recv_gqten_wrap");
 #endif
-  world.recv(source, tag, gqten);
+  auto s = world.recv(source, tag, gqten);
 #ifdef GQTEN_MPI_TIMING_MODE
   recv_gqten_wrap_timer.PrintElapsed();
 
   Timer recv_gqten_data_timer("recv_gqten_data");
 #endif
-  int tag_data = tag*kMPIDataTagMultiplyFactor+1;
+  int data_data = tag*kMPIDataTagMultiplyFactor+1;
   BlockSparseDataTensor<ElemT, QNT>& bsdt=gqten.GetBlkSparDataTen();
   ElemT* data_pointer = bsdt.pactual_raw_data_;
   int data_size = bsdt.GetActualRawDataSize();
-  auto s = world.recv(source, tag_data, data_pointer, data_size);
+  hp_numeric::MPI_Recv(data_pointer, data_size, source, data_data, MPI_Comm(world));
 #ifdef GQTEN_MPI_TIMING_MODE
   recv_gqten_data_timer.PrintElapsed();
 #endif
@@ -806,7 +805,7 @@ inline void SendBroadCastGQTensor(
     raw_data_size = 1;
   }
   //below broadcast need safely remove const
-  boost::mpi::broadcast(world, const_cast<ElemT*>(raw_data_pointer), raw_data_size, root);
+  hp_numeric::MPI_Bcast(const_cast<ElemT*>(raw_data_pointer), raw_data_size, root, MPI_Comm(world));
 }
 
 template <typename ElemT, typename QNT>
@@ -827,7 +826,7 @@ inline void RecvBroadCastGQTensor(
   BlockSparseDataTensor<ElemT, QNT>& bsdt=gqten.GetBlkSparDataTen();
   ElemT* raw_data_pointer = bsdt.pactual_raw_data_;
   int raw_data_size = bsdt.GetActualRawDataSize();
-  boost::mpi::broadcast(world, raw_data_pointer, raw_data_size, root);
+  hp_numeric::MPI_Bcast(raw_data_pointer, raw_data_size, root, MPI_Comm(world));
 }
 
 } /* gqten */
