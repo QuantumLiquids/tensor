@@ -17,6 +17,7 @@
 #include "gqten/framework/value_t.h"        // GQTEN_Double, GQTEN_Complex
 #include "gqten/gqtensor/qn/qnval_u1.h"     // U1QNVal
 #include "gqten/gqtensor/qn/qn.h"           // QNCard, QN
+#include "gqten/gqtensor/special_qn/special_qn_all.h"  //U1QN...
 #include "gqten/gqtensor/qnsct.h"           // QNSector
 #include "gqten/gqtensor/index.h"           // Index
 #include "gqten/gqtensor/gqtensor.h"        // GQTensor

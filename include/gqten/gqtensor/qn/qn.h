@@ -246,7 +246,7 @@ template <typename... QNValTs>
 void QN<QNValTs...>::StreamRead(std::istream &is) {
   pqnvals_ = {(new QNValTs)...};     // Initialize the quantum number value slots
   for (auto &qnval : pqnvals_) {
-    is >> (*qnval);
+    qnval->StreamRead(is);
   }
   is >> hash_;
   dim_ = CalcDim_();    // Recalculate the dimension.
@@ -256,7 +256,8 @@ void QN<QNValTs...>::StreamRead(std::istream &is) {
 template <typename... QNValTs>
 void QN<QNValTs...>::StreamWrite(std::ostream &os) const {
   for (auto &qnval : pqnvals_) {
-    os << (*qnval) << "\n";
+    qnval->StreamWrite(os);
+    os << "\n";
   }
   os << hash_ << "\n";
 }

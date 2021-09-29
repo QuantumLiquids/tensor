@@ -720,13 +720,15 @@ inline void send_gqten(boost::mpi::communicator world,
     return;
   }
 #ifdef GQTEN_MPI_TIMING_MODE
-  Timer send_gqten_wrap_timer("send_gqten_wrap");
+  Timer mpi_send_gqten_wrapper_timer("mpi_send_gqten_wrapper: from rank "
+                                         + std::to_string(world.rank())
+                                         + " to "
+                                         + std::to_string(dest)
+  );
 #endif
   world.send(dest, tag, gqten);
 #ifdef GQTEN_MPI_TIMING_MODE
-  send_gqten_wrap_timer.PrintElapsed();
-
-  Timer send_gqten_data_timer("send_gqten_data");
+  mpi_send_gqten_wrapper_timer.PrintElapsed();
 #endif
   int tag_data = tag*kMPIDataTagMultiplyFactor+1;
   const BlockSparseDataTensor<ElemT, QNT>& bsdt=gqten.GetBlkSparDataTen();
@@ -737,9 +739,18 @@ inline void send_gqten(boost::mpi::communicator world,
     data_pointer = &zero;
     data_size = 1;
   }
+#ifdef GQTEN_MPI_TIMING_MODE
+  Timer mpi_send_gqten_data_timer("mpi_send_gqten_data: from rank "
+                                      + std::to_string(world.rank())
+                                      + " to "
+                                      + std::to_string(dest)
+                                      + ", data size = "
+                                      + std::to_string(data_size)
+  );
+#endif
   hp_numeric::MPI_Send(data_pointer, data_size, dest, tag_data, MPI_Comm(world));
 #ifdef GQTEN_MPI_TIMING_MODE
-  send_gqten_data_timer.PrintElapsed();
+  mpi_send_gqten_data_timer.PrintElapsed();
 #endif
 }
 
@@ -760,21 +771,32 @@ inline boost::mpi::status recv_gqten(boost::mpi::communicator world,
   }
   // boost::mpi::request reqs[2];
 #ifdef GQTEN_MPI_TIMING_MODE
-  Timer recv_gqten_wrap_timer("recv_gqten_wrap");
+  Timer mpi_recv_gqten_wrapper_timer("mpi_recv_gqten_wrapper: from rank "
+                                         + std::to_string(source)
+                                         + " to "
+                                         + std::to_string(world.rank())
+  );
 #endif
   auto s = world.recv(source, tag, gqten);
 #ifdef GQTEN_MPI_TIMING_MODE
-  recv_gqten_wrap_timer.PrintElapsed();
-
-  Timer recv_gqten_data_timer("recv_gqten_data");
+  mpi_recv_gqten_wrapper_timer.PrintElapsed();
 #endif
   int tag_data = tag*kMPIDataTagMultiplyFactor+1;
   BlockSparseDataTensor<ElemT, QNT>& bsdt=gqten.GetBlkSparDataTen();
   ElemT* data_pointer = bsdt.pactual_raw_data_;
   int data_size = bsdt.GetActualRawDataSize();
+#ifdef GQTEN_MPI_TIMING_MODE
+  Timer mpi_recv_gqten_data_timer("mpi_recv_gqten_data: from rank "
+                                      + std::to_string(source)
+                                      + " to "
+                                      + std::to_string(world.rank())
+                                      + ", data size = "
+                                      + std::to_string(data_size)
+  );
+#endif
   hp_numeric::MPI_Recv(data_pointer, data_size, source, tag_data, MPI_Comm(world));
 #ifdef GQTEN_MPI_TIMING_MODE
-  recv_gqten_data_timer.PrintElapsed();
+  mpi_recv_gqten_data_timer.PrintElapsed();
 #endif
   
   // boost::mpi::wait_all(reqs+1,reqs+2);
@@ -804,8 +826,18 @@ inline void SendBroadCastGQTensor(
     raw_data_pointer = &zero;
     raw_data_size = 1;
   }
+#ifdef GQTEN_MPI_TIMING_MODE
+  Timer mpi_bcast_send_gqten_data_timer("mpi_bcast_send_gqten_data: root = "
+                                            + std::to_string(root)
+                                            + " data size = "
+                                            + std::to_string(raw_data_size)
+  );
+#endif
   //below broadcast need safely remove const
   hp_numeric::MPI_Bcast(const_cast<ElemT*>(raw_data_pointer), raw_data_size, root, MPI_Comm(world));
+#ifdef GQTEN_MPI_TIMING_MODE
+  mpi_bcast_send_gqten_data_timer.PrintElapsed();
+#endif
 }
 
 template <typename ElemT, typename QNT>
@@ -826,7 +858,17 @@ inline void RecvBroadCastGQTensor(
   BlockSparseDataTensor<ElemT, QNT>& bsdt=gqten.GetBlkSparDataTen();
   ElemT* raw_data_pointer = bsdt.pactual_raw_data_;
   int raw_data_size = bsdt.GetActualRawDataSize();
+#ifdef GQTEN_MPI_TIMING_MODE
+  Timer mpi_bcast_recv_gqten_data_timer("mpi_bcast_send_gqten_data: root = "
+                                            + std::to_string(root)
+                                            + " data size = "
+                                            + std::to_string(raw_data_size)
+  );
+#endif
   hp_numeric::MPI_Bcast(raw_data_pointer, raw_data_size, root, MPI_Comm(world));
+#ifdef GQTEN_MPI_TIMING_MODE
+  mpi_bcast_recv_gqten_data_timer.PrintElapsed();
+#endif
 }
 
 } /* gqten */

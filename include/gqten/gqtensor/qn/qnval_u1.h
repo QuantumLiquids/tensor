@@ -9,15 +9,12 @@
 /**
   @file quval_u1.h
   @brief Quantum number value with U1 symmetry.
-  @note If boost serialization of this class is needed,
-        add macro `BOOST_CLASS_EXPORT(gqten::U1QNVal)` at the end of all the include macros of main file.
-        Note only one compiler unit can include this marco.
 */
 #ifndef GQTEN_GQTENSOR_QN_QNVAL_U1_H
 #define GQTEN_GQTENSOR_QN_QNVAL_U1_H
 
 
-#include "gqten/gqtensor/qn/qnval.h"    // QNVal
+#include"gqten/gqtensor/qn/qnval.h"    // QNVal
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/export.hpp>
 #include <boost/serialization/base_object.hpp>
@@ -58,7 +55,7 @@ public:
 
   // Override for Streamable base class
   void StreamRead(std::istream &is) override { is >> val_; }
-  void StreamWrite(std::ostream &os) const override { os << val_ << std::endl; }
+  void StreamWrite(std::ostream &os) const override { os << val_ << "\n"; }
 
   // Override for Showable base class
   void Show(const size_t indent_level = 0) const override {
