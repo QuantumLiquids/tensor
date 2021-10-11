@@ -97,8 +97,9 @@ private:
   */
   void CreateQNBlkInfo_(const IndexVec<QNT> &gqten_indexes) {
     QNSectorVec<QNT> qnscts;
+    qnscts.reserve( blk_coors.size() );
     for (size_t i = 0; i < blk_coors.size(); ++i) {
-      auto qnsct = gqten_indexes[i].GetQNSct(blk_coors[i]);
+      auto& qnsct = gqten_indexes[i].GetQNSct(blk_coors[i]);
       qnscts.push_back(qnsct);
     }
     qnblk_info_ = QNBlkInfo<QNT>(qnscts);

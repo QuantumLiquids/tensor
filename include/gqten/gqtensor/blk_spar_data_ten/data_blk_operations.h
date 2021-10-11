@@ -81,6 +81,36 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkInsert(
 }
 
 
+template <typename ElemT, typename QNT>
+typename BlockSparseDataTensor<ElemT, QNT>::BlkIdxDataBlkMap::iterator
+BlockSparseDataTensor<ElemT, QNT>::DataBlkQuasiInsert(
+    const CoorsT &blk_coors
+    ){
+  assert(blk_coors.size() == ten_rank);
+  auto blk_idx = BlkCoorsToBlkIdx(blk_coors);
+  auto iter = blk_idx_data_blk_map_.find(blk_idx);
+  if(iter != blk_idx_data_blk_map_.cend()){
+    return iter;
+  }else{
+    auto [iter, success] = blk_idx_data_blk_map_.insert(
+        std::make_pair(blk_idx,
+                        DataBlk<QNT>(blk_coors, *pgqten_indexes)
+                        )
+                        );
+    return iter;
+  }
+}
+
+template <typename ElemT, typename QNT>
+void BlockSparseDataTensor<ElemT, QNT>::DataBlksOffsetRefresh(){
+  raw_data_size_ = 0;
+  for (auto &idx_data_blk : blk_idx_data_blk_map_) {
+    auto& data_blk = idx_data_blk.second;
+    data_blk.data_offset = raw_data_size_;
+    raw_data_size_ += data_blk.size;
+  }
+}
+
 /**
 Insert a list of data blocks. The BlockSparseDataTensor must be empty before
 performing this insertion.
@@ -223,6 +253,7 @@ inline CoorsT GenTenCtrctDataBlkCoors(
     const std::vector<std::vector<size_t>> &saved_axes_set
 ) {
   CoorsT c_blk_coors;
+  c_blk_coors.reserve( saved_axes_set[0].size() + saved_axes_set[1].size());
   for (auto axis : saved_axes_set[0]) {
     c_blk_coors.push_back(a_blk_coors[axis]);
   }
@@ -272,53 +303,26 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
                                                 ctrct_axes_set[1]
                                             );
   std::vector<RawDataCtrctTask> raw_data_ctrct_tasks;
-  std::unordered_map<size_t, size_t>
-      a_blk_idx_m_map,
-      a_blk_idx_k_map,
-      b_blk_idx_n_map;
+  std::unordered_map<size_t, size_t> b_blk_idx_n_map;
 
   bool c_is_scalar = IsScalar();
   bool scalar_c_first_task = true;
+  raw_data_ctrct_tasks.reserve(a_blk_idx_qnblk_info_part_hash_map.size() * b_blk_idx_qnblk_info_part_hash_map.size() );
 #ifndef NDEBUG
   if (c_is_scalar) {
     assert(saved_axes_set[0].empty() && saved_axes_set[1].empty());
   }
 #endif /* ifndef NDEBUG */
-  for (auto &a_blk_idx_part_hash : a_blk_idx_qnblk_info_part_hash_map) {
-    for (auto &b_blk_idx_part_hash : b_blk_idx_qnblk_info_part_hash_map) {
-      if (a_blk_idx_part_hash.second == b_blk_idx_part_hash.second) {
-        auto a_blk_idx = a_blk_idx_part_hash.first;
-        auto b_blk_idx = b_blk_idx_part_hash.first;
-        auto a_data_blk = a_blk_idx_data_blk_map[a_blk_idx];
-        auto b_data_blk = b_blk_idx_data_blk_map[b_blk_idx];
-        // Calculate m, k, n
-        size_t m, k, n;
-        if (c_is_scalar) {
-          m = 1;
-          n = 1;
-        } else {
-          if (a_blk_idx_m_map.find(a_blk_idx) != a_blk_idx_m_map.end()) {
-            m = a_blk_idx_m_map.at(a_blk_idx);
-          } else {
-            m = VecMultiSelectElemts(a_data_blk.shape, saved_axes_set[0]);
-            a_blk_idx_m_map[a_blk_idx] = m;
-          }
-          if (b_blk_idx_n_map.find(b_blk_idx) != b_blk_idx_n_map.end()) {
-            n = b_blk_idx_n_map.at(b_blk_idx);
-          } else {
-            n = VecMultiSelectElemts(b_data_blk.shape, saved_axes_set[1]);
-            b_blk_idx_n_map[b_blk_idx] = n;
-          }
-        }
-        if (a_blk_idx_k_map.find(a_blk_idx) != a_blk_idx_k_map.end()) {
-          k = a_blk_idx_k_map.at(a_blk_idx);
-        } else {
-          k = VecMultiSelectElemts(a_data_blk.shape, ctrct_axes_set[0]);
-          a_blk_idx_k_map[a_blk_idx] = k;
-        }
-
-        // Create raw data contraction task
-        if (c_is_scalar) {
+  if (c_is_scalar){
+    for (auto &a_blk_idx_part_hash : a_blk_idx_qnblk_info_part_hash_map) {
+      for (auto &b_blk_idx_part_hash : b_blk_idx_qnblk_info_part_hash_map) {
+        if (a_blk_idx_part_hash.second == b_blk_idx_part_hash.second) {
+          auto a_blk_idx = a_blk_idx_part_hash.first;
+          auto b_blk_idx = b_blk_idx_part_hash.first;
+          auto a_data_blk = a_blk_idx_data_blk_map[a_blk_idx];
+          auto b_data_blk = b_blk_idx_data_blk_map[b_blk_idx];
+          size_t m(1), n(1);
+          size_t k = VecMultiSelectElemts(a_data_blk.shape, ctrct_axes_set[0]);
           GQTEN_Double beta;
           if (scalar_c_first_task) {
             beta = 0.0;
@@ -339,20 +343,48 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
                   beta
               )
           );
-        } else {
+        }
+
+      }
+    }
+  } else {
+    for (auto &a_blk_idx_part_hash : a_blk_idx_qnblk_info_part_hash_map) {
+      size_t m(0), k(0);
+      for (auto &b_blk_idx_part_hash : b_blk_idx_qnblk_info_part_hash_map) {
+        if (a_blk_idx_part_hash.second == b_blk_idx_part_hash.second) {
+          auto a_blk_idx = a_blk_idx_part_hash.first;
+          auto b_blk_idx = b_blk_idx_part_hash.first;
+          auto a_data_blk = a_blk_idx_data_blk_map[a_blk_idx];
+          auto b_data_blk = b_blk_idx_data_blk_map[b_blk_idx];
+          // Calculate m, k, n
+          size_t n;
+          if( m == 0 ) {
+            m = VecMultiSelectElemts(a_data_blk.shape, saved_axes_set[0]);
+            k = VecMultiSelectElemts(a_data_blk.shape, ctrct_axes_set[0]);
+          }
+          if (b_blk_idx_n_map.find(b_blk_idx) != b_blk_idx_n_map.end()) {
+            n = b_blk_idx_n_map.at(b_blk_idx);
+          } else {
+            n = VecMultiSelectElemts(b_data_blk.shape, saved_axes_set[1]);
+            b_blk_idx_n_map[b_blk_idx] = n;
+          }
+
+
+          // Create raw data contraction task
           auto c_blk_coors = GenTenCtrctDataBlkCoors(
-                                 a_data_blk.blk_coors,
-                                 b_data_blk.blk_coors,
-                                 saved_axes_set
-                             );
+              a_data_blk.blk_coors,
+              b_data_blk.blk_coors,
+              saved_axes_set
+          );
           auto c_blk_idx = BlkCoorsToBlkIdx(c_blk_coors);
           GQTEN_Double beta;
           if (blk_idx_data_blk_map_.find(c_blk_idx) !=
               blk_idx_data_blk_map_.end()
-          ) {
+              ) {
             beta = 1.0;
           } else {
-            DataBlkInsert(c_blk_coors, false);
+            blk_idx_data_blk_map_[c_blk_idx] =
+                DataBlk<QNT>(c_blk_coors, *pgqten_indexes);
             beta = 0.0;
           }
           raw_data_ctrct_tasks.push_back(
@@ -371,8 +403,8 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
         }
       }
     }
+    DataBlksOffsetRefresh();
   }
-
   for (auto &task : raw_data_ctrct_tasks) {
     if (a_b_need_trans.first) {
       task.a_trans_orders = a_trans_orders;

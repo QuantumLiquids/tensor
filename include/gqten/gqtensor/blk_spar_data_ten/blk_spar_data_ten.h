@@ -74,7 +74,13 @@ public:
   // Data block level operations
   typename BlkIdxDataBlkMap::iterator
   DataBlkInsert(const CoorsT &blk_coors, const bool alloc_mem = true);
-  
+
+  // N.B. this is not a complete operation
+  typename BlkIdxDataBlkMap::iterator
+  DataBlkQuasiInsert(const CoorsT &blk_coors);
+
+  void DataBlksOffsetRefresh();
+
   void DataBlksInsert(
       const std::vector<size_t> &,
       const std::vector<CoorsT> &,

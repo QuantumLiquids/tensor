@@ -40,6 +40,7 @@ public:
   */
   ShapeT CalcDgncSpaceShape(void) {
     ShapeT dgnc_space_shape;
+    dgnc_space_shape.reserve(qnscts.size());
     for (auto &qnsct : qnscts) {
       dgnc_space_shape.push_back(qnsct.GetDegeneracy());
     }
@@ -67,12 +68,7 @@ Calculate part hash value using selected axes indexes.
 */
 template <typename QNT>
 size_t QNBlkInfo<QNT>::PartHash(const std::vector<size_t> &axes) const {
-  auto selected_qnscts_ndim  = axes.size();
-  std::vector<const QNSector<QNT> *> pselected_qnscts(selected_qnscts_ndim);
-  for (std::size_t i = 0; i < selected_qnscts_ndim; ++i) {
-    pselected_qnscts[i] = &qnscts[axes[i]];
-  }
-  return VecPtrHasher(pselected_qnscts);
+  return VecPartHasher(qnscts, axes);
 }
 
 
@@ -82,6 +78,7 @@ Calculate a hash value only based on quantum numbers but the shape of the degene
 template <typename QNT>
 size_t QNBlkInfo<QNT>::QnHash(void) const {
   std::vector<QNT> qns;
+  qns.reserve( qnscts.size() );
   for (auto &qnsct : qnscts) { qns.push_back(qnsct.GetQn()); }
   return VecHasher(qns);
 }

@@ -7,7 +7,7 @@
 */
 
 /**
-@file u1qn.h
+@file u1u1qn.h
 @brief `U(1) \cross U(1)` QN class = gqten::QN<U1QNVal, U1QNVal>.
  Avoiding virtual function realization. (except Showable)
  Compatible in reading and writing  QN<U1QNVal, U1QNVal> data.
@@ -85,16 +85,16 @@ class U1U1QN : public Showable {
   }
 };
 
-U1U1QN::U1U1QN(void) : vals_{0,0}, hash_(CalcHash_()) {}
+inline U1U1QN::U1U1QN(void) : vals_{0,0}, hash_(CalcHash_()) {}
 
-U1U1QN::U1U1QN(const int val1, const int val2) : vals_{val1, val2}, hash_(CalcHash_()) {}
+inline U1U1QN::U1U1QN(const int val1, const int val2) : vals_{val1, val2}, hash_(CalcHash_()) {}
 
-U1U1QN::U1U1QN(const std::string &name1, const int val1, const std::string &name2, const int val2) :
+inline U1U1QN::U1U1QN(const std::string &name1, const int val1, const std::string &name2, const int val2) :
   vals_{val1, val2}, hash_(CalcHash_()) {}
 
-U1U1QN::U1U1QN(const U1U1QN & rhs) : vals_{rhs.vals_[0], rhs.vals_[1]}, hash_(rhs.hash_) {}
+inline U1U1QN::U1U1QN(const U1U1QN & rhs) : vals_{rhs.vals_[0], rhs.vals_[1]}, hash_(rhs.hash_) {}
 
-U1U1QN::U1U1QN(const QNCardVec &qncards) {
+inline U1U1QN::U1U1QN(const QNCardVec &qncards) {
   assert( qncards.size() == 2);
   for(size_t i = 0; i < 2; i++ ) {
     const int val = qncards[i].GetValPtr()->GetVal();
@@ -103,7 +103,7 @@ U1U1QN::U1U1QN(const QNCardVec &qncards) {
   hash_ = CalcHash_();
 }
 
-U1U1QN::~U1U1QN() {}
+inline U1U1QN::~U1U1QN() {}
 
 inline U1U1QN& U1U1QN::operator=(const U1U1QN &rhs) {
   for(size_t i = 0; i < 2; i++ ) {
@@ -155,18 +155,26 @@ inline void U1U1QN::Show(const size_t indent_level) const {
 
 inline size_t U1U1QN::CalcHash_() const {
   ///< a faith realization compatible with QN<U1QNVal, U1QNVal>
-  const size_t len = 2;
-  size_t hash_val = _HASH_XXPRIME_5;
-  for(size_t i = 0; i < len; i++){
-    const size_t item_hash_val = vals_[i];
-    hash_val += item_hash_val * _HASH_XXPRIME_2;
-    hash_val = _HASH_XXROTATE(hash_val);
-    hash_val *= _HASH_XXPRIME_1;
-  }
-  hash_val += len ^ _HASH_XXPRIME_5;
-  return hash_val;
-  ///<TODO: a simple realization, but not compatible to QN<U1QNVal, U1QNVal>
-  //return val_;
+//  const size_t len = 2;
+//  size_t hash_val = _HASH_XXPRIME_5;
+//  for(size_t i = 0; i < len; i++){
+//    const size_t item_hash_val = vals_[i];
+//    hash_val += item_hash_val * _HASH_XXPRIME_2;
+//    hash_val = _HASH_XXROTATE(hash_val);
+//    hash_val *= _HASH_XXPRIME_1;
+//  }
+//  hash_val += len ^ _HASH_XXPRIME_5;
+//  return hash_val;
+  /** a simple realization
+   * in 64 bit system size_t has 8 byte = 64 bits.
+   * assume -2^30 < u1vals < 2^30, a map is direct
+   */
+  const size_t segment_const = 1024*1024*1024; //2^30
+  size_t hash_val1 = vals_[0] + segment_const;
+  size_t hash_val2 = vals_[1] + segment_const;
+  hash_val2 *= (2 * segment_const) ;
+  size_t hash_val = hash_val1 + hash_val2 ;
+  return ( (hash_val << 10) | ( hash_val >> 54) ); // To avoid collide of QNSector
 }
 
 inline std::istream &operator>>(std::istream &is, U1U1QN &qn) {

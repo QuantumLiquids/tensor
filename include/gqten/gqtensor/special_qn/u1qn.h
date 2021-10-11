@@ -84,21 +84,21 @@ class U1QN : public Showable {
   }
 };
 
-U1QN::U1QN(void) : val_(0), hash_(CalcHash_()) {}
+inline U1QN::U1QN(void) : val_(0), hash_(CalcHash_()) {}
 
-U1QN::U1QN(const int val) : val_(val), hash_(CalcHash_()) {}
+inline U1QN::U1QN(const int val) : val_(val), hash_(CalcHash_()) {}
 
-U1QN::U1QN(const std::string &name, const int val) : val_(val), hash_(CalcHash_()) {}
+inline U1QN::U1QN(const std::string &name, const int val) : val_(val), hash_(CalcHash_()) {}
 
-U1QN::U1QN(const U1QN & rhs) : val_(rhs.val_), hash_(rhs.hash_) {}
+inline U1QN::U1QN(const U1QN & rhs) : val_(rhs.val_), hash_(rhs.hash_) {}
 
-U1QN::U1QN(const QNCardVec &qncards) {
+inline U1QN::U1QN(const QNCardVec &qncards) {
   const int val = qncards[0].GetValPtr()->GetVal();
   val_ = val;
   hash_ = CalcHash_();
 }
 
-U1QN::~U1QN() {}
+inline U1QN::~U1QN() {}
 
 inline U1QN& U1QN::operator=(const U1QN &rhs) {
   val_ = rhs.val_;
@@ -140,17 +140,17 @@ inline void U1QN::Show(const size_t indent_level) const {
 
 inline size_t U1QN::CalcHash_() const {
   ///< a faith realization compatible with QN<U1QNVal>
-  const size_t len = 1;
-  size_t hash_val = _HASH_XXPRIME_5;
-  const size_t item_hash_val = val_;
-  hash_val += item_hash_val * _HASH_XXPRIME_2;
-  hash_val = _HASH_XXROTATE(hash_val);
-  hash_val *= _HASH_XXPRIME_1;
-  hash_val += len ^ _HASH_XXPRIME_5;
-  return hash_val;
+//  const size_t len = 1;
+//  size_t hash_val = _HASH_XXPRIME_5;
+//  const size_t item_hash_val = val_;
+//  hash_val += item_hash_val * _HASH_XXPRIME_2;
+//  hash_val = _HASH_XXROTATE(hash_val);
+//  hash_val *= _HASH_XXPRIME_1;
+//  hash_val += len ^ _HASH_XXPRIME_5;
+//  return hash_val;
   ///< a simple realization, but not compatible with QN<U1QNVal>
-
-//  return val_;
+  size_t hash = val_;
+  return _HASH_XXROTATE(hash);
 
 }
 

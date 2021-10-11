@@ -11,7 +11,7 @@
 
 #include "gqten/gqtensor/special_qn/u1qn.h"
 #include "gqten/gqtensor/special_qn/u1u1qn.h"
-
+#include "gqten/gqtensor/special_qn/u1u1znqn.h"
 
 
 
