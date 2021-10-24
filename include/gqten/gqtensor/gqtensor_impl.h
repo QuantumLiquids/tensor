@@ -420,8 +420,8 @@ void GQTensor<ElemT, QNT>::Transpose(
   if (std::is_sorted(transed_idxes_order.begin(), transed_idxes_order.end())) {
     return;
   }
-  Reorder(shape_, transed_idxes_order);
-  Reorder(indexes_, transed_idxes_order);
+  InplaceReorder(shape_, transed_idxes_order);
+  InplaceReorder(indexes_, transed_idxes_order);
   pblk_spar_data_ten_->Transpose(transed_idxes_order);
 }
 

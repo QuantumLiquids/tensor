@@ -31,6 +31,7 @@
 #include <boost/mpi.hpp>
 // #include "gqten/gqtensor/gqtensor.h"
 
+#include <set>              // set
 #include <map>              // map
 #include <unordered_map>    // unordered_map
 #include <iostream>         // endl, istream, ostream
@@ -102,7 +103,16 @@ public:
   std::vector<RawDataCtrctTask> DataBlkGenForTenCtrct(
       const BlockSparseDataTensor &,
       const BlockSparseDataTensor &,
+      const std::vector<std::vector<size_t>> &,
       const std::vector<std::vector<size_t>> &
+  );
+
+  std::vector<RawDataCtrctTask> DataBlkGenForExtraTenCtrct(
+      const BlockSparseDataTensor &,
+      const BlockSparseDataTensor &,
+      const ushort ,
+      const ushort ,
+      const ushort
   );
 
     std::vector<RawDataCtrctTask> DataBlkGenForTenCtrct(
@@ -110,8 +120,7 @@ public:
       const std::map<size_t, gqten::DataBlk<QNT>>&,
       const std::vector<std::vector<size_t>> &,
       const std::vector<std::vector<size_t>> &,
-      std::pair<bool, bool>,
-      std::unordered_map<size_t, size_t>&
+      std::vector<size_t>&
   );
 
   std::map<size_t, DataBlkMatSvdRes<ElemT>> DataBlkDecompSVD(
@@ -174,8 +183,17 @@ public:
   void CtrctTwoBSDTAndAssignIn(
       const BlockSparseDataTensor &,
       const BlockSparseDataTensor &,
-      std::vector<RawDataCtrctTask> &
+      std::vector<RawDataCtrctTask> &,
+      std::vector<int> &,
+      std::vector<int> &
   );
+
+  template <bool a_ctrct_tail, bool b_ctrct_head>
+  void CtrctAccordingTask(
+      const ElemT* a_raw_data,
+      const ElemT* b_raw_data,
+      const std::vector<RawDataCtrctTask> &raw_data_ctrct_tasks
+      );
   void ConstructExpandedDataOnFirstIndex(
       const BlockSparseDataTensor &,
       const BlockSparseDataTensor &,
@@ -188,6 +206,16 @@ public:
       const BlockSparseDataTensor &,
       const std::map<size_t, int> &
   );
+
+  void OutOfPlaceMatrixTransposeForSelectedDataBlk(
+      const std::set<size_t>& selected_data_blk_idxs,
+      const size_t critical_axe,
+      ElemT* transposed_data
+      ) const;
+
+  bool HasDataBlkQNInfo(){
+    return blk_idx_data_blk_map_.begin()->second.HasQNBlkInfo();
+  }
 
   void CopyFromReal(const BlockSparseDataTensor<GQTEN_Double, QNT> &);
 
@@ -228,10 +256,16 @@ public:
 
   // Static members.
   static void ResetDataOffset(BlkIdxDataBlkMap &);
-  static std::unordered_map<size_t, size_t> GenBlkIdxQNBlkInfoPartHashMap(
+
+  static std::vector<size_t> GenBlkIdxQNBlkInfoPartHashMap(
       const BlkIdxDataBlkMap &,
       const std::vector<size_t> &
   );
+
+  static std::vector<size_t> GenBlkIdxQNBlkCoorPartHashMap(
+      const BlkIdxDataBlkMap &,
+      const std::vector<size_t> &
+      );
 
   void CollectiveLinearCombine(
     const std::vector<const BlockSparseDataTensor *>
@@ -399,7 +433,7 @@ BlockSparseDataTensor<ElemT, QNT>::BlockSparseDataTensor(
     raw_data_size_(bsdt.raw_data_size_),
     actual_raw_data_size_(bsdt.actual_raw_data_size_) {
   if (bsdt.pactual_raw_data_ != nullptr) {
-    auto data_byte_size = actual_raw_data_size_ * sizeof(ElemT);
+    const size_t data_byte_size = actual_raw_data_size_ * sizeof(ElemT);
     pactual_raw_data_ = (ElemT *) malloc(data_byte_size);
     memcpy(pactual_raw_data_, bsdt.pactual_raw_data_, data_byte_size);
   }
@@ -704,15 +738,16 @@ Generate block index map <-> quantum block info part hash value.
 @param blk_idx_data_blk_map A block index <-> data block map.
 @param axes Selected axes indexes for part hash.
 
-@return Block index <-> part hash value map.
+@return Block index (in even index) <-> part hash value map (in odd index).
 */
 template <typename ElemT, typename QNT>
-std::unordered_map<size_t, size_t>
+std::vector<size_t>
 BlockSparseDataTensor<ElemT, QNT>::GenBlkIdxQNBlkInfoPartHashMap(
     const BlkIdxDataBlkMap &blk_idx_data_blk_map,
     const std::vector<size_t> &axes
 ) {
-  std::unordered_map<size_t, size_t> blk_idx_qnblk_info_part_hash_map;
+  std::vector<size_t> blk_idx_qnblk_info_part_hash_map;
+  blk_idx_qnblk_info_part_hash_map.reserve( 2 * blk_idx_data_blk_map.size() );
   for (auto &blk_idx_data_blk : blk_idx_data_blk_map) {
     blk_idx_qnblk_info_part_hash_map[
         blk_idx_data_blk.first
@@ -721,6 +756,22 @@ BlockSparseDataTensor<ElemT, QNT>::GenBlkIdxQNBlkInfoPartHashMap(
   return blk_idx_qnblk_info_part_hash_map;
 }
 
+
+template <typename ElemT, typename QNT>
+std::vector<size_t>
+BlockSparseDataTensor<ElemT, QNT>::GenBlkIdxQNBlkCoorPartHashMap(
+    const BlkIdxDataBlkMap &blk_idx_data_blk_map,
+    const std::vector<size_t> &axes
+) {
+  std::vector<size_t> blk_idx_qnblk_info_part_hash_map;
+  blk_idx_qnblk_info_part_hash_map.reserve( 2 * blk_idx_data_blk_map.size() );
+  for (auto &blk_idx_data_blk : blk_idx_data_blk_map) {
+    blk_idx_qnblk_info_part_hash_map.push_back(blk_idx_data_blk.first);
+    const ShapeT& blk_coors = blk_idx_data_blk.second.blk_coors;
+    blk_idx_qnblk_info_part_hash_map.push_back(VecPartHasher(blk_coors, axes));
+  }
+  return blk_idx_qnblk_info_part_hash_map;
+}
 
 /**
 Equivalence check. Only check data, not quantum number information.

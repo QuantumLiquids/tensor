@@ -35,6 +35,22 @@ size_t VecHasher(const std::vector<T> &vec) {
   return hash_val;
 }
 
+
+inline size_t VecPartHasher(const std::vector<size_t> &vec,
+                     const std::vector<size_t> &select_idx
+) {
+  size_t len = select_idx.size();
+  size_t hash_val = _HASH_XXPRIME_5;
+  for (size_t idx : select_idx) {
+    hash_val += vec[idx] * _HASH_XXPRIME_2;
+    hash_val = _HASH_XXROTATE(hash_val);
+    hash_val *= _HASH_XXPRIME_1;
+  }
+  hash_val += len ^ _HASH_XXPRIME_5;
+  return hash_val;
+}
+
+
 template<typename T>
 size_t VecPartHasher(const std::vector<T> &vec,
                      const std::vector<size_t> &select_idx

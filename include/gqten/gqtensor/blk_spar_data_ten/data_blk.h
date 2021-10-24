@@ -51,9 +51,43 @@ public:
     CalcSize_();
   }
 
+  DataBlk(
+      const CoorsT &blk_coors,
+      const ShapeT &shape
+      ) :
+      blk_coors(blk_coors),
+      shape(shape),
+      has_qnblk_info_(false)
+      {
+    CalcSize_();
+  }
+
+  DataBlk(
+      const CoorsT &&blk_coors,
+      const ShapeT &&shape
+  ) :
+      blk_coors(std::move(blk_coors)),
+      shape(std::move(shape)),
+      has_qnblk_info_(false)
+  {
+    CalcSize_();
+  }
+
+
   /// Get quantum number block info.
   const QNBlkInfo<QNT> &GetQNBlkInfo(void) const { return qnblk_info_; }
 
+  /// Create and set quantum number block info if it doesn't exist.
+  void SetQNBlkInfo(const IndexVec<QNT> &gqten_indexes) {
+    if(!has_qnblk_info_){
+      CreateQNBlkInfo_(gqten_indexes);
+      has_qnblk_info_=true;
+    }
+  }
+
+  bool HasQNBlkInfo(){
+    return has_qnblk_info_;
+  };
 
   /**
   Transpose the data block (only information).
@@ -61,8 +95,8 @@ public:
   @param transed_idxes_order Transposed order of indexes.
   */
   void Transpose(const std::vector<size_t> &transed_idxes_order) {
-    Reorder(blk_coors, transed_idxes_order);
-    Reorder(shape, transed_idxes_order);
+    InplaceReorder(blk_coors, transed_idxes_order);
+    InplaceReorder(shape, transed_idxes_order);
 
     if (has_qnblk_info_) { qnblk_info_.Transpose(transed_idxes_order); }
   }

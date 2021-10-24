@@ -8,7 +8,7 @@
 #include "gqten/gqtensor_all.h"
 #include "gqten/tensor_manipulation/ten_ctrct.h"            // Contract
 #include "gqten/tensor_manipulation/basic_operations.h"     // Dag
-
+#include "gqten/tensor_manipulation/ten_extra_ctrct.h"      // Contract
 #include "gtest/gtest.h"
 #include "../testing_utility.h"
 
@@ -439,3 +439,143 @@ TEST_F(TestContraction, 3DCase) {
   zten_3d_s4.Random(qnm1);
   RunTestTenCtrct3DCase3(zten_3d_s, zten_3d_s4);
 }
+
+
+template <typename TenElemT, typename QNT>
+void RunTestTenExtraCtrct(
+    const GQTensor<TenElemT, QNT> &ta,
+    const std::vector<size_t> &ctrct_axes_a, //continuous number
+    const GQTensor<TenElemT, QNT> &tb,
+    const std::vector<size_t> &ctrct_axes_b
+) {
+  using TenT = GQTensor<TenElemT, QNT>;
+  TenT res1, res2, res3, res4;
+  Contract<TenElemT, QNT, true, true>(ta, tb,
+           ctrct_axes_a[0], ctrct_axes_b[0],
+           ctrct_axes_a.size(), res1);
+
+  Contract<TenElemT, QNT, true, false>(ta, tb,
+                                      ctrct_axes_a[0], ctrct_axes_b[0],
+                                      ctrct_axes_a.size(), res2);
+
+  Contract<TenElemT, QNT, false, true>(ta, tb,
+                                       ctrct_axes_a[0], ctrct_axes_b[0],
+                                       ctrct_axes_a.size(), res3);
+
+  Contract<TenElemT, QNT, false, false>(ta, tb,
+                                       ctrct_axes_a[0], ctrct_axes_b[0],
+                                       ctrct_axes_a.size(), res4);
+
+  const size_t rank_a = ta.Rank();
+  const size_t rank_b = tb.Rank();
+  std::vector<size_t> trans_axes_a; trans_axes_a.reserve(rank_a);
+  for(size_t i = ctrct_axes_a.back() + 1; i < rank_a; i++ ){
+    trans_axes_a.push_back(i);
+  }
+  for(size_t i = 0; i <= ctrct_axes_a.back(); i++){
+    trans_axes_a.push_back(i);
+  }
+  TenT ta_copy(ta), tb_copy(tb);
+  ta_copy.Transpose(trans_axes_a);
+
+  std::vector<size_t> trans_axes_b; trans_axes_b.reserve(rank_b);
+  for(size_t i = ctrct_axes_b.back() + 1; i < rank_b; i++ ){
+    trans_axes_b.push_back(i);
+  }
+  for(size_t i = 0; i <= ctrct_axes_b.back(); i++){
+    trans_axes_b.push_back(i);
+  }
+  tb_copy.Transpose(trans_axes_b);
+
+  std::vector<size_t> ctrct_axes_after_transpose_a, ctrct_axes_after_transpose_b;
+  size_t  ctrct_axes_size = ctrct_axes_a.size();
+  for(size_t i = ta.Rank() - ctrct_axes_size; i < rank_a; i++){
+    ctrct_axes_after_transpose_a.push_back(i);
+  }
+  for(size_t i = tb.Rank() - ctrct_axes_size; i < rank_b; i++){
+    ctrct_axes_after_transpose_b.push_back(i);
+  }
+  TenT benchmark_res;
+  Contract(&ta_copy, &tb_copy,{ctrct_axes_after_transpose_a, ctrct_axes_after_transpose_b}, &benchmark_res);
+
+
+  EXPECT_EQ(benchmark_res.GetIndexes(), res1.GetIndexes());
+  TenT diff1 = benchmark_res +(-res1);
+  EXPECT_NEAR( diff1.Normalize()/std::max(res1.Normalize(),1e-5), 0.0, kDoubleEpsilon );
+
+  EXPECT_EQ(benchmark_res.GetIndexes(), res2.GetIndexes());
+  TenT diff2 = benchmark_res +(-res2);
+  EXPECT_NEAR( diff2.Normalize()/std::max(res2.Normalize(),1e-5), 0.0, kDoubleEpsilon );
+
+  EXPECT_EQ(benchmark_res.GetIndexes(), res3.GetIndexes());
+  TenT diff3 = benchmark_res +(-res3);
+  EXPECT_NEAR( diff3.Normalize()/std::max(res3.Normalize(),1e-5), 0.0, kDoubleEpsilon );
+
+  EXPECT_EQ(benchmark_res.GetIndexes(), res4.GetIndexes());
+  TenT diff4 = benchmark_res +(-res4);
+  EXPECT_NEAR( diff4.Normalize()/std::max(res4.Normalize(),1e-5), 0.0, kDoubleEpsilon );
+}
+
+
+
+TEST_F(TestContraction, ExtraContract) {
+  auto dten_3d_s2 = dten_3d_s;
+  dten_3d_s.Random(qn0);
+  dten_3d_s2.Random(qn0);
+  RunTestTenExtraCtrct(dten_3d_s, {2}, dten_3d_s2,{0});
+  dten_3d_s.Random(qnp1);
+  dten_3d_s2.Random(qn0);
+  RunTestTenExtraCtrct(dten_3d_s, {2}, dten_3d_s2,{0});
+  dten_3d_s.Random(qnp1);
+  dten_3d_s2.Random(qnm1);
+  RunTestTenExtraCtrct(dten_3d_s, {2}, dten_3d_s2,{0});
+  dten_3d_s.Random(qn0);
+  dten_3d_s3.Random(qn0);
+  RunTestTenExtraCtrct(dten_3d_s, {1,2}, dten_3d_s3,{0,1});
+  dten_3d_s.Random(qnp1);
+  dten_3d_s3.Random(qn0);
+  RunTestTenExtraCtrct(dten_3d_s, {1,2}, dten_3d_s3,{0,1});
+  dten_3d_s.Random(qnp1);
+  dten_3d_s3.Random(qnm1);
+  RunTestTenExtraCtrct(dten_3d_s, {1,2}, dten_3d_s3,{0,1});
+  dten_3d_s.Random(qn0);
+  dten_3d_s4.Random(qn0);
+  RunTestTenExtraCtrct(dten_3d_s, {0,1,2}, dten_3d_s4,{0,1,2});
+  dten_3d_s.Random(qnp1);
+  dten_3d_s4.Random(qn0);
+  RunTestTenExtraCtrct(dten_3d_s, {0,1,2}, dten_3d_s4,{0,1,2});
+  dten_3d_s.Random(qnp1);
+  dten_3d_s4.Random(qnm1);
+  RunTestTenExtraCtrct(dten_3d_s, {0,1,2}, dten_3d_s4,{0,1,2});
+
+
+  auto zten_3d_s2 = zten_3d_s;
+  zten_3d_s.Random(qn0);
+  zten_3d_s2.Random(qn0);
+  RunTestTenExtraCtrct(zten_3d_s, {2}, zten_3d_s2,{0});
+  zten_3d_s.Random(qnp1);
+  zten_3d_s2.Random(qn0);
+  RunTestTenExtraCtrct(zten_3d_s, {2}, zten_3d_s2,{0});
+  zten_3d_s.Random(qnp1);
+  zten_3d_s2.Random(qnm1);
+  RunTestTenExtraCtrct(zten_3d_s, {2}, zten_3d_s2,{0});
+  zten_3d_s.Random(qn0);
+  zten_3d_s3.Random(qn0);
+  RunTestTenExtraCtrct(zten_3d_s, {1,2}, zten_3d_s3,{0,1});
+  zten_3d_s.Random(qnp1);
+  zten_3d_s3.Random(qn0);
+  RunTestTenExtraCtrct(zten_3d_s, {1,2}, zten_3d_s3,{0,1});
+  zten_3d_s.Random(qnp1);
+  zten_3d_s3.Random(qnm1);
+  RunTestTenExtraCtrct(zten_3d_s, {1,2}, zten_3d_s3,{0,1});
+  zten_3d_s.Random(qn0);
+  zten_3d_s4.Random(qn0);
+  RunTestTenExtraCtrct(zten_3d_s, {0,1,2}, zten_3d_s4,{0,1,2});
+  zten_3d_s.Random(qnp1);
+  zten_3d_s4.Random(qn0);
+  RunTestTenExtraCtrct(zten_3d_s, {0,1,2}, zten_3d_s4,{0,1,2});
+  zten_3d_s.Random(qnp1);
+  zten_3d_s4.Random(qnm1);
+  RunTestTenExtraCtrct(zten_3d_s, {0,1,2}, zten_3d_s4,{0,1,2});
+}
+

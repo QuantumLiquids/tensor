@@ -92,23 +92,10 @@ private:
                           pb_->GetBlkSparDataTen().GetBlkIdxDataBlkMap(),
                           axes_set_,
                           saved_axes_set_,
-                          a_b_need_trans_,
                           b_blk_idx_qnblk_info_part_hash_map_
                         );
   }
 
-  void SettingRawDataContractTaskTranspose_(){
-    if(a_b_need_trans_.first){
-      for (auto &task : raw_data_ctrct_tasks_) {
-        task.a_trans_orders = a_trans_orders_;
-      }
-    }
-    if(a_b_need_trans_.second) {
-      for (auto &task : raw_data_ctrct_tasks_) {
-        task.b_trans_orders = b_trans_orders_;
-      }
-    }
-  }
   const GQTensor<TenElemT, QNT> *pa_;
   const size_t idx_a_;
   size_t qn_sector_idx_a_;
@@ -116,12 +103,11 @@ private:
   GQTensor<TenElemT, QNT> *pc_;
   const std::vector<std::vector<size_t>> axes_set_;
   std::vector<std::vector<size_t>> saved_axes_set_;
-  std::pair<bool, bool> a_b_need_trans_;
-  std::vector<size_t> a_trans_orders_;
-  std::vector<size_t> b_trans_orders_;
+  std::vector<int> a_trans_orders_;
+  std::vector<int> b_trans_orders_;
   std::vector<RawDataCtrctTask> raw_data_ctrct_tasks_;
    std::map<size_t, gqten::DataBlk<QNT>> a_blk_idx_data_blk_map_select_;
-  std::unordered_map<size_t, size_t> b_blk_idx_qnblk_info_part_hash_map_;
+  std::vector<size_t> b_blk_idx_qnblk_info_part_hash_map_;//TODO: rename as coor
 };
 
 
@@ -168,14 +154,19 @@ TensorContraction1SectorExecutor<TenElemT, QNT>::TensorContraction1SectorExecuto
                             bsdt_b.ten_rank,
                             axes_set_
                         );
-  a_b_need_trans_ = TenCtrctNeedTransCheck(
-                            axes_set_,
-                            saved_axes_set_,
-                            a_trans_orders_,
-                            b_trans_orders_
-                        );
+  TenCtrctNeedTransCheck(
+      saved_axes_set_[0],
+      axes_set[0],
+      a_trans_orders_
+  );
+
+  TenCtrctNeedTransCheck(
+      axes_set[1],
+      saved_axes_set_[1],
+      b_trans_orders_
+  );
   auto& b_blk_idx_data_blk_map = bsdt_b.GetBlkIdxDataBlkMap();
-  b_blk_idx_qnblk_info_part_hash_map_ = bsdt_b.GenBlkIdxQNBlkInfoPartHashMap(
+  b_blk_idx_qnblk_info_part_hash_map_ = bsdt_b.GenBlkIdxQNBlkCoorPartHashMap(
                                                 b_blk_idx_data_blk_map,
                                                 axes_set_[1]
                                             );
@@ -191,12 +182,13 @@ void TensorContraction1SectorExecutor<TenElemT, QNT>::Execute(void) {
   SetStatus(ExecutorStatus::EXEING);
   SelectBlkIdxDataBlkMap_();
   DataBlkGenForTenCtrct_();
-  SettingRawDataContractTaskTranspose_();
 
   pc_->GetBlkSparDataTen().CtrctTwoBSDTAndAssignIn(
       pa_->GetBlkSparDataTen(),
       pb_->GetBlkSparDataTen(),
-      raw_data_ctrct_tasks_
+      raw_data_ctrct_tasks_,
+      a_trans_orders_,
+      b_trans_orders_
   );
 
   SetStatus(ExecutorStatus::FINISH);

@@ -63,7 +63,6 @@ void RunTestTenMCExpansionCase(
     const GQTensor<ElemT, QNT> &c
 ) {
   using TenT = GQTensor<ElemT, QNT>;
-  using BSDT = BlockSparseDataTensor<ElemT,QNT>;
   TenT res;
   ExpandMC(&a, &b, expand_idx_nums, &res);
   EXPECT_TRUE(res == c);

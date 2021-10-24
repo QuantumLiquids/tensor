@@ -277,28 +277,18 @@ std::vector<RawDataCtrctTask>
 BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
     const BlockSparseDataTensor &bsdt_a,
     const BlockSparseDataTensor &bsdt_b,
-    const std::vector<std::vector<size_t>> &ctrct_axes_set
+    const std::vector<std::vector<size_t>> &ctrct_axes_set,
+    const std::vector<std::vector<size_t>> &saved_axes_set
 ) {
   assert(!(bsdt_a.IsScalar() || bsdt_b.IsScalar()));
-  auto saved_axes_set = TenCtrctGenSavedAxesSet(
-                            bsdt_a.ten_rank,
-                            bsdt_b.ten_rank,
-                            ctrct_axes_set
-                        );
-  std::vector<size_t> a_trans_orders, b_trans_orders;
-  auto a_b_need_trans = TenCtrctNeedTransCheck(
-                            ctrct_axes_set,
-                            saved_axes_set,
-                            a_trans_orders,
-                            b_trans_orders
-                        );
-  auto a_blk_idx_data_blk_map = bsdt_a.GetBlkIdxDataBlkMap();
-  auto b_blk_idx_data_blk_map = bsdt_b.GetBlkIdxDataBlkMap();
-  auto a_blk_idx_qnblk_info_part_hash_map = GenBlkIdxQNBlkInfoPartHashMap(
+
+  const auto& a_blk_idx_data_blk_map = bsdt_a.GetBlkIdxDataBlkMap();
+  const auto& b_blk_idx_data_blk_map = bsdt_b.GetBlkIdxDataBlkMap();
+  auto a_blk_idx_coor_part_hash_map = GenBlkIdxQNBlkCoorPartHashMap(
                                                 a_blk_idx_data_blk_map,
                                                 ctrct_axes_set[0]
                                             );
-  auto b_blk_idx_qnblk_info_part_hash_map = GenBlkIdxQNBlkInfoPartHashMap(
+  auto b_blk_idx_coor_part_hash_map = GenBlkIdxQNBlkCoorPartHashMap(
                                                 b_blk_idx_data_blk_map,
                                                 ctrct_axes_set[1]
                                             );
@@ -307,20 +297,20 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
 
   bool c_is_scalar = IsScalar();
   bool scalar_c_first_task = true;
-  raw_data_ctrct_tasks.reserve(a_blk_idx_qnblk_info_part_hash_map.size() * b_blk_idx_qnblk_info_part_hash_map.size() );
+  raw_data_ctrct_tasks.reserve(a_blk_idx_coor_part_hash_map.size() * b_blk_idx_coor_part_hash_map.size() );
 #ifndef NDEBUG
   if (c_is_scalar) {
     assert(saved_axes_set[0].empty() && saved_axes_set[1].empty());
   }
 #endif /* ifndef NDEBUG */
   if (c_is_scalar){
-    for (auto &a_blk_idx_part_hash : a_blk_idx_qnblk_info_part_hash_map) {
-      for (auto &b_blk_idx_part_hash : b_blk_idx_qnblk_info_part_hash_map) {
-        if (a_blk_idx_part_hash.second == b_blk_idx_part_hash.second) {
-          auto a_blk_idx = a_blk_idx_part_hash.first;
-          auto b_blk_idx = b_blk_idx_part_hash.first;
-          auto a_data_blk = a_blk_idx_data_blk_map[a_blk_idx];
-          auto b_data_blk = b_blk_idx_data_blk_map[b_blk_idx];
+    for(size_t i = 0; i < a_blk_idx_coor_part_hash_map.size(); i += 2){
+      for(size_t j = 0; j < b_blk_idx_coor_part_hash_map.size(); j+= 2){
+        if (a_blk_idx_coor_part_hash_map[i+1] == b_blk_idx_coor_part_hash_map[j+1]) {
+          auto a_blk_idx = a_blk_idx_coor_part_hash_map[i];
+          auto b_blk_idx = b_blk_idx_coor_part_hash_map[j];
+          const auto& a_data_blk = a_blk_idx_data_blk_map.at(a_blk_idx);
+          const auto& b_data_blk = b_blk_idx_data_blk_map.at(b_blk_idx);
           size_t m(1), n(1);
           size_t k = VecMultiSelectElemts(a_data_blk.shape, ctrct_axes_set[0]);
           GQTEN_Double beta;
@@ -335,10 +325,8 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
               RawDataCtrctTask(
                   a_blk_idx,
                   a_data_blk.data_offset,
-                  a_b_need_trans.first,
                   b_blk_idx,
                   b_data_blk.data_offset,
-                  a_b_need_trans.second,
                   m, k, n,
                   beta
               )
@@ -348,14 +336,14 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
       }
     }
   } else {
-    for (auto &a_blk_idx_part_hash : a_blk_idx_qnblk_info_part_hash_map) {
+    for(size_t i = 0; i < a_blk_idx_coor_part_hash_map.size(); i += 2){
       size_t m(0), k(0);
-      for (auto &b_blk_idx_part_hash : b_blk_idx_qnblk_info_part_hash_map) {
-        if (a_blk_idx_part_hash.second == b_blk_idx_part_hash.second) {
-          auto a_blk_idx = a_blk_idx_part_hash.first;
-          auto b_blk_idx = b_blk_idx_part_hash.first;
-          auto a_data_blk = a_blk_idx_data_blk_map[a_blk_idx];
-          auto b_data_blk = b_blk_idx_data_blk_map[b_blk_idx];
+      for(size_t j = 0; j < b_blk_idx_coor_part_hash_map.size(); j += 2){
+        if (a_blk_idx_coor_part_hash_map[i+1] == b_blk_idx_coor_part_hash_map[j+1]) {
+          auto a_blk_idx = a_blk_idx_coor_part_hash_map[i];
+          auto b_blk_idx = b_blk_idx_coor_part_hash_map[j];
+          const auto& a_data_blk = a_blk_idx_data_blk_map.at(a_blk_idx);
+          const auto& b_data_blk = b_blk_idx_data_blk_map.at(b_blk_idx);
           // Calculate m, k, n
           size_t n;
           if( m == 0 ) {
@@ -383,18 +371,21 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
               ) {
             beta = 1.0;
           } else {
+            auto c_blk_shape = GenTenCtrctDataBlkCoors(
+                a_data_blk.shape,
+                b_data_blk.shape,
+                saved_axes_set
+                );
             blk_idx_data_blk_map_[c_blk_idx] =
-                DataBlk<QNT>(c_blk_coors, *pgqten_indexes);
+                DataBlk<QNT>(std::move(c_blk_coors), std::move(c_blk_shape));
             beta = 0.0;
           }
           raw_data_ctrct_tasks.push_back(
               RawDataCtrctTask(
                   a_blk_idx,
                   a_data_blk.data_offset,
-                  a_b_need_trans.first,
                   b_blk_idx,
                   b_data_blk.data_offset,
-                  a_b_need_trans.second,
                   c_blk_idx,
                   m, k, n,
                   beta
@@ -406,12 +397,6 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
     DataBlksOffsetRefresh();
   }
   for (auto &task : raw_data_ctrct_tasks) {
-    if (a_b_need_trans.first) {
-      task.a_trans_orders = a_trans_orders;
-    }
-    if (a_b_need_trans.second) {
-      task.b_trans_orders = b_trans_orders;
-    }
     if (!c_is_scalar) {
       task.c_data_offset = blk_idx_data_blk_map_[task.c_blk_idx].data_offset;
     } else {
@@ -422,6 +407,19 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
   return raw_data_ctrct_tasks;
 }
 
+
+template <typename ElemT, typename QNT>
+std::vector<RawDataCtrctTask>
+BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForExtraTenCtrct(
+    const BlockSparseDataTensor &bsdt_a,
+    const BlockSparseDataTensor &bsdt_b,
+    const ushort a_ctrct_axes_end,
+    const ushort b_ctrct_axes_end,
+    const ushort ctrct_axes_size
+) {
+  //TODO...
+  return std::vector<RawDataCtrctTask>();
+}
 
 /**
 SVD decomposition.

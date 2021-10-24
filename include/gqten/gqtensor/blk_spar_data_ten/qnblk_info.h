@@ -54,7 +54,7 @@ public:
   Transpose quantum number sectors.
   */
   void Transpose(const std::vector<size_t> &transed_idxes_order) {
-    Reorder(qnscts, transed_idxes_order);
+    InplaceReorder(qnscts, transed_idxes_order);
   }
 
   QNSectorVec<QNT> qnscts;
