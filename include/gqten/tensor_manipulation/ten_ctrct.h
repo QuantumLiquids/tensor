@@ -116,7 +116,7 @@ TensorContractionExecutor<TenElemT, QNT>::TensorContractionExecutor(
       b_trans_orders_
   );
 
-  TenCtrctInitResTen(pa_, pb_, axes_set_, pc_);
+  TenCtrctInitResTen(pa_, pb_, saved_axes_set, pc_);
   raw_data_ctrct_tasks_ = pc_->GetBlkSparDataTen().DataBlkGenForTenCtrct(
                               pa_->GetBlkSparDataTen(),
                               pb_->GetBlkSparDataTen(),
@@ -211,34 +211,23 @@ template <typename TenElemT, typename QNT>
 void TenCtrctInitResTen(
     const GQTensor<TenElemT, QNT> *pa,
     const GQTensor<TenElemT, QNT> *pb,
-    const std::vector<std::vector<size_t>> &axes_set,
+    const std::vector<std::vector<size_t>> &saved_axes_set,
     GQTensor<TenElemT, QNT> *pc
 ) {
-  auto a_ctrct_axes = axes_set[0];
-  auto b_ctrct_axes = axes_set[1];
-  auto a_rank = pa->Rank();
-  auto b_rank = pb->Rank();
-  auto c_rank = a_rank + b_rank - 2*(a_ctrct_axes.size());
+  auto& a_ctrct_axes = saved_axes_set[0];
+  auto& b_ctrct_axes = saved_axes_set[1];
+  auto c_rank = a_ctrct_axes.size() + b_ctrct_axes.size();
   IndexVec<QNT> c_idxs;
   c_idxs.reserve(c_rank);
-  auto a_idxs = pa->GetIndexes();
-  auto b_idxs = pb->GetIndexes();
-  for (size_t i = 0; i < a_rank; ++i) {
-    if (
-        std::find(a_ctrct_axes.begin(), a_ctrct_axes.end(), i) ==
-        a_ctrct_axes.end()
-    ) {
-      c_idxs.push_back(a_idxs[i]);
-    }
+  auto& a_idxs = pa->GetIndexes();
+  auto& b_idxs = pb->GetIndexes();
+  for(size_t saved_axes_a : a_ctrct_axes) {
+    c_idxs.push_back( a_idxs[saved_axes_a] );
   }
-  for (size_t i = 0; i < b_rank; ++i) {
-    if (
-        std::find(b_ctrct_axes.begin(), b_ctrct_axes.end(), i) ==
-        b_ctrct_axes.end()
-    ) {
-      c_idxs.push_back(b_idxs[i]);
-    }
+  for(size_t saved_axes_b : b_ctrct_axes) {
+    c_idxs.push_back( b_idxs[saved_axes_b] );
   }
+
   (*pc) = GQTensor<TenElemT, QNT>(std::move(c_idxs));
 }
 

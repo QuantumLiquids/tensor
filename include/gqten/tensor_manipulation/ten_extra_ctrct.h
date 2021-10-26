@@ -143,8 +143,15 @@ void TensorExtraContractionExecutor<TenElemT, QNT, a_ctrct_tail, b_ctrct_head>::
   for(ushort i = 0; i < save_axes_size_b; i ++) {
     saved_axes_set[1].push_back( (b_ctrct_axes_end_+i)%b_rank);
   }
+#ifndef NDEBUG
+  auto& indexesa = pa_->GetIndexes();
+  auto& indexesb = pb_->GetIndexes();
+  for(size_t i = 0; i < ctrct_axes_size_; ++i){
+    assert(indexesa[ctrct_axes_set[0][i]] == InverseIndex(indexesb[ctrct_axes_set[1][i]]));
+  }
+#endif
 
-  TenCtrctInitResTen(pa_, pb_, ctrct_axes_set, pc_);
+  TenCtrctInitResTen(pa_, pb_, saved_axes_set, pc_);
   raw_data_ctrct_tasks_ = pc_->GetBlkSparDataTen().DataBlkGenForTenCtrct(
       pa_->GetBlkSparDataTen(),
       pb_->GetBlkSparDataTen(),

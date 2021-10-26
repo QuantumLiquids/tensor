@@ -18,6 +18,7 @@
 #include "gqten/tensor_manipulation/index_combine.h"          // IndexCombine
 #include "gqten/tensor_manipulation/ten_linear_combine.h"     // LinearCombine
 #include "gqten/tensor_manipulation/ten_ctrct.h"              // Contract, TensorContractionExecutor
+#include "gqten/tensor_manipulation/ten_extra_ctrct.h"        // Contract
 #include "gqten/tensor_manipulation/ten_decomp/ten_svd.h"     // SVD, TensorSVDExecutor
 #include "gqten/tensor_manipulation/ten_decomp/ten_qr.h"      // QR, TensorQRExecutor
 #include "gqten/tensor_manipulation/ten_expand.h"             // Expand

@@ -144,7 +144,6 @@ TensorContraction1SectorExecutor<TenElemT, QNT>::TensorContraction1SectorExecuto
   // Check if qn_sector_idx_a_ < number of quantum number sector
   assert(qn_sector_idx_a_ < pa->GetIndexes()[idx_a_].GetQNSctNum());
 #endif
-  TenCtrctInitResTen(pa_, pb_, axes_set_, pc_);
   //Then we assign the DataBlk and and contract tasks
   auto& bsdt_a = pa_->GetBlkSparDataTen();
   auto& bsdt_b = pb_->GetBlkSparDataTen();
@@ -165,6 +164,7 @@ TensorContraction1SectorExecutor<TenElemT, QNT>::TensorContraction1SectorExecuto
       saved_axes_set_[1],
       b_trans_orders_
   );
+  TenCtrctInitResTen(pa_, pb_, saved_axes_set_, pc_);
   auto& b_blk_idx_data_blk_map = bsdt_b.GetBlkIdxDataBlkMap();
   b_blk_idx_qnblk_info_part_hash_map_ = bsdt_b.GenBlkIdxQNBlkCoorPartHashMap(
                                                 b_blk_idx_data_blk_map,
