@@ -214,9 +214,9 @@ void TenCtrctInitResTen(
     const std::vector<std::vector<size_t>> &saved_axes_set,
     GQTensor<TenElemT, QNT> *pc
 ) {
-  auto& a_ctrct_axes = saved_axes_set[0];
-  auto& b_ctrct_axes = saved_axes_set[1];
-  auto c_rank = a_ctrct_axes.size() + b_ctrct_axes.size();
+  const auto& a_ctrct_axes = saved_axes_set[0];
+  const auto& b_ctrct_axes = saved_axes_set[1];
+  const size_t c_rank = a_ctrct_axes.size() + b_ctrct_axes.size();
   IndexVec<QNT> c_idxs;
   c_idxs.reserve(c_rank);
   auto& a_idxs = pa->GetIndexes();

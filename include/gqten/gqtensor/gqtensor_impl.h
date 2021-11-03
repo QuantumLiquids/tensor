@@ -56,6 +56,18 @@ GQTensor<ElemT, QNT>::GQTensor(
   }
 }
 
+template <typename ElemT, typename QNT>
+GQTensor<ElemT, QNT>::GQTensor(
+    const IndexVec<QNT> &&indexes
+) : indexes_(std::move(indexes)) {
+  rank_ = indexes_.size();
+  shape_ = CalcShape_();
+  size_ = CalcSize_();
+  if (!IsDefault()) {
+    pblk_spar_data_ten_ = new BlockSparseDataTensor<ElemT, QNT>(&indexes_);
+  }
+}
+
 
 /**
 Create an empty GQTensor by moving indexes.

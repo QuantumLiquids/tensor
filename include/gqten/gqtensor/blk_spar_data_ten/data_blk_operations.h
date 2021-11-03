@@ -27,7 +27,7 @@
 
 #include <cstring>      // memcpy
 #ifdef Release
-  #define NDEBUG
+#define NDEBUG
 #endif
 #include <assert.h>     // assert
 
@@ -65,7 +65,7 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkInsert(
   }else{
     iter->second.data_offset = 0;
   }
-  
+
   for(++iter; iter!=blk_idx_data_blk_map_.cend();++iter){
     iter->second.data_offset += inserted_data_size;
   }
@@ -85,7 +85,7 @@ template <typename ElemT, typename QNT>
 typename BlockSparseDataTensor<ElemT, QNT>::BlkIdxDataBlkMap::iterator
 BlockSparseDataTensor<ElemT, QNT>::DataBlkQuasiInsert(
     const CoorsT &blk_coors
-    ){
+){
   assert(blk_coors.size() == ten_rank);
   auto blk_idx = BlkCoorsToBlkIdx(blk_coors);
   auto iter = blk_idx_data_blk_map_.find(blk_idx);
@@ -94,9 +94,9 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkQuasiInsert(
   }else{
     auto [iter, success] = blk_idx_data_blk_map_.insert(
         std::make_pair(blk_idx,
-                        DataBlk<QNT>(blk_coors, *pgqten_indexes)
-                        )
-                        );
+                       DataBlk<QNT>(blk_coors, *pgqten_indexes)
+        )
+    );
     return iter;
   }
 }
@@ -193,7 +193,7 @@ inline std::vector<std::vector<size_t>> TenCtrctGenSavedAxesSet(
   for (size_t i = 0; i < a_rank; ++i) {
     if (std::find(a_ctrct_axes.begin(), a_ctrct_axes.end(), i) ==
         a_ctrct_axes.end()
-    ) {
+        ) {
       a_saved_axes.push_back(i);
     }
   }
@@ -202,7 +202,7 @@ inline std::vector<std::vector<size_t>> TenCtrctGenSavedAxesSet(
   for (size_t i = 0; i < b_rank; ++i) {
     if (std::find(b_ctrct_axes.begin(), b_ctrct_axes.end(), i) ==
         b_ctrct_axes.end()
-    ) {
+        ) {
       b_saved_axes.push_back(i);
     }
   }
@@ -281,29 +281,32 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
     const std::vector<std::vector<size_t>> &saved_axes_set
 ) {
   assert(!(bsdt_a.IsScalar() || bsdt_b.IsScalar()));
+  //TODO: parallel
+//  const int ompth = hp_numeric::tensor_manipulation_num_threads;
 
   const auto& a_blk_idx_data_blk_map = bsdt_a.GetBlkIdxDataBlkMap();
   const auto& b_blk_idx_data_blk_map = bsdt_b.GetBlkIdxDataBlkMap();
   auto a_blk_idx_coor_part_hash_map = GenBlkIdxQNBlkCoorPartHashMap(
-                                                a_blk_idx_data_blk_map,
-                                                ctrct_axes_set[0]
-                                            );
+      a_blk_idx_data_blk_map,
+      ctrct_axes_set[0]
+  );
   auto b_blk_idx_coor_part_hash_map = GenBlkIdxQNBlkCoorPartHashMap(
-                                                b_blk_idx_data_blk_map,
-                                                ctrct_axes_set[1]
-                                            );
+      b_blk_idx_data_blk_map,
+      ctrct_axes_set[1]
+  );
   std::vector<RawDataCtrctTask> raw_data_ctrct_tasks;
   std::unordered_map<size_t, size_t> b_blk_idx_n_map;
 
   bool c_is_scalar = IsScalar();
-  bool scalar_c_first_task = true;
-  raw_data_ctrct_tasks.reserve(a_blk_idx_coor_part_hash_map.size() * b_blk_idx_coor_part_hash_map.size() );
 #ifndef NDEBUG
   if (c_is_scalar) {
     assert(saved_axes_set[0].empty() && saved_axes_set[1].empty());
   }
 #endif /* ifndef NDEBUG */
   if (c_is_scalar){
+    raw_data_ctrct_tasks.reserve(a_blk_idx_coor_part_hash_map.size()/2 );
+    const size_t m(1), n(1);
+    GQTEN_Double beta(1.0);
     for(size_t i = 0; i < a_blk_idx_coor_part_hash_map.size(); i += 2){
       for(size_t j = 0; j < b_blk_idx_coor_part_hash_map.size(); j+= 2){
         if (a_blk_idx_coor_part_hash_map[i+1] == b_blk_idx_coor_part_hash_map[j+1]) {
@@ -311,16 +314,7 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
           auto b_blk_idx = b_blk_idx_coor_part_hash_map[j];
           const auto& a_data_blk = a_blk_idx_data_blk_map.at(a_blk_idx);
           const auto& b_data_blk = b_blk_idx_data_blk_map.at(b_blk_idx);
-          size_t m(1), n(1);
           size_t k = VecMultiSelectElemts(a_data_blk.shape, ctrct_axes_set[0]);
-          GQTEN_Double beta;
-          if (scalar_c_first_task) {
-            beta = 0.0;
-            raw_data_size_ = 1;     // Set raw data size at first task scheduling
-            scalar_c_first_task = false;
-          } else {
-            beta = 1.0;
-          }
           raw_data_ctrct_tasks.push_back(
               RawDataCtrctTask(
                   a_blk_idx,
@@ -331,11 +325,20 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
                   beta
               )
           );
+          break;
         }
-
       }
     }
-  } else {
+    if(!raw_data_ctrct_tasks.empty()){
+      raw_data_size_ = 1;
+      raw_data_ctrct_tasks[0].beta = 0.0;
+    }
+//#pragma omp parallel for default(shared) num_threads(ompth) schedule(static)
+    for (auto &task : raw_data_ctrct_tasks) {
+      task.c_data_offset = 0;
+    }
+  } else { //if c is not scalar
+    raw_data_ctrct_tasks.reserve(a_blk_idx_coor_part_hash_map.size() * b_blk_idx_coor_part_hash_map.size() / 4);
     for(size_t i = 0; i < a_blk_idx_coor_part_hash_map.size(); i += 2){
       size_t m(0), k(0);
       for(size_t j = 0; j < b_blk_idx_coor_part_hash_map.size(); j += 2){
@@ -375,7 +378,7 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
                 a_data_blk.shape,
                 b_data_blk.shape,
                 saved_axes_set
-                );
+            );
             blk_idx_data_blk_map_[c_blk_idx] =
                 DataBlk<QNT>(std::move(c_blk_coors), std::move(c_blk_shape));
             beta = 0.0;
@@ -395,12 +398,11 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
       }
     }
     DataBlksOffsetRefresh();
-  }
-  for (auto &task : raw_data_ctrct_tasks) {
-    if (!c_is_scalar) {
+
+//#pragma omp parallel for default(shared) num_threads(ompth) schedule(static)
+    for(size_t i = 0; i < raw_data_ctrct_tasks.size(); i++) {
+      auto& task = raw_data_ctrct_tasks[i];
       task.c_data_offset = blk_idx_data_blk_map_[task.c_blk_idx].data_offset;
-    } else {
-      task.c_data_offset = 0;
     }
   }
 
@@ -421,7 +423,7 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForExtraTenCtrct(
   return std::vector<RawDataCtrctTask>();
 }
 
-/**
+/**D
 SVD decomposition.
 */
 template <typename ElemT, typename QNT>
@@ -435,24 +437,24 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
   Timer svd_mkl_timer("matrix svd");
   svd_mkl_timer.Suspend();
 #endif
-    for(auto&[idx, data_blk_mat]: idx_data_blk_mat_map){
-      ElemT *mat = RawDataGenDenseDataBlkMat_(data_blk_mat);
-      ElemT *u = nullptr;
-      ElemT *vt = nullptr;
-      GQTEN_Double *s = nullptr;
-      size_t m = data_blk_mat.rows;
-      size_t n = data_blk_mat.cols;
-      size_t k = m > n ? n : m;
+  for(auto&[idx, data_blk_mat]: idx_data_blk_mat_map){
+    ElemT *mat = RawDataGenDenseDataBlkMat_(data_blk_mat);
+    ElemT *u = nullptr;
+    ElemT *vt = nullptr;
+    GQTEN_Double *s = nullptr;
+    size_t m = data_blk_mat.rows;
+    size_t n = data_blk_mat.cols;
+    size_t k = m > n ? n : m;
 #ifdef GQTEN_TIMING_MODE
-  svd_mkl_timer.Restart();
+    svd_mkl_timer.Restart();
 #endif
-      hp_numeric::MatSVD(mat, m, n, u, s, vt);
+    hp_numeric::MatSVD(mat, m, n, u, s, vt);
 #ifdef GQTEN_TIMING_MODE
-  svd_mkl_timer.Suspend();
+    svd_mkl_timer.Suspend();
 #endif
-      free(mat);
-      idx_svd_res_map[idx] =  DataBlkMatSvdRes<ElemT>(m, n, k, u, s, vt);
-    }
+    free(mat);
+    idx_svd_res_map[idx] =  DataBlkMatSvdRes<ElemT>(m, n, k, u, s, vt);
+  }
 #ifdef GQTEN_TIMING_MODE
   svd_mkl_timer.PrintElapsed();
 #endif
@@ -472,7 +474,7 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVDMaster(
 ) const {
 #ifdef GQTEN_MPI_TIMING_MODE
   Timer data_blk_decomp_svd_master_timer("data_blk_decomp_svd_master_func");
-#endif 
+#endif
   using namespace std;
   /// This setting give Slave
   std::map<size_t, DataBlkMatSvdRes<ElemT>> idx_svd_res_map;
@@ -484,16 +486,16 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVDMaster(
   // if task_size < slave num the code should also work
   // suppose procs num >= slave num
   // for parallel do not need in order
-  #pragma omp parallel for default(none) \
+#pragma omp parallel for default(none) \
                 shared(task_size, idx_svd_res_map, iter, world, cout)\
                 num_threads(slave_num)\
-                schedule(dynamic) 
+                schedule(dynamic)
   for(size_t i = 0; i < task_size; i++){
     size_t controlling_slave = omp_get_thread_num()+1;
     // size_t threads =  omp_get_num_threads();
     TenDecompDataBlkMat<QNT> data_blk_mat;
     size_t idx;
-    #pragma omp critical
+#pragma omp critical
     {
       idx = iter->first;
       data_blk_mat = iter->second;
@@ -517,7 +519,7 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVDMaster(
     hp_numeric::MPI_Recv(vt, ld*n,  controlling_slave, 6*controlling_slave, MPI_Comm(world));
     hp_numeric::MPI_Recv(s, ld,  controlling_slave, 7*controlling_slave, MPI_Comm(world));
     free(mat);
-    #pragma omp critical
+#pragma omp critical
     {
       idx_svd_res_map[idx] =  DataBlkMatSvdRes<ElemT>(m, n, k, u, s, vt);
     }
@@ -553,18 +555,18 @@ void DataBlkDecompSVDSlave(boost::mpi::communicator& world){
     size_t data_size = m*n;
     ElemT *mat = (ElemT *) malloc(data_size * sizeof(ElemT));
     hp_numeric::MPI_Recv(mat, data_size, kMPIMasterRank, 4*slave_identifier, MPI_Comm(world));
-  #ifdef GQTEN_MPI_TIMING_MODE
+#ifdef GQTEN_MPI_TIMING_MODE
     slave_commu_timer.Suspend();
-  #endif
+#endif
     ElemT *u = nullptr;
     ElemT *vt = nullptr;
     GQTEN_Double *s = nullptr;
     hp_numeric::MatSVD(mat, m, n, u, s, vt);
 
     size_t ld = std::min(m,n);
-  #ifdef GQTEN_MPI_TIMING_MODE  
+#ifdef GQTEN_MPI_TIMING_MODE
     slave_commu_timer.Restart();
-  #endif
+#endif
     hp_numeric::MPI_Send(u, ld*m, kMPIMasterRank, 5*slave_identifier, MPI_Comm(world));
     hp_numeric::MPI_Send(vt, ld*n, kMPIMasterRank, 6*slave_identifier, MPI_Comm(world));
     hp_numeric::MPI_Send(s, ld, kMPIMasterRank, 7*slave_identifier, MPI_Comm(world));
@@ -579,7 +581,7 @@ void DataBlkDecompSVDSlave(boost::mpi::communicator& world){
     world.recv(kMPIMasterRank, 2*slave_identifier, m);
     world.recv(kMPIMasterRank, 3*slave_identifier, n);
   }
-#ifdef GQTEN_MPI_TIMING_MODE 
+#ifdef GQTEN_MPI_TIMING_MODE
   std::cout << "slave " << slave_identifier << " has done " << task_done << " tasks." << std::endl;
   slave_total_work_timer.PrintElapsed();
   slave_commu_timer.PrintElapsed();

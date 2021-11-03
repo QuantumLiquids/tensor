@@ -45,6 +45,7 @@ public:
   GQTensor(void) = default;
 
   GQTensor(const IndexVec<QNT> &);
+  GQTensor(const IndexVec<QNT> &&);
   GQTensor(IndexVec<QNT> &&);
 
   GQTensor(const GQTensor &);

@@ -201,8 +201,19 @@ void TensorExtraContractionExecutor<TenElemT, QNT, a_ctrct_tail, b_ctrct_head>::
 
 template <typename TenElemT, typename QNT, bool a_ctrct_tail, bool b_ctrct_head>
 void TensorExtraContractionExecutor<TenElemT, QNT, a_ctrct_tail, b_ctrct_head>::Execute() {
+#ifdef GQTEN_TIMING_MODE
+  Timer extrac_contraction_generate_data_blk("ExtraContraction.Execute.GenerateDataBlk");
+#endif
   GenerateDataBlk_();
+#ifdef GQTEN_TIMING_MODE
+  extrac_contraction_generate_data_blk.PrintElapsed();
+  Timer extrac_contraction_tranpose("ExtraContraction.Execute.TransposePrepare");
+#endif
+
   TransposePrepare_();
+#ifdef GQTEN_TIMING_MODE
+  extrac_contraction_tranpose.PrintElapsed();
+#endif
 
   const TenElemT* a_raw_data;
   const TenElemT* b_raw_data;
@@ -218,11 +229,18 @@ void TensorExtraContractionExecutor<TenElemT, QNT, a_ctrct_tail, b_ctrct_head>::
     b_raw_data = pb_->GetBlkSparDataTen().GetActualRawDataPtr();
   }
   auto& bsdt_c = pc_->GetBlkSparDataTen();
+#ifdef GQTEN_TIMING_MODE
+  Timer extrac_contraction_do_ctrct_task("ExtraContraction.Execute.CtrctAccordingTask");
+#endif
+
   bsdt_c.template CtrctAccordingTask<a_ctrct_tail, b_ctrct_head>(
       a_raw_data,
       b_raw_data,
       raw_data_ctrct_tasks_
       );
+#ifdef GQTEN_TIMING_MODE
+  extrac_contraction_do_ctrct_task.PrintElapsed();
+#endif
   ExecutePost_();
 }
 
