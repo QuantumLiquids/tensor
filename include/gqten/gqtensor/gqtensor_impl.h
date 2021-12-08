@@ -118,10 +118,10 @@ GQTensor<ElemT, QNT> &GQTensor<ElemT, QNT>::operator=(const GQTensor &rhs) {
   shape_ = rhs.shape_;
   size_ = rhs.size_;
   indexes_ = rhs.indexes_;
+  delete pblk_spar_data_ten_;
   if (rhs.IsDefault()) {
-    // Do nothing
+    pblk_spar_data_ten_ = nullptr;
   } else {
-    delete pblk_spar_data_ten_;
     pblk_spar_data_ten_ = new BlockSparseDataTensor<ElemT, QNT>(
                               *rhs.pblk_spar_data_ten_
                           );
@@ -162,11 +162,11 @@ GQTensor<ElemT, QNT> &GQTensor<ElemT, QNT>::operator=(GQTensor &&rhs) noexcept {
   rank_ = rhs.rank_;
   shape_ = rhs.shape_;
   size_ = rhs.size_;
+  delete pblk_spar_data_ten_;
   if (rhs.IsDefault()) {
-    // Do nothing
+    pblk_spar_data_ten_ = nullptr;
   } else {
     indexes_ = std::move(rhs.indexes_);
-    delete pblk_spar_data_ten_;
     pblk_spar_data_ten_ = rhs.pblk_spar_data_ten_;
     rhs.pblk_spar_data_ten_ = nullptr;
     pblk_spar_data_ten_->pgqten_indexes = &indexes_;
