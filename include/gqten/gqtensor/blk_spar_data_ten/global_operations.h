@@ -834,7 +834,7 @@ void BlockSparseDataTensor<ElemT, QNT>::OutOfPlaceMatrixTransposeForSelectedData
     ElemT* transposed_data
     ) const {
   const size_t group_count = selected_data_blk_idxs.size();
-  ElemT** Amat_array = (ElemT**) malloc(group_count * sizeof(ElemT*) );
+  const ElemT** Amat_array = (const ElemT**) malloc(group_count * sizeof(ElemT*) );
   ElemT** Bmat_array = (ElemT**) malloc(group_count * sizeof(ElemT*) );
   size_t* rows_array = (size_t*) malloc(group_count * sizeof(size_t) );
   size_t* cols_array = (size_t*) malloc(group_count * sizeof(size_t) );

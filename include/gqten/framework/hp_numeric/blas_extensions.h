@@ -34,7 +34,7 @@ namespace hp_numeric {
  * B = A'
  */
 inline void MatrixTransposeBatch(
-    GQTEN_Double** Amat_array,
+    const GQTEN_Double **Amat_array,
     GQTEN_Double** Bmat_array,
     const size_t * rows_array,
     const size_t * cols_array,
@@ -76,7 +76,7 @@ inline void MatrixTransposeBatch(
 
 
 inline void MatrixTransposeBatch(
-    GQTEN_Complex** Amat_array,
+    const GQTEN_Complex** Amat_array,
     GQTEN_Complex** Bmat_array,
     const size_t * rows_array,
     const size_t * cols_array,
