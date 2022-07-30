@@ -65,6 +65,28 @@ void TensorTranspose(
   );
   tentrans_plan->execute();
 }
+
+template <typename ElemT>
+void TensorTranspose(
+    const std::vector<int> &transed_order,
+    const size_t ten_rank,
+    ElemT *original_data,
+    const std::vector<size_t> &original_shape,
+    ElemT *transed_data,
+    const std::vector<int> &transed_shape
+) {
+  int dim = ten_rank;
+  int sizeA[dim]; for (int i = 0; i < dim; ++i) { sizeA[i] = original_shape[i]; }
+  auto tentrans_plan = hptt::create_plan(transed_order.data(), ten_rank,
+                                         1.0, original_data, sizeA, sizeA,
+                                         0.0, transed_data, transed_shape.data(),
+                                         hptt::ESTIMATE,
+                                         tensor_transpose_num_threads, {},
+                                         true
+  );
+  tentrans_plan->execute();
+}
+
 } /* hp_numeric */
 } /* gqten */
 #endif /* ifndef GQTEN_FRAMEWORK_HP_NUMERIC_TEN_TRANS_H */

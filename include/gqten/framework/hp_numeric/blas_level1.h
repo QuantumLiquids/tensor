@@ -17,7 +17,6 @@
 
 #include "gqten/framework/value_t.h"      // GQTEN_Double, GQTEN_Complex
 
-#include <string.h>     // memcpy
 #ifdef Release
   #define NDEBUG
 #endif

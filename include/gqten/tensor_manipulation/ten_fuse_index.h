@@ -61,7 +61,7 @@ void GQTensor<TenElemT, QNT>::FuseIndex(
 #ifdef GQTEN_TIMING_MODE
   Timer fuse_index_pre_transpose_timer("   =============> fuse_index_pre_transpose");
 #endif  
-  //First we transpose the idx1 and idx2 to last 
+  //First we transpose the idx1 and idx2 to the first places
   std::vector<size_t> transpose_axes(rank_);
   transpose_axes[0]=idx1;
   transpose_axes[1]=idx2;

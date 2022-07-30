@@ -17,3 +17,6 @@ Original (before version 0.1) developers:
 Feature contributors:
   Hao-Xin Wang <wanghx18@mails.tsinghua.edu.cn>
     * Fast tensor expansion algorithm and implementation.
+    * Fusion tensor indexes
+    * MPI parallelization
+    * Zn symmetry

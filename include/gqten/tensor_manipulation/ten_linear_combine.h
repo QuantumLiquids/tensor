@@ -231,18 +231,18 @@ void LinearCombine(
 }
 
 
-template <typename QNT>
+template <typename ElemType, typename QNT>
 void LinearCombine(
     const size_t size,
-    const GQTEN_Double *pcoefs,
-    const std::vector<GQTensor<GQTEN_Double, QNT> *> &tens,
-    const GQTEN_Double beta,
-    GQTensor<GQTEN_Double, QNT> *pres
+    const ElemType *pcoefs,
+    const std::vector<GQTensor<ElemType, QNT> *> &tens,
+    const ElemType beta,
+    GQTensor<ElemType, QNT> *pres
 ) {
-  std::vector<GQTEN_Double> coefs;
+  std::vector<ElemType> coefs;
   coefs.resize(size);
   std::copy_n(pcoefs, size, coefs.begin());
-  std::vector<GQTensor<GQTEN_Double, QNT> *> actual_tens;
+  std::vector<GQTensor<ElemType, QNT> *> actual_tens;
   actual_tens.resize(size);
   std::copy_n(tens.begin(), size, actual_tens.begin());
   LinearCombine(coefs, actual_tens, beta, pres);

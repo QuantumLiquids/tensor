@@ -33,10 +33,9 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
     const std::map<size_t, gqten::DataBlk<QNT>>& b_blk_idx_data_blk_map,
     const std::vector<std::vector<size_t>> &ctrct_axes_set,
     const std::vector<std::vector<size_t>>& saved_axes_set,
-    std::pair<bool, bool> a_b_need_trans,
-    std::unordered_map<size_t, size_t>& b_blk_idx_qnblk_info_part_hash_map
+    std::vector<size_t>& b_blk_idx_qnblk_info_part_hash_map
 ) {
-  auto a_blk_idx_qnblk_info_part_hash_map = GenBlkIdxQNBlkInfoPartHashMap(
+  auto a_blk_idx_qnblk_info_part_hash_map = GenBlkIdxQNBlkCoorPartHashMap(
                                                 a_blk_idx_data_blk_map_select,
                                                 ctrct_axes_set[0]
                                             );
@@ -52,41 +51,16 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
     assert(saved_axes_set[0].empty() && saved_axes_set[1].empty());
   }
 #endif /* ifndef NDEBUG */
-  for (auto &a_blk_idx_part_hash : a_blk_idx_qnblk_info_part_hash_map) {
-    for (auto &b_blk_idx_part_hash : b_blk_idx_qnblk_info_part_hash_map) {
-      if (a_blk_idx_part_hash.second == b_blk_idx_part_hash.second) {
-        auto a_blk_idx = a_blk_idx_part_hash.first;
-        auto b_blk_idx = b_blk_idx_part_hash.first;
-        auto a_data_blk = a_blk_idx_data_blk_map_select.at(a_blk_idx);
-        auto b_data_blk = b_blk_idx_data_blk_map.at(b_blk_idx);
-        // Calculate m, k, n
-        size_t m, k, n;
-        if (c_is_scalar) {
-          m = 1;
-          n = 1;
-        } else {
-          if (a_blk_idx_m_map.find(a_blk_idx) != a_blk_idx_m_map.end()) {
-            m = a_blk_idx_m_map.at(a_blk_idx);
-          } else {
-            m = VecMultiSelectElemts(a_data_blk.shape, saved_axes_set[0]);
-            a_blk_idx_m_map[a_blk_idx] = m;
-          }
-          if (b_blk_idx_n_map.find(b_blk_idx) != b_blk_idx_n_map.end()) {
-            n = b_blk_idx_n_map.at(b_blk_idx);
-          } else {
-            n = VecMultiSelectElemts(b_data_blk.shape, saved_axes_set[1]);
-            b_blk_idx_n_map[b_blk_idx] = n;
-          }
-        }
-        if (a_blk_idx_k_map.find(a_blk_idx) != a_blk_idx_k_map.end()) {
-          k = a_blk_idx_k_map.at(a_blk_idx);
-        } else {
-          k = VecMultiSelectElemts(a_data_blk.shape, ctrct_axes_set[0]);
-          a_blk_idx_k_map[a_blk_idx] = k;
-        }
-
-        // Create raw data contraction task
-        if (c_is_scalar) {
+  if (c_is_scalar){
+    for(size_t i = 0; i < a_blk_idx_qnblk_info_part_hash_map.size(); i += 2){
+      for(size_t j = 0; j < b_blk_idx_qnblk_info_part_hash_map.size(); j+= 2){
+        if (a_blk_idx_qnblk_info_part_hash_map[i+1] == b_blk_idx_qnblk_info_part_hash_map[j+1]) {
+          auto a_blk_idx = a_blk_idx_qnblk_info_part_hash_map[i];
+          auto b_blk_idx = b_blk_idx_qnblk_info_part_hash_map[j];
+          const auto& a_data_blk = a_blk_idx_data_blk_map_select.at(a_blk_idx);
+          const auto& b_data_blk = b_blk_idx_data_blk_map.at(b_blk_idx);
+          size_t m(1), n(1);
+          size_t k = VecMultiSelectElemts(a_data_blk.shape, ctrct_axes_set[0]);
           GQTEN_Double beta;
           if (scalar_c_first_task) {
             beta = 0.0;
@@ -99,38 +73,62 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
               RawDataCtrctTask(
                   a_blk_idx,
                   a_data_blk.data_offset,
-                  a_b_need_trans.first,
                   b_blk_idx,
                   b_data_blk.data_offset,
-                  a_b_need_trans.second,
                   m, k, n,
                   beta
               )
           );
-        } else {
+        }
+
+      }
+    }
+  } else {
+    for(size_t i = 0; i < a_blk_idx_qnblk_info_part_hash_map.size(); i += 2){
+      size_t m(0), k(0);
+      for(size_t j = 0; j < b_blk_idx_qnblk_info_part_hash_map.size(); j += 2){
+        if (a_blk_idx_qnblk_info_part_hash_map[i+1] == b_blk_idx_qnblk_info_part_hash_map[j+1]) {
+          auto a_blk_idx = a_blk_idx_qnblk_info_part_hash_map[i];
+          auto b_blk_idx = b_blk_idx_qnblk_info_part_hash_map[j];
+          const auto& a_data_blk = a_blk_idx_data_blk_map_select.at(a_blk_idx);
+          const auto& b_data_blk = b_blk_idx_data_blk_map.at(b_blk_idx);
+          // Calculate m, k, n
+          size_t n;
+          if( m == 0 ) {
+            m = VecMultiSelectElemts(a_data_blk.shape, saved_axes_set[0]);
+            k = VecMultiSelectElemts(a_data_blk.shape, ctrct_axes_set[0]);
+          }
+          if (b_blk_idx_n_map.find(b_blk_idx) != b_blk_idx_n_map.end()) {
+            n = b_blk_idx_n_map.at(b_blk_idx);
+          } else {
+            n = VecMultiSelectElemts(b_data_blk.shape, saved_axes_set[1]);
+            b_blk_idx_n_map[b_blk_idx] = n;
+          }
+
+
+          // Create raw data contraction task
           auto c_blk_coors = GenTenCtrctDataBlkCoors(
-                                 a_data_blk.blk_coors,
-                                 b_data_blk.blk_coors,
-                                 saved_axes_set
-                             );
+              a_data_blk.blk_coors,
+              b_data_blk.blk_coors,
+              saved_axes_set
+          );
           auto c_blk_idx = BlkCoorsToBlkIdx(c_blk_coors);
           GQTEN_Double beta;
           if (blk_idx_data_blk_map_.find(c_blk_idx) !=
               blk_idx_data_blk_map_.end()
-          ) {
+              ) {
             beta = 1.0;
           } else {
-            DataBlkInsert(c_blk_coors, false);
+            blk_idx_data_blk_map_[c_blk_idx] =
+                DataBlk<QNT>(c_blk_coors, *pgqten_indexes);
             beta = 0.0;
           }
           raw_data_ctrct_tasks.push_back(
               RawDataCtrctTask(
                   a_blk_idx,
                   a_data_blk.data_offset,
-                  a_b_need_trans.first,
                   b_blk_idx,
                   b_data_blk.data_offset,
-                  a_b_need_trans.second,
                   c_blk_idx,
                   m, k, n,
                   beta
@@ -139,8 +137,8 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
         }
       }
     }
+    DataBlksOffsetRefresh();
   }
-
   for (auto &task : raw_data_ctrct_tasks) {
     if (!c_is_scalar) {
       task.c_data_offset = blk_idx_data_blk_map_[task.c_blk_idx].data_offset;
