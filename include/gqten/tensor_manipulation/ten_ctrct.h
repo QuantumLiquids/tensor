@@ -37,7 +37,11 @@ void TenCtrctInitResTen(
     const std::vector<std::vector<size_t>> &,
     GQTensor<TenElemT, QNT> *
 );
-
+inline bool TenCtrctNeedTransCheck(
+    const std::vector<size_t> &,
+    const std::vector<size_t> &,
+    std::vector<int> &
+);
 
 /**
 Tensor contraction executor.
@@ -62,6 +66,10 @@ private:
   const GQTensor<TenElemT, QNT> *pb_;
   GQTensor<TenElemT, QNT> *pc_;
   const std::vector<std::vector<size_t>> &axes_set_;
+  bool a_need_trans_;
+  bool b_need_trans_;
+  std::vector<int> a_trans_orders_; //use int but not size_t to compatible with hptt
+  std::vector<int> b_trans_orders_;
   std::vector<RawDataCtrctTask> raw_data_ctrct_tasks_;
 };
 
@@ -80,21 +88,40 @@ TensorContractionExecutor<TenElemT, QNT>::TensorContractionExecutor(
     const GQTensor<TenElemT, QNT> *pb,
     const std::vector<std::vector<size_t>> &axes_set,
     GQTensor<TenElemT, QNT> *pc
-) : pa_(pa), pb_(pb), axes_set_(axes_set), pc_(pc) {
+) : pa_(pa), pb_(pb), pc_(pc), axes_set_(axes_set) {
   assert(pc_->IsDefault());    // Only empty tensor can take the result
   // Check indexes matching
 #ifndef NDEBUG
-  auto indexesa = pa->GetIndexes();
-  auto indexesb = pb->GetIndexes();
+  auto& indexesa = pa->GetIndexes();
+  auto& indexesb = pb->GetIndexes();
   for(size_t i = 0; i < axes_set[0].size(); ++i){
     assert(indexesa[axes_set[0][i]] == InverseIndex(indexesb[axes_set[1][i]]));
   }
 #endif
-  TenCtrctInitResTen(pa_, pb_, axes_set_, pc_);
+  std::vector< std::vector<size_t> > saved_axes_set = TenCtrctGenSavedAxesSet(
+      pa->Rank(),
+      pb->Rank(),
+      axes_set
+  );
+
+  a_need_trans_ = TenCtrctNeedTransCheck(
+      saved_axes_set[0],
+      axes_set[0],
+      a_trans_orders_
+  );
+
+  b_need_trans_ = TenCtrctNeedTransCheck(
+      axes_set[1],
+      saved_axes_set[1],
+      b_trans_orders_
+  );
+
+  TenCtrctInitResTen(pa_, pb_, saved_axes_set, pc_);
   raw_data_ctrct_tasks_ = pc_->GetBlkSparDataTen().DataBlkGenForTenCtrct(
                               pa_->GetBlkSparDataTen(),
                               pb_->GetBlkSparDataTen(),
-                              axes_set_
+                              axes_set_,
+                              saved_axes_set
                           );
 
   SetStatus(ExecutorStatus::INITED);
@@ -111,7 +138,9 @@ void TensorContractionExecutor<TenElemT, QNT>::Execute(void) {
   pc_->GetBlkSparDataTen().CtrctTwoBSDTAndAssignIn(
       pa_->GetBlkSparDataTen(),
       pb_->GetBlkSparDataTen(),
-      raw_data_ctrct_tasks_
+      raw_data_ctrct_tasks_,
+      a_trans_orders_,
+      b_trans_orders_
   );
 
   SetStatus(ExecutorStatus::FINISH);
@@ -182,35 +211,76 @@ template <typename TenElemT, typename QNT>
 void TenCtrctInitResTen(
     const GQTensor<TenElemT, QNT> *pa,
     const GQTensor<TenElemT, QNT> *pb,
-    const std::vector<std::vector<size_t>> &axes_set,
+    const std::vector<std::vector<size_t>> &saved_axes_set,
     GQTensor<TenElemT, QNT> *pc
 ) {
-  auto a_ctrct_axes = axes_set[0];
-  auto b_ctrct_axes = axes_set[1];
-  auto a_rank = pa->Rank();
-  auto b_rank = pb->Rank();
-  auto c_rank = a_rank + b_rank - 2*(a_ctrct_axes.size());
+  const auto& a_ctrct_axes = saved_axes_set[0];
+  const auto& b_ctrct_axes = saved_axes_set[1];
+  const size_t c_rank = a_ctrct_axes.size() + b_ctrct_axes.size();
   IndexVec<QNT> c_idxs;
   c_idxs.reserve(c_rank);
-  auto a_idxs = pa->GetIndexes();
-  auto b_idxs = pb->GetIndexes();
-  for (size_t i = 0; i < a_rank; ++i) {
-    if (
-        std::find(a_ctrct_axes.begin(), a_ctrct_axes.end(), i) ==
-        a_ctrct_axes.end()
-    ) {
-      c_idxs.push_back(a_idxs[i]);
-    }
+  auto& a_idxs = pa->GetIndexes();
+  auto& b_idxs = pb->GetIndexes();
+  for(size_t saved_axes_a : a_ctrct_axes) {
+    c_idxs.push_back( a_idxs[saved_axes_a] );
   }
-  for (size_t i = 0; i < b_rank; ++i) {
-    if (
-        std::find(b_ctrct_axes.begin(), b_ctrct_axes.end(), i) ==
-        b_ctrct_axes.end()
-    ) {
-      c_idxs.push_back(b_idxs[i]);
-    }
+  for(size_t saved_axes_b : b_ctrct_axes) {
+    c_idxs.push_back( b_idxs[saved_axes_b] );
   }
+
   (*pc) = GQTensor<TenElemT, QNT>(std::move(c_idxs));
 }
+
+
+
+inline bool TenCtrctNeedTransCheck(
+    const std::vector<size_t> &first_part_axes,
+    const std::vector<size_t> &second_part_axes,
+    std::vector<int> &trans_orders
+) {
+  bool need_trans(false);
+  for(size_t i = 0; i < first_part_axes.size(); i++) {
+    if( first_part_axes[i] != i ){
+      need_trans = true;
+      break;
+    }
+  }
+  if(!need_trans){
+    const size_t first_part_axes_size = first_part_axes.size();
+    for(size_t i = 0;i < second_part_axes.size(); i++ ) {
+      if( second_part_axes[i] != i + first_part_axes_size ){
+        need_trans = true;
+        break;
+      }
+    }
+  }
+
+  if( need_trans ){
+    const size_t trans_order_size = first_part_axes.size() + second_part_axes.size();
+    const size_t first_part_axes_size = first_part_axes.size();
+    trans_orders.resize(trans_order_size);
+    /*
+    trans_orders.insert(
+        trans_orders.end(),
+        first_part_axes.begin(),
+        first_part_axes.end()
+    );
+    trans_orders.insert(
+        trans_orders.end(),
+        second_part_axes.begin(),
+        second_part_axes.end()
+    );
+     */
+    for(size_t i = 0; i < first_part_axes_size; i++ ){
+      trans_orders[i] = first_part_axes[i];
+    }
+    for(size_t i = 0; i < second_part_axes.size(); i++){
+      trans_orders[i + first_part_axes_size] = second_part_axes[i];
+    }
+  }
+  return need_trans;
+
+}
+
 } /* gqten */
 #endif /* ifndef GQTEN_TENSOR_MANIPULATION_TEN_CTRCT_H */

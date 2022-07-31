@@ -24,7 +24,10 @@
 #include <vector>       // vector
 #include <iostream>     // istream, ostream
 
-
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/split_member.hpp>
+// #include <boost/mpi.hpp>
 namespace gqten {
 
 
@@ -35,13 +38,14 @@ Symmetry-blocked sparse tensor.
 @tparam QNT   Type of the quantum number.
 */
 template <typename ElemT, typename QNT>
-class GQTensor : public Streamable, public Showable {
+class GQTensor : public Showable {
 public:
   // Constructors and destructor.
   /// Default constructor.
   GQTensor(void) = default;
 
   GQTensor(const IndexVec<QNT> &);
+  GQTensor(const IndexVec<QNT> &&);
   GQTensor(IndexVec<QNT> &&);
 
   GQTensor(const GQTensor &);
@@ -130,8 +134,8 @@ public:
   GQTensor& operator*=(const ElemT);
 
   // Override base class
-  void StreamRead(std::istream &) override;
-  void StreamWrite(std::ostream &) const override;
+  void StreamRead(std::istream &);
+  void StreamWrite(std::ostream &) const;
 
   void Show(const size_t indent_level = 0) const override;
   void ConciseShow(const size_t indent_level = 0) const;
@@ -153,6 +157,14 @@ private:
   size_t CalcSize_(void) const;
 
   std::pair<CoorsT, CoorsT> CoorsToBlkCoorsDataCoors_(const CoorsT &) const;
+
+  /// serialization of data,  for the mpi paralization, 
+  friend class boost::serialization::access;
+  template<class Archive>
+  void save(Archive & ar, const unsigned int version) const;
+  template<class Archive>
+  void load(Archive & ar, const unsigned int version);
+  BOOST_SERIALIZATION_SPLIT_MEMBER()
 };
 
 // Out-of-class declaration and definition.
@@ -171,5 +183,19 @@ inline GQTensor<ElemT, QNT> operator*(
 ) {
   return t * scalar;
 }
+
+template <typename ElemT, typename QNT>
+inline std::istream &operator>>(std::istream &is, GQTensor<ElemT, QNT> &t) {
+  t.StreamRead(is);
+  return is;
+}
+
+template <typename ElemT, typename QNT>
+inline std::ostream &operator<<(std::ostream &os, const GQTensor<ElemT, QNT> &t) {
+  t.StreamWrite(os);
+  return os;
+}
+
+
 } /* gqten */
 #endif /* ifndef GQTEN_GQTENSOR_GQTENSOR_H */

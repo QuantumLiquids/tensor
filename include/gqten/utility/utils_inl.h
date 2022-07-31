@@ -31,7 +31,7 @@ namespace gqten {
 //// Algorithms
 // Inplace reorder a vector.
 template <typename T>
-void Reorder(std::vector<T> &v, const std::vector<size_t> &order) {
+void InplaceReorder(std::vector<T> &v, const std::vector<size_t> &order) {
   std::vector<size_t> indices(order);
   for (size_t i = 0; i < indices.size(); ++i) {
     auto current = i;
@@ -45,12 +45,22 @@ void Reorder(std::vector<T> &v, const std::vector<size_t> &order) {
  }
 }
 
+inline std::vector<int> Reorder(const std::vector<size_t> &v1, const std::vector<int> &order){
+  size_t data_size = v1.size();
+  std::vector<int> v2; v2.reserve(data_size);
+  for (size_t i = 0; i < data_size; i++ ) {
+    v2.push_back(v1[order[i]]);
+  }
+  return v2;
+}
+
 // Calculate Cartesian product.
 template<typename T>
 T CalcCartProd(T v) {
   T s = {{}};
   for (const auto &u : v) {
     T r;
+    r.reserve(s.size() * u.size());
     for (const auto &x : s) {
       for (const auto y : u) {
         r.push_back(x);
@@ -62,10 +72,19 @@ T CalcCartProd(T v) {
   return s;
 }
 
-
+/*
+ * Generate all the coordinates in the following order:
+ *    (0, 0, 0,....., 0),
+ *    (0, 0, 0,....., 1),
+ *    (0, 0, 0,....., 2),
+ *    ......
+ *    (shape[0], shape[1],.....,shape[n-1]-1),
+ *    (shape[0], shape[1],.....,shape[n-1])
+ */
 inline std::vector<CoorsT> GenAllCoors(const ShapeT &shape) {
   std::vector<CoorsT> each_coors(shape.size());
   for (size_t i = 0; i < shape.size(); ++i) {
+    each_coors[i].reserve(shape[i]);
     for (size_t j = 0; j < shape[i]; ++j) {
       each_coors[i].push_back(j);
     }
@@ -108,7 +127,9 @@ inline T VecMultiSelectElemts(
     const std::vector<size_t> elem_idxes
 ) {
   auto selected_elem_num = elem_idxes.size();
-  assert(selected_elem_num > 0);
+  if(selected_elem_num == 0){
+    return T(1);
+  }
   T res;
   if (selected_elem_num == 1) {
     return v[elem_idxes[0]];

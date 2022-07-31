@@ -21,11 +21,13 @@
 #include "gqten/gqtensor/blk_spar_data_ten/raw_data_operations.h"
 #include "gqten/framework/value_t.h"                                      // GQTEN_Double, GQTEN_Complex
 #include "gqten/framework/hp_numeric/ten_trans.h"                         // TensorTranspose
+#include "gqten/framework/hp_numeric/blas_extensions.h"
 #include "gqten/utility/utils_inl.h"                                      // CalcMultiDimDataOffsets, Reorder
 #include "gqten/utility/timer.h"
 
 #include <map>              // map
 #include <unordered_set>    // unordered_set
+#include <set>              // set
 
 #ifdef Release
   #define NDEBUG
@@ -85,7 +87,7 @@ void BlockSparseDataTensor<ElemT, QNT>::Transpose(
     return;
   }
 
-  Reorder(blk_shape, transed_idxes_order);
+  InplaceReorder(blk_shape, transed_idxes_order);
   blk_multi_dim_offsets_ = CalcMultiDimDataOffsets(blk_shape);
 
   std::vector<RawDataTransposeTask> raw_data_trans_tasks;
@@ -129,6 +131,7 @@ template <typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::FuseFirstTwoIndex(
   const std::vector<std::tuple<size_t,size_t,size_t,size_t>>& qnscts_offset_info_list
   ){
+if(actual_raw_data_size_ != 0){
 #ifdef GQTEN_TIMING_MODE
   Timer fuse_index_bsdt_pre_timer("   =============> fuse_index_bsdt_prepare");
 #endif  
@@ -214,7 +217,7 @@ void BlockSparseDataTensor<ElemT, QNT>::FuseFirstTwoIndex(
 #ifdef GQTEN_TIMING_MODE
   Timer fuse_index_bsdt_raw_data_copy("   =============> fuse_index_bsdt_raw_data_copy");
 #endif   
-  new_bsdt.RawDataCopy_( data_copy_tasks, pactual_raw_data_ );
+  new_bsdt.RawDataCopyNoAdd_( data_copy_tasks, pactual_raw_data_ );
 #ifdef GQTEN_TIMING_MODE
   fuse_index_bsdt_raw_data_copy.PrintElapsed();
 #endif   
@@ -230,6 +233,9 @@ void BlockSparseDataTensor<ElemT, QNT>::FuseFirstTwoIndex(
 
   new_bsdt.pactual_raw_data_ = nullptr;
   new_bsdt.pgqten_indexes = nullptr;
+}else{
+  (*this) = BlockSparseDataTensor<ElemT, QNT>(pgqten_indexes);
+}
 }
 
 
@@ -419,15 +425,17 @@ template <typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::CtrctTwoBSDTAndAssignIn(
     const BlockSparseDataTensor &bsdt_a,
     const BlockSparseDataTensor &bsdt_b,
-    std::vector<RawDataCtrctTask> &raw_data_ctrct_tasks
+    std::vector<RawDataCtrctTask> &raw_data_ctrct_tasks,
+    std::vector<int> &a_trans_orders,
+    std::vector<int> &b_trans_orders
 ) {
   assert(!(bsdt_a.IsScalar() || bsdt_b.IsScalar()));
   if (raw_data_ctrct_tasks.empty()) { return; }
 
   Allocate();
 
-  bool a_need_trans = raw_data_ctrct_tasks[0].a_need_trans;
-  bool b_need_trans = raw_data_ctrct_tasks[0].b_need_trans;
+  bool a_need_trans = !(a_trans_orders.empty());
+  bool b_need_trans = !(b_trans_orders.empty());
   std::unordered_map<size_t, ElemT *> a_blk_idx_transed_data_map;
   std::unordered_map<size_t, ElemT *> b_blk_idx_transed_data_map;
   RawDataCtrctTask::SortTasksByCBlkIdx(raw_data_ctrct_tasks);
@@ -462,12 +470,11 @@ void BlockSparseDataTensor<ElemT, QNT>::CtrctTwoBSDTAndAssignIn(
       if (poss_it != a_blk_idx_transed_data_map.end()) {
         a_data = poss_it->second;
       } else {
-        auto a_data_blk = bsdt_a.blk_idx_data_blk_map_.at(task.a_blk_idx);
+        const auto& a_data_blk = bsdt_a.blk_idx_data_blk_map_.at(task.a_blk_idx);
         ElemT *transed_data = (ElemT *) malloc(a_data_blk.size * sizeof(ElemT));
-        ShapeT a_blk_transed_shape(a_data_blk.shape);
-        Reorder(a_blk_transed_shape, task.a_trans_orders);
+        std::vector<int> a_blk_transed_shape = Reorder(a_data_blk.shape, a_trans_orders);
         hp_numeric::TensorTranspose(
-            task.a_trans_orders,
+            a_trans_orders,
             bsdt_a.ten_rank,
             bsdt_a.pactual_raw_data_ + task.a_data_offset,
             a_data_blk.shape,
@@ -485,12 +492,11 @@ void BlockSparseDataTensor<ElemT, QNT>::CtrctTwoBSDTAndAssignIn(
       if (poss_it != b_blk_idx_transed_data_map.end()) {
         b_data = poss_it->second;
       } else {
-        auto b_data_blk = bsdt_b.blk_idx_data_blk_map_.at(task.b_blk_idx);
+        const auto& b_data_blk = bsdt_b.blk_idx_data_blk_map_.at(task.b_blk_idx);
         ElemT *transed_data = (ElemT *) malloc(b_data_blk.size * sizeof(ElemT));
-        ShapeT b_blk_transed_shape(b_data_blk.shape);
-        Reorder(b_blk_transed_shape, task.b_trans_orders);
+        std::vector<int> b_blk_transed_shape = Reorder(b_data_blk.shape, b_trans_orders);
         hp_numeric::TensorTranspose(
-            task.b_trans_orders,
+            b_trans_orders,
             bsdt_b.ten_rank,
             bsdt_b.pactual_raw_data_ + task.b_data_offset,
             b_data_blk.shape,
@@ -561,6 +567,69 @@ void BlockSparseDataTensor<ElemT, QNT>::CtrctTwoBSDTAndAssignIn(
   }
 }
 
+template <typename ElemT, typename QNT>
+template <bool a_ctrct_tail, bool b_ctrct_head>
+void BlockSparseDataTensor<ElemT, QNT>::CtrctAccordingTask(
+    const ElemT* a_raw_data,
+    const ElemT* b_raw_data,
+    const std::vector<RawDataCtrctTask> &raw_data_ctrct_tasks
+) {
+  Allocate();
+#ifdef GQTEN_TIMING_MODE
+  Timer contract_mkl_timer("matrix multiplication");
+#endif
+
+
+  for(const auto& task : raw_data_ctrct_tasks) {
+    const ElemT* a_data = a_raw_data + task.a_data_offset;
+    const ElemT* b_data = b_raw_data + task.b_data_offset;
+    if( a_ctrct_tail && b_ctrct_head ){
+      RawDataTwoMatMultiplyAndAssignIn_(
+          a_data,
+          b_data,
+          task.c_data_offset,
+          task.m, task.k, task.n,
+          task.beta
+      );
+    } else if( a_ctrct_tail && (!b_ctrct_head) ) {
+      hp_numeric::MatMultiply(
+          a_data,
+          CblasNoTrans,
+          b_data,
+          CblasTrans,
+          task.m, task.k, task.n,
+          task.k, task.k,
+          task.beta,
+          pactual_raw_data_ + task.c_data_offset
+      );
+    } else if( (!a_ctrct_tail) && (b_ctrct_head) ) {
+      hp_numeric::MatMultiply(
+          a_data,
+          CblasTrans,
+          b_data,
+          CblasNoTrans,
+          task.m, task.k, task.n,
+          task.m, task.n,
+          task.beta,
+          pactual_raw_data_ + task.c_data_offset
+      );
+    } else {
+      hp_numeric::MatMultiply(
+          a_data,
+          CblasTrans,
+          b_data,
+          CblasTrans,
+          task.m, task.k, task.n,
+          task.m, task.k,
+          task.beta,
+          pactual_raw_data_ + task.c_data_offset
+      );
+    }
+  }
+#ifdef GQTEN_TIMING_MODE
+  contract_mkl_timer.PrintElapsed();
+#endif
+}
 
 // Helpers for tensor expansion
 using BlkCoorsShapePair = std::pair<CoorsT, ShapeT>;
@@ -708,7 +777,6 @@ void BlockSparseDataTensor<ElemT, QNT>::ConstructExpandedDataOnFirstIndex(
         raw_data_copy_tasks_from_b.push_back(task);
       } else {
         int blk_idx_a = blk_idx_expand_mapto_blk_map_a[blk_idx];
-        assert(blk_idx_a == blk_idx);
         auto pblk_idx_data_blk_pair_a = blk_idx_data_blk_map_a.find(
                                             static_cast<size_t>(blk_idx_a)
                                         );
@@ -739,11 +807,123 @@ void BlockSparseDataTensor<ElemT, QNT>::ConstructExpandedDataOnFirstIndex(
   Timer expand_raw_data_cp_timer("   =============> expansion_raw_data_copy");
 #endif
   // Do data copy
-  RawDataCopy_(raw_data_copy_tasks_from_a, bsdt_a.pactual_raw_data_);
-  RawDataCopy_(raw_data_copy_tasks_from_b, bsdt_b.pactual_raw_data_);
+  RawDataCopyNoAdd_(raw_data_copy_tasks_from_a, bsdt_a.pactual_raw_data_);
+  RawDataCopyNoAdd_(raw_data_copy_tasks_from_b, bsdt_b.pactual_raw_data_);
 #ifdef GQTEN_TIMING_MODE
   expand_raw_data_cp_timer.PrintElapsed();
 #endif
+}
+
+
+/**
+Construct tensor (magic changing version) expansion data over the first index, from corresponding BSDTs.
+The DataBlk in new tensor come from `bsdt_a` and `bsdt_b`.
+The new generated DataBlk's index is the same with the index in `bsdt_a`.
+*/
+template <typename ElemT, typename QNT>
+void BlockSparseDataTensor<ElemT, QNT>::ConstructMCExpandedDataOnFirstIndex(
+    const BlockSparseDataTensor &bsdt_a,
+    const BlockSparseDataTensor &bsdt_b,
+    const std::map<size_t, int> &b_idx_qnsct_coor_expanded_idx_qnsct_coor_map
+){
+  blk_idx_data_blk_map_ = bsdt_a.GetBlkIdxDataBlkMap();
+  raw_data_size_ = bsdt_a.GetActualRawDataSize();
+  std::map<size_t,size_t> blk_idx_in_b_mapto_blk_idx_in_expanded_bsdt;
+  auto blk_idx_data_blk_map_b = bsdt_b.GetBlkIdxDataBlkMap();
+  for(auto iter = blk_idx_data_blk_map_b.begin();
+           iter !=  blk_idx_data_blk_map_b.cend();){
+    auto blk_idx_data_blk  = (*iter);
+    DataBlk<QNT> data_blk = blk_idx_data_blk.second;
+    size_t first_coor_in_b = data_blk.blk_coors[0];
+    if(b_idx_qnsct_coor_expanded_idx_qnsct_coor_map.at(first_coor_in_b) == -1 ){
+      blk_idx_data_blk_map_b.erase(iter++);
+    }else{
+      size_t first_coor = b_idx_qnsct_coor_expanded_idx_qnsct_coor_map.at(first_coor_in_b);
+      CoorsT blk_coor = data_blk.blk_coors; blk_coor[0]=first_coor;
+      DataBlkInsert(blk_coor,false);  
+      blk_idx_in_b_mapto_blk_idx_in_expanded_bsdt.insert(
+        std::make_pair(  blk_idx_data_blk.first,  BlkCoorsToBlkIdx(blk_coor)  ) 
+            );
+      iter++;
+    }
+  }
+  std::vector<RawDataCopyTask> tasks;
+  tasks.reserve(blk_idx_in_b_mapto_blk_idx_in_expanded_bsdt.size());
+  for(auto& blk_idx_data_blk: blk_idx_data_blk_map_b){
+    size_t blk_idx = blk_idx_in_b_mapto_blk_idx_in_expanded_bsdt.at(blk_idx_data_blk.first);//dest blk_idx
+    DataBlk<QNT> data_blk = blk_idx_data_blk.second;//src data_blk
+    RawDataCopyTask task(
+      data_blk.blk_coors , //src_blk_coors
+      data_blk.data_offset, //src_data_offset
+      data_blk.size, //src_data_size
+      blk_idx_data_blk_map_[blk_idx].data_offset, //dest_data_offset
+      false);
+      tasks.push_back(task);
+  }
+  
+  Allocate(false);
+  
+  memcpy(
+          pactual_raw_data_,
+          bsdt_a.GetActualRawDataPtr(),
+          bsdt_a.GetActualRawDataSize() * sizeof(ElemT)
+      );
+  RawDataCopy_(tasks, bsdt_b.GetActualRawDataPtr());
+}
+
+/**
+ *
+ * @tparam ElemT
+ * @tparam QNT
+ * @param selected_data_blk_idxs  elements should be unique
+ * @param critical_axe
+ * @param transposed_data
+ */
+template <typename ElemT, typename QNT>
+void BlockSparseDataTensor<ElemT, QNT>::OutOfPlaceMatrixTransposeForSelectedDataBlk(
+    const std::set<size_t>& selected_data_blk_idxs,
+    const size_t critical_axe,
+    ElemT* transposed_data
+    ) const {
+  const size_t group_count = selected_data_blk_idxs.size();
+  const ElemT** Amat_array = (const ElemT**) malloc(group_count * sizeof(ElemT*) );
+  ElemT** Bmat_array = (ElemT**) malloc(group_count * sizeof(ElemT*) );
+  size_t* rows_array = (size_t*) malloc(group_count * sizeof(size_t) );
+  size_t* cols_array = (size_t*) malloc(group_count * sizeof(size_t) );
+  auto iter = selected_data_blk_idxs.begin();
+  //TODO: omp
+  for(size_t i = 0; i < group_count; i++) {
+    const size_t idx = (*iter);
+    assert( blk_idx_data_blk_map_.find(idx )!= blk_idx_data_blk_map_.end());
+    const DataBlk<QNT>& data_blk = blk_idx_data_blk_map_.at(idx);
+    const size_t off_set = data_blk.data_offset;
+    const std::vector<size_t>& shape = data_blk.shape;
+    Amat_array[i] = pactual_raw_data_ + off_set;
+    Bmat_array[i] = transposed_data + off_set;
+    size_t row(1), col(1);
+    for(size_t j = 0; j < critical_axe; j++ ){
+      row *= shape[j];
+    }
+    for(size_t j = critical_axe ; j < ten_rank; j++ ) {
+      col *= shape[j];
+    }
+    rows_array[i] = row;
+    cols_array[i] = col;
+    iter ++;
+  }
+
+  hp_numeric::MatrixTransposeBatch(
+      Amat_array,
+      Bmat_array,
+      rows_array,
+      cols_array,
+      group_count
+      );
+  free(Amat_array);
+  free(Bmat_array);
+  free(rows_array);
+  free(cols_array);
+
 }
 
 
@@ -773,6 +953,51 @@ void BlockSparseDataTensor<ElemT, QNT>::CopyFromReal(
   } else {
     assert(false);    // TODO: To-be implemented!
   }
+}
+template <typename ElemT, typename QNT>
+void BlockSparseDataTensor<ElemT, QNT>::CollectiveLinearCombine(
+    const std::vector<const BlockSparseDataTensor *> pbsdts
+){
+  const size_t tensor_num = pbsdts.size();
+  for(size_t i=0;i<tensor_num;i++){
+    const BlockSparseDataTensor<ElemT, QNT>* pbsdt = pbsdts[i];
+    const decltype(blk_idx_data_blk_map_)& blk_idx_data_blk_map_out = pbsdt->GetBlkIdxDataBlkMap();
+    blk_idx_data_blk_map_.insert(blk_idx_data_blk_map_out.cbegin(), blk_idx_data_blk_map_out.cend() );
+  }
+  size_t total_data_offset = 0;
+  for (auto &idx_blk : blk_idx_data_blk_map_) {
+    idx_blk.second.data_offset = total_data_offset;
+    total_data_offset += idx_blk.second.size;
+  }
+  raw_data_size_ += total_data_offset;
+  Allocate(false);
+
+  size_t data_blk_size = blk_idx_data_blk_map_.size();
+#ifndef NDEBUG
+  size_t out_data_blk_size=0;
+  for(size_t i=0;i<tensor_num;i++){
+    const BlockSparseDataTensor<ElemT, QNT>* pbsdt = pbsdts[i];
+    const decltype(blk_idx_data_blk_map_)& blk_idx_data_blk_map_out = pbsdt->GetBlkIdxDataBlkMap();
+    out_data_blk_size += blk_idx_data_blk_map_out.size();
+  }
+  assert(out_data_blk_size == data_blk_size);
+#endif
+  std::vector<ElemT*> source_pointers(data_blk_size);
+  std::vector<ElemT*> dest_pointers(data_blk_size);
+  std::vector<size_t> copy_size(data_blk_size);
+  size_t task_idx = 0;
+  for(size_t i=0;i<tensor_num;i++){
+    const BlockSparseDataTensor<ElemT, QNT>* pbsdt = pbsdts[i];
+    const decltype(blk_idx_data_blk_map_)& blk_idx_data_blk_map_out = pbsdt->GetBlkIdxDataBlkMap();
+    for(auto& [idx, datablk]: blk_idx_data_blk_map_out ){
+      source_pointers[task_idx] = pbsdt->pactual_raw_data_ + datablk.data_offset;
+      DataBlk<QNT>& this_data_blk = blk_idx_data_blk_map_[idx];
+      dest_pointers[task_idx] = pactual_raw_data_ + this_data_blk.data_offset;
+      copy_size[task_idx] = this_data_blk.size;
+      task_idx++;
+    }
+  }
+  RawDataCopy_(source_pointers,dest_pointers,copy_size);
 }
 } /* gqten */
 #endif /* ifndef GQTEN_GQTENSOR_BLK_SPAR_DATA_TEN_GLOBAL_OPERATIONS_H */

@@ -7,14 +7,17 @@
 */
 
 /**
-@file quval_u1.h
-@brief Quantum number value with U1 symmetry.
+  @file quval_u1.h
+  @brief Quantum number value with U1 symmetry.
 */
 #ifndef GQTEN_GQTENSOR_QN_QNVAL_U1_H
 #define GQTEN_GQTENSOR_QN_QNVAL_U1_H
 
 
-#include "gqten/gqtensor/qn/qnval.h"    // QNVal
+#include"gqten/gqtensor/qn/qnval.h"    // QNVal
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/export.hpp>
+#include <boost/serialization/base_object.hpp>
 
 
 namespace gqten {
@@ -52,7 +55,7 @@ public:
 
   // Override for Streamable base class
   void StreamRead(std::istream &is) override { is >> val_; }
-  void StreamWrite(std::ostream &os) const override { os << val_ << std::endl; }
+  void StreamWrite(std::ostream &os) const override { os << val_ << "\n"; }
 
   // Override for Showable base class
   void Show(const size_t indent_level = 0) const override {
@@ -63,6 +66,13 @@ public:
 private:
   int val_;
   std::hash<int> hasher_;
+
+  friend class boost::serialization::access;
+  template<class Archive>
+  void serialize(Archive & ar, const unsigned int version){
+    ar & boost::serialization::base_object<QNVal>(*this);
+    ar & val_;
+  }
 };
 } /* gqten */
 #endif /* ifndef GQTEN_GQTENSOR_QN_QNVAL_U1_H */

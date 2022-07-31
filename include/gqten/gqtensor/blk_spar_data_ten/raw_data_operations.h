@@ -22,7 +22,10 @@
 #include "gqten/framework/hp_numeric/blas_level1.h"                       // VectorAddTo
 #include "gqten/framework/hp_numeric/blas_level3.h"                       // MatMultiply
 #include "gqten/framework/hp_numeric/lapack.h"                            // MatSVD
+#include "gqten/framework/hp_numeric/omp_set.h"
 #include "gqten/utility/utils_inl.h"                                      // Rand, CalcScalarNorm2, CalcConj, SubMatMemCpy
+
+#include <omp.h>
 
 #include <iostream>     // endl, istream, ostream
 #include <cmath>        // sqrt
@@ -72,6 +75,9 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataAlloc_(
     const bool init
 ) {
   free(pactual_raw_data_);
+  ///< @question: if need to justify size!=0
+  ///< @todo use mkl_malloc to align data, note to be careful when doing this change.
+  /// but this may not very useful because all of the data is a set
   if (!init) {
     pactual_raw_data_ = (ElemT *) malloc(size * sizeof(ElemT));
   } else {
@@ -103,11 +109,11 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataInsert_(
   } else {
     size_t new_data_size = actual_raw_data_size_ + size;
     ElemT *new_pdata = (ElemT *) malloc(new_data_size * sizeof(ElemT));
-    memcpy(new_pdata, pactual_raw_data_, offset * sizeof(ElemT));
-    memcpy(
-        new_pdata + (offset + size),
+    hp_numeric::VectorCopy(pactual_raw_data_, offset, new_pdata );
+    hp_numeric::VectorCopy(
         pactual_raw_data_ + offset,
-        (actual_raw_data_size_ - offset) * sizeof(ElemT)
+        actual_raw_data_size_ - offset,
+        new_pdata + (offset + size)
     );
     free(pactual_raw_data_);
     pactual_raw_data_ = new_pdata;
@@ -160,14 +166,9 @@ Normalize the raw data array.
 */
 template <typename ElemT, typename QNT>
 GQTEN_Double BlockSparseDataTensor<ElemT, QNT>::RawDataNormalize_(void) {
-  GQTEN_Double norm2 = 0.0;
-  for (size_t i = 0; i < actual_raw_data_size_; ++i) {
-    norm2 += CalcScalarNorm2(pactual_raw_data_[i]);
-  }
-  auto norm = std::sqrt(norm2);
-  for (size_t i = 0; i < actual_raw_data_size_; ++i) {
-    pactual_raw_data_[i] /= norm;
-  }
+  double norm = hp_numeric::Vector2Norm(pactual_raw_data_, actual_raw_data_size_);
+  double inv_norm = 1.0/norm;
+  hp_numeric::VectorScale(pactual_raw_data_, actual_raw_data_size_, inv_norm);
   return norm;
 }
 
@@ -207,12 +208,61 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataCopy_(
           pactual_raw_data_ + task.dest_data_offset
       );
     } else {
-      memcpy(
-          pactual_raw_data_ + task.dest_data_offset,
-          psrc_raw_data + task.src_data_offset,
-          task.src_data_size * sizeof(ElemT)
+      hp_numeric::VectorCopy(
+        psrc_raw_data + task.src_data_offset,
+        task.src_data_size,
+        pactual_raw_data_ + task.dest_data_offset
       );
     }
+  }
+}
+
+template <typename ElemT, typename QNT>
+void BlockSparseDataTensor<ElemT, QNT>::RawDataCopy_(
+  const std::vector<ElemT*>& src_pointers,
+  const std::vector<ElemT*>& dest_pointers,
+  const std::vector<size_t>& copy_sizes
+){
+  size_t task_size = src_pointers.size();
+  int ompth = hp_numeric::tensor_manipulation_num_threads;
+  #pragma omp parallel for default(none) \
+                shared(task_size, dest_pointers, src_pointers, copy_sizes)\
+                num_threads(ompth)\
+                schedule(dynamic) 
+  for(size_t i = 0;i<task_size;i++){
+    memcpy(
+      dest_pointers[i],
+      src_pointers[i],
+      copy_sizes[i] * sizeof(ElemT)
+    );
+  }
+}
+/**
+Copy a piece of raw data from another place. 
+The destination must be different and there is no addition 
+
+@param raw_data_copy_tasks Raw data copy task list.
+@param psrc_raw_data The pointer to source data.
+*/
+template <typename ElemT, typename QNT>
+void BlockSparseDataTensor<ElemT, QNT>::RawDataCopyNoAdd_(
+    const std::vector<RawDataCopyTask> &raw_data_copy_tasks,
+    const ElemT *psrc_raw_data
+) {
+  size_t task_size = raw_data_copy_tasks.size();
+  size_t ompth = hp_numeric::tensor_manipulation_num_threads;
+  
+  #pragma omp parallel for default(none) \
+                shared(task_size, raw_data_copy_tasks, pactual_raw_data_, psrc_raw_data)\
+                num_threads(ompth)\
+                schedule(dynamic) 
+  for(size_t i = 0; i < task_size;i++){
+    RawDataCopyTask task = raw_data_copy_tasks[i];
+    memcpy(
+        pactual_raw_data_ + task.dest_data_offset,
+        psrc_raw_data + task.src_data_offset,
+        task.src_data_size * sizeof(ElemT)
+    );
   }
 }
 

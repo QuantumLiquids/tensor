@@ -180,13 +180,9 @@ struct RawDataSetZerosTask {
 struct RawDataCtrctTask {
   size_t a_blk_idx;
   size_t a_data_offset;
-  bool a_need_trans;
-  std::vector<size_t> a_trans_orders;
 
   size_t b_blk_idx;
   size_t b_data_offset;
-  bool b_need_trans;
-  std::vector<size_t> b_trans_orders;
 
   size_t c_blk_idx = 0;     // initialize it for c is rank 0 (scalar) case
   size_t c_data_offset;
@@ -199,30 +195,24 @@ struct RawDataCtrctTask {
   RawDataCtrctTask(
       const size_t a_blk_idx,
       const size_t a_data_offset,
-      const bool a_need_trans,
       const size_t b_blk_idx,
       const size_t b_data_offset,
-      const bool b_need_trans,
       const size_t m,
       const size_t k,
       const size_t n,
       const GQTEN_Double beta
   ) : a_blk_idx(a_blk_idx),
       a_data_offset(a_data_offset),
-      a_need_trans(a_need_trans),
       b_blk_idx(b_blk_idx),
       b_data_offset(b_data_offset),
-      b_need_trans(b_need_trans),
       m(m), k(k), n(n),
       beta(beta) {}
 
   RawDataCtrctTask(
       const size_t a_blk_idx,
       const size_t a_data_offset,
-      const bool a_need_trans,
       const size_t b_blk_idx,
       const size_t b_data_offset,
-      const bool b_need_trans,
       const size_t c_blk_idx,
       const size_t m,
       const size_t k,
@@ -230,10 +220,8 @@ struct RawDataCtrctTask {
       const GQTEN_Double beta
   ) : a_blk_idx(a_blk_idx),
       a_data_offset(a_data_offset),
-      a_need_trans(a_need_trans),
       b_blk_idx(b_blk_idx),
       b_data_offset(b_data_offset),
-      b_need_trans(b_need_trans),
       c_blk_idx(c_blk_idx),
       m(m), k(k), n(n),
       beta(beta) {}

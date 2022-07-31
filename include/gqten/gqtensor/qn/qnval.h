@@ -17,6 +17,8 @@
 #include "gqten/framework/bases/hashable.h"       // Hashable
 #include "gqten/framework/bases/streamable.h"     // Streamable
 #include "gqten/framework/bases/showable.h"       // Showable
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/export.hpp>
 
 #include <vector>     // vector
 #include <memory>     // shared_ptr
@@ -64,9 +66,14 @@ public:
   Add the other quantum number value to this quantum number value.
   */
   virtual void AddAssign(const QNVal *) = 0;
+
+  friend class boost::serialization::access;
+  template<class Archive>
+  void serialize(Archive & ar, const unsigned int version){;}
 };
 
 using QNValPtrVec = std::vector<QNVal *>;
 using QNValSharedPtr = std::shared_ptr<QNVal>;
 } /* gqten */
+BOOST_SERIALIZATION_ASSUME_ABSTRACT(gqten::QNVal)
 #endif /* ifndef GQTEN_GQTENSOR_QN_QNVAL_H */

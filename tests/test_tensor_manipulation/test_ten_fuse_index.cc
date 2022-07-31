@@ -78,9 +78,9 @@ TEST(TestFuseIndexNaive, TestCase) {
   ten2({2,0}) = 4.5;
   ten2({2,1}) = 2.3;
   DGQTensor ten3 = DGQTensor({idx_in1plus1});
-  ten3({5}) = 0.5;
-  ten3({6}) = 4.5;
-  ten3({7})  = 2.3;
+  ten3(5) = 0.5;
+  ten3(6) = 4.5;
+  ten3(7)  = 2.3;
   RunTestTenFuseIndexCase(ten2,0,1,ten3);
 
 }

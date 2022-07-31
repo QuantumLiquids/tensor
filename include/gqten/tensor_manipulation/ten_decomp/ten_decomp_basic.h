@@ -27,12 +27,11 @@ inline void CalcDataBlkMatShape(
 ) {
   size_t m = 1;
   size_t n = 1;
-  for (size_t i = 0; i < shape.size(); ++i) {
-    if (i < ldims) {
+  for (size_t i = 0; i < ldims; ++i) {
       m *= shape[i];
-    } else {
+  }
+  for (size_t i = ldims; i < shape.size(); ++i){
       n *= shape[i];
-    }
   }
   rows = m;
   cols = n;

@@ -19,6 +19,8 @@
 #include "gqten/framework/bases/streamable.h"     // Streamable
 #include "gqten/framework/bases/showable.h"       // Showable
 #include "gqten/framework/vec_hash.h"             // VecPtrHasher
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/split_member.hpp>
 
 #ifdef Release
   #define NDEBUG
@@ -104,6 +106,13 @@ private:
   size_t CalcHash_(void) const;
 
   QN(const QNValPtrVec &);    // Intra used private constructor
+
+  friend class boost::serialization::access;
+  template<class Archive>
+  void save(Archive & ar, const unsigned int version) const;
+  template<class Archive>
+  void load(Archive & ar, const unsigned int version);
+  BOOST_SERIALIZATION_SPLIT_MEMBER()
 };
 
 
@@ -237,7 +246,7 @@ template <typename... QNValTs>
 void QN<QNValTs...>::StreamRead(std::istream &is) {
   pqnvals_ = {(new QNValTs)...};     // Initialize the quantum number value slots
   for (auto &qnval : pqnvals_) {
-    is >> (*qnval);
+    qnval->StreamRead(is);
   }
   is >> hash_;
   dim_ = CalcDim_();    // Recalculate the dimension.
@@ -247,9 +256,10 @@ void QN<QNValTs...>::StreamRead(std::istream &is) {
 template <typename... QNValTs>
 void QN<QNValTs...>::StreamWrite(std::ostream &os) const {
   for (auto &qnval : pqnvals_) {
-    os << (*qnval) << std::endl;
+    qnval->StreamWrite(os);
+    os << "\n";
   }
-  os << hash_ << std::endl;
+  os << hash_ << "\n";
 }
 
 
@@ -258,6 +268,29 @@ void QN<QNValTs...>::Show(const size_t indent_level) const {
   std::cout << IndentPrinter(indent_level) << "QN:" << std::endl;
   for (auto &qnval : pqnvals_) {
     qnval->Show(indent_level + 1);
+  }
+}
+class U1QNVal;
+template <typename... QNValTs>
+template <class Archive>
+void QN<QNValTs...>::save(Archive & ar, const unsigned int version) const {
+  ar & dim_;
+  ar & hash_;
+  for(auto& pqnval: pqnvals_){
+    ar.template register_type<U1QNVal>();
+    ar & pqnval;
+  }
+}
+
+template <typename... QNValTs>
+template <class Archive>
+void QN<QNValTs...>::load(Archive & ar, const unsigned int version){
+  pqnvals_ = {(new QNValTs)...};
+  ar & dim_;
+  ar & hash_;
+  for(auto& pqnval: pqnvals_){
+    ar.template register_type<U1QNVal>();
+    ar & pqnval;
   }
 }
 } /* gqten */

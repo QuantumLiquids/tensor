@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 /*
 * Author: Rongyang Sun <sun-rongyang@outlook.com>
+*         Hao-Xin Wang
 * Creation Date: 2020-12-10 18:23
 *
 * Description: GraceQ/tensor project. Perform linear combination of tensors.
@@ -16,7 +17,7 @@
 
 #include "gqten/framework/bases/executor.h"                         // Executor
 #include "gqten/gqtensor_all.h"
-
+#include "gqten/utility/timer.h"
 #include <unordered_set>    // unordered_set
 #include <map>              // map
 
@@ -230,18 +231,18 @@ void LinearCombine(
 }
 
 
-template <typename QNT>
+template <typename ElemType, typename QNT>
 void LinearCombine(
     const size_t size,
-    const GQTEN_Double *pcoefs,
-    const std::vector<GQTensor<GQTEN_Double, QNT> *> &tens,
-    const GQTEN_Double beta,
-    GQTensor<GQTEN_Double, QNT> *pres
+    const ElemType *pcoefs,
+    const std::vector<GQTensor<ElemType, QNT> *> &tens,
+    const ElemType beta,
+    GQTensor<ElemType, QNT> *pres
 ) {
-  std::vector<GQTEN_Double> coefs;
+  std::vector<ElemType> coefs;
   coefs.resize(size);
   std::copy_n(pcoefs, size, coefs.begin());
-  std::vector<GQTensor<GQTEN_Double, QNT> *> actual_tens;
+  std::vector<GQTensor<ElemType, QNT> *> actual_tens;
   actual_tens.resize(size);
   std::copy_n(tens.begin(), size, actual_tens.begin());
   LinearCombine(coefs, actual_tens, beta, pres);
@@ -264,5 +265,28 @@ void LinearCombine(
   std::copy_n(tens.begin(), size, actual_tens.begin());
   LinearCombine(coefs, actual_tens, beta, pres);
 }
+
+/**
+ * @param tens  tens should have different data_blks
+ * @return summation of tens
+ */
+template <typename ElemT, typename QNT>
+void CollectiveLinearCombine(
+  std::vector<GQTensor<ElemT, QNT>>& tens,
+  GQTensor<ElemT, QNT>& summation_tensor
+){
+  assert(tens.size()>0);
+  using std::vector;
+  std::vector<Index<QNT>> indexes = tens[0].GetIndexes();
+  summation_tensor = GQTensor<ElemT, QNT>(indexes);
+  size_t ten_num = tens.size();
+  vector<const BlockSparseDataTensor<ElemT, QNT> *> pbsdts(ten_num);
+  for(size_t i = 0; i < ten_num ;i++){
+    pbsdts[i] = tens[i].GetBlkSparDataTenPtr();
+  }
+  BlockSparseDataTensor<ElemT, QNT>& bsdt = summation_tensor.GetBlkSparDataTen();
+  bsdt.CollectiveLinearCombine(pbsdts);
+}
+
 } /* gqten */
 #endif /* ifndef GQTEN_TENSOR_MANIPULATION_TEN_LINEAR_COMBINE_H */
