@@ -14,7 +14,6 @@
 #ifndef GQTEN_GQTENSOR_GQTENSOR_H
 #define GQTEN_GQTENSOR_GQTENSOR_H
 
-
 #include "gqten/framework/value_t.h"                                // CoorsT, ShapeT, GQTEN_Double, GQTEN_Complex
 #include "gqten/framework/bases/streamable.h"                       // Streamable
 #include "gqten/framework/bases/showable.h"                         // Showable
@@ -30,16 +29,15 @@
 // #include <boost/mpi.hpp>
 namespace gqten {
 
-
 /**
 Symmetry-blocked sparse tensor.
 
 @tparam ElemT Type of the tensor element.
 @tparam QNT   Type of the quantum number.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 class GQTensor : public Showable {
-public:
+ public:
   // Constructors and destructor.
   /// Default constructor.
   GQTensor(void) = default;
@@ -108,9 +106,9 @@ public:
   GQTensorElementAccessDeref operator()(const std::vector<size_t> &) const;
   GQTensorElementAccessDeref operator()(void);
   GQTensorElementAccessDeref operator()(void) const;
-  template <typename... OtherCoorsT>
+  template<typename... OtherCoorsT>
   GQTensorElementAccessDeref operator()(const size_t, const OtherCoorsT...);
-  template <typename... OtherCoorsT>
+  template<typename... OtherCoorsT>
   GQTensorElementAccessDeref operator()(
       const size_t,
       const OtherCoorsT...
@@ -131,7 +129,7 @@ public:
   GQTensor operator+(const GQTensor &) const;
   GQTensor &operator+=(const GQTensor &);
   GQTensor operator*(const ElemT) const;
-  GQTensor& operator*=(const ElemT);
+  GQTensor &operator*=(const ElemT);
 
   // Override base class
   void StreamRead(std::istream &);
@@ -139,7 +137,7 @@ public:
 
   void Show(const size_t indent_level = 0) const override;
   void ConciseShow(const size_t indent_level = 0) const;
-private:
+ private:
   /// The rank of the GQTensor.
   size_t rank_ = 0;
   /// The shape of the GQTensor.
@@ -161,14 +159,14 @@ private:
   /// serialization of data,  for the mpi paralization, 
   friend class boost::serialization::access;
   template<class Archive>
-  void save(Archive & ar, const unsigned int version) const;
+  void save(Archive &ar, const unsigned int version) const;
   template<class Archive>
-  void load(Archive & ar, const unsigned int version);
+  void load(Archive &ar, const unsigned int version);
   BOOST_SERIALIZATION_SPLIT_MEMBER()
 };
 
 // Out-of-class declaration and definition.
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 inline GQTensor<ElemT, QNT> operator*(
     const GQTEN_Double scalar,
     const GQTensor<ElemT, QNT> &t
@@ -176,7 +174,7 @@ inline GQTensor<ElemT, QNT> operator*(
   return t * scalar;
 }
 
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 inline GQTensor<ElemT, QNT> operator*(
     const GQTEN_Complex scalar,
     const GQTensor<ElemT, QNT> &t
@@ -184,18 +182,17 @@ inline GQTensor<ElemT, QNT> operator*(
   return t * scalar;
 }
 
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 inline std::istream &operator>>(std::istream &is, GQTensor<ElemT, QNT> &t) {
   t.StreamRead(is);
   return is;
 }
 
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 inline std::ostream &operator<<(std::ostream &os, const GQTensor<ElemT, QNT> &t) {
   t.StreamWrite(os);
   return os;
 }
-
 
 } /* gqten */
 #endif /* ifndef GQTEN_GQTENSOR_GQTENSOR_H */

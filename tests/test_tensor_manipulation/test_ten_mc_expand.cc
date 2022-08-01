@@ -18,9 +18,9 @@ using IndexT = Index<U1QN>;
 using DGQTensor = GQTensor<GQTEN_Double, U1QN>;
 
 std::string qn_nm = "qn";
-U1QN qn0 =  U1QN({QNCard(qn_nm, U1QNVal( 0))});
-U1QN qnp1 = U1QN({QNCard(qn_nm, U1QNVal( 1))});
-U1QN qnp2 = U1QN({QNCard(qn_nm, U1QNVal( 2))});
+U1QN qn0 = U1QN({QNCard(qn_nm, U1QNVal(0))});
+U1QN qnp1 = U1QN({QNCard(qn_nm, U1QNVal(1))});
+U1QN qnp2 = U1QN({QNCard(qn_nm, U1QNVal(2))});
 U1QN qnm1 = U1QN({QNCard(qn_nm, U1QNVal(-1))});
 U1QN qnm2 = U1QN({QNCard(qn_nm, U1QNVal(-2))});
 QNSctT qnsctp1 = QNSctT(qnp1, 1);
@@ -48,14 +48,13 @@ IndexT idx_inp1 = IndexT({qnsctp1}, IN);
 IndexT idx_outm1 = IndexT({qnsctm1}, OUT);
 IndexT idx_outm2 = IndexT({qnsctm2}, OUT);
 IndexT idx_outp1 = IndexT({qnsctp1}, OUT);
-IndexT idx_out1 = IndexT({qnsctp3, qnsct0,qnsctm3}, OUT);
-IndexT idx_in1 = IndexT({qnsctp3, qnsct0,qnsctm3}, IN);
+IndexT idx_out1 = IndexT({qnsctp3, qnsct0, qnsctm3}, OUT);
+IndexT idx_in1 = IndexT({qnsctp3, qnsct0, qnsctm3}, IN);
 IndexT idx_in2 = IndexT({qnsctm1, qnsctp1}, IN);
 IndexT idx_in4 = IndexT({qnsctm2, qnsctp2}, IN);
 IndexT idx_out2 = IndexT({qnsctm1, qnsctp1}, OUT);
 
-
-template <typename ElemT,typename QNT>
+template<typename ElemT, typename QNT>
 void RunTestTenMCExpansionCase(
     const GQTensor<ElemT, QNT> &a,
     const GQTensor<ElemT, QNT> &b,
@@ -67,7 +66,6 @@ void RunTestTenMCExpansionCase(
   ExpandMC(&a, &b, expand_idx_nums, &res);
   EXPECT_TRUE(res == c);
 }
-
 
 TEST(TestMCExpand, TestCase) {
   DGQTensor ten0 = DGQTensor({idx_inm1, idx_outm1});
@@ -94,11 +92,11 @@ TEST(TestMCExpand, TestCase) {
   DGQTensor ten6 = DGQTensor({idx_in0, idx_out2, idx_out2});
   DGQTensor ten7 = ten6;
   DGQTensor ten8 = DGQTensor({idx_in0_2, idx_out2, idx_out2});
-  ten6({0,0,1})=0.3;
-  ten7({0,1,0})=0.8;
-  ten8({0,0,1})=1;
-  ten8({1,1,0})=1;
-  RunTestTenMCExpansionCase(ten6,ten7,{0},ten6);
+  ten6({0, 0, 1}) = 0.3;
+  ten7({0, 1, 0}) = 0.8;
+  ten8({0, 0, 1}) = 1;
+  ten8({1, 1, 0}) = 1;
+  RunTestTenMCExpansionCase(ten6, ten7, {0}, ten6);
 
   IndexT idx_in4scts1({qnsct0_2, qnsctp1_2, qnsctp2_2, qnsctm1_2}, IN);
   IndexT idx_in4scts2({qnsctp1_2, qnsctp2_2, qnsctm2_2, qnsctm1_2}, IN);
@@ -118,5 +116,5 @@ TEST(TestMCExpand, TestCase) {
   ten11(7, 6) = 3.0;
   ten11(idx_in4scts1.dim() + 1, 8) = 6.0;
   RunTestTenMCExpansionCase(ten9, ten10, {0}, ten11);
-  
+
 }
