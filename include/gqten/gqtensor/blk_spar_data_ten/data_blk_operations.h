@@ -415,9 +415,9 @@ std::vector<RawDataCtrctTask>
 BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForExtraTenCtrct(
     const BlockSparseDataTensor &bsdt_a,
     const BlockSparseDataTensor &bsdt_b,
-    const ushort a_ctrct_axes_end,
-    const ushort b_ctrct_axes_end,
-    const ushort ctrct_axes_size
+    const size_t a_ctrct_axes_end,
+    const size_t b_ctrct_axes_end,
+    const size_t ctrct_axes_size
 ) {
   //TODO...
   return std::vector<RawDataCtrctTask>();
@@ -504,8 +504,8 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVDMaster(
     ElemT *mat = RawDataGenDenseDataBlkMat_(data_blk_mat);
     const size_t m = data_blk_mat.rows;
     const size_t n = data_blk_mat.cols;
-    world.send(controlling_slave, 2*controlling_slave, m);
-    world.send(controlling_slave, 3*controlling_slave, n);
+    hp_numeric::MPI_Send(m, controlling_slave, 2*controlling_slave, MPI_Comm(world));
+    hp_numeric::MPI_Send(n, controlling_slave, 3*controlling_slave, MPI_Comm(world));
     hp_numeric::MPI_Send(mat, m*n, controlling_slave, 4*controlling_slave, MPI_Comm(world));
 
     const size_t ld = std::min(m,n);
@@ -531,8 +531,8 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVDMaster(
     //send finish signal
     const size_t m = 0;
     const size_t n = 0;
-    world.send(slave, 2*slave, m);
-    world.send(slave, 3*slave, n);
+    hp_numeric::MPI_Send(m, slave, 2*slave, MPI_Comm(world));
+    hp_numeric::MPI_Send(n, slave, 3*slave, MPI_Comm(world));
   }
 #ifdef GQTEN_MPI_TIMING_MODE
   data_blk_decomp_svd_master_timer.PrintElapsed();
@@ -545,8 +545,8 @@ void DataBlkDecompSVDSlave(boost::mpi::communicator& world){
   size_t task_done = 0;
   size_t m, n;//check if IdxDataBlkMatMap must have >0 row and  column
   size_t slave_identifier = world.rank();
-  world.recv(kMPIMasterRank, 2*slave_identifier, m);
-  world.recv(kMPIMasterRank, 3*slave_identifier, n);
+  hp_numeric::MPI_Recv(m, kMPIMasterRank, 2*slave_identifier, MPI_Comm(world));
+  hp_numeric::MPI_Recv(n, kMPIMasterRank, 3*slave_identifier, MPI_Comm(world));
 #ifdef GQTEN_MPI_TIMING_MODE
   Timer slave_total_work_timer("slave "+ std::to_string(slave_identifier) +" total work");
   Timer slave_commu_timer("slave " + std::to_string(slave_identifier) + " communication and wait");
@@ -578,8 +578,8 @@ void DataBlkDecompSVDSlave(boost::mpi::communicator& world){
 
     task_done++;
 
-    world.recv(kMPIMasterRank, 2*slave_identifier, m);
-    world.recv(kMPIMasterRank, 3*slave_identifier, n);
+    hp_numeric::MPI_Recv(m, kMPIMasterRank, 2*slave_identifier, MPI_Comm(world));
+    hp_numeric::MPI_Recv(n, kMPIMasterRank, 3*slave_identifier, MPI_Comm(world));
   }
 #ifdef GQTEN_MPI_TIMING_MODE
   std::cout << "slave " << slave_identifier << " has done " << task_done << " tasks." << std::endl;

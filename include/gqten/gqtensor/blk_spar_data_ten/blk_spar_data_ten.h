@@ -110,9 +110,9 @@ public:
   std::vector<RawDataCtrctTask> DataBlkGenForExtraTenCtrct(
       const BlockSparseDataTensor &,
       const BlockSparseDataTensor &,
-      const ushort ,
-      const ushort ,
-      const ushort
+      const size_t ,
+      const size_t ,
+      const size_t
   );
 
     std::vector<RawDataCtrctTask> DataBlkGenForTenCtrct(

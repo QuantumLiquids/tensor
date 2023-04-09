@@ -672,6 +672,30 @@ void GQTensor<ElemT, QNT>::ConciseShow(const size_t indent_level) const{
           << "actual data size:\t" << data_size << "\n";
     cout  << IndentPrinter(indent_level+1) 
           << "tensor sparsity:\t" << double(data_size) / double(size_) << endl;
+template<typename ElemT, typename QNT>
+void GQTensor<ElemT, QNT>::ConciseShow(const size_t indent_level) const {
+  using std::cout;
+  using std::endl;
+  cout << IndentPrinter(indent_level) << "GQTensor Concise Info: " << "\n";
+  cout << IndentPrinter(indent_level + 1) << "tensor shape:" << "\t[";
+  VectorPrinter(shape_);
+  cout << "]\n";
+  cout << IndentPrinter(indent_level + 1) << "tensor elementary type:\t"
+       << ElemenTypeOfTensor(*this) << "\n";
+  cout << IndentPrinter(indent_level + 1)
+       << "tensor qumtum number block number:\t"
+       << GetQNBlkNum() << "\n";
+  cout << IndentPrinter(indent_level + 1)
+       << "tensor size(product of shape):\t" << size_ << "\n";
+  if (IsDefault()) {
+    cout << IndentPrinter(indent_level + 1) << "default tensor" << endl;
+    return;
+  }
+  size_t data_size = pblk_spar_data_ten_->GetActualRawDataSize();
+  cout << IndentPrinter(indent_level + 1)
+       << "actual data size:\t" << data_size << "\n";
+  cout << IndentPrinter(indent_level + 1)
+       << "tensor sparsity:\t" << double(data_size) / double(size_) << endl;
 }
 
 /**
@@ -742,10 +766,10 @@ inline void send_gqten(boost::mpi::communicator world,
 #ifdef GQTEN_MPI_TIMING_MODE
   mpi_send_gqten_wrapper_timer.PrintElapsed();
 #endif
-  int tag_data = tag*kMPIDataTagMultiplyFactor+1;
-  const BlockSparseDataTensor<ElemT, QNT>& bsdt=gqten.GetBlkSparDataTen();
-  const ElemT* data_pointer = bsdt.GetActualRawDataPtr();
-  int data_size = bsdt.GetActualRawDataSize();
+  int tag_data = tag * kMPIDataTagMultiplyFactor + 1;
+  const BlockSparseDataTensor<ElemT, QNT> &bsdt = gqten.GetBlkSparDataTen();
+  const ElemT *data_pointer = bsdt.GetActualRawDataPtr();
+  size_t data_size = bsdt.GetActualRawDataSize();
   ElemT zero = ElemT(0.0);
   if( gqten.IsScalar() && data_size==0 ){
     data_pointer = &zero;
@@ -793,10 +817,10 @@ inline boost::mpi::status recv_gqten(boost::mpi::communicator world,
 #ifdef GQTEN_MPI_TIMING_MODE
   mpi_recv_gqten_wrapper_timer.PrintElapsed();
 #endif
-  int tag_data = tag*kMPIDataTagMultiplyFactor+1;
-  BlockSparseDataTensor<ElemT, QNT>& bsdt=gqten.GetBlkSparDataTen();
-  ElemT* data_pointer = bsdt.pactual_raw_data_;
-  int data_size = bsdt.GetActualRawDataSize();
+  int tag_data = tag * kMPIDataTagMultiplyFactor + 1;
+  BlockSparseDataTensor<ElemT, QNT> &bsdt = gqten.GetBlkSparDataTen();
+  ElemT *data_pointer = bsdt.pactual_raw_data_;
+  size_t data_size = bsdt.GetActualRawDataSize();
 #ifdef GQTEN_MPI_TIMING_MODE
   Timer mpi_recv_gqten_data_timer("mpi_recv_gqten_data: from rank "
                                       + std::to_string(source)
@@ -830,9 +854,9 @@ inline void SendBroadCastGQTensor(
   }
   boost::mpi::broadcast(world, const_cast<GQTensor<ElemT, QNT>&>(gqten), root);
 
-  const BlockSparseDataTensor<ElemT, QNT>& bsdt=gqten.GetBlkSparDataTen();
-  const ElemT* raw_data_pointer = bsdt.GetActualRawDataPtr();
-  int raw_data_size = bsdt.GetActualRawDataSize();
+  const BlockSparseDataTensor<ElemT, QNT> &bsdt = gqten.GetBlkSparDataTen();
+  const ElemT *raw_data_pointer = bsdt.GetActualRawDataPtr();
+  size_t raw_data_size = bsdt.GetActualRawDataSize();
   ElemT zero = ElemT(0.0);
   if( gqten.IsScalar() && raw_data_size==0 ){
     raw_data_pointer = &zero;
@@ -867,9 +891,9 @@ inline void RecvBroadCastGQTensor(
   }
   boost::mpi::broadcast(world, gqten,root);
 
-  BlockSparseDataTensor<ElemT, QNT>& bsdt=gqten.GetBlkSparDataTen();
-  ElemT* raw_data_pointer = bsdt.pactual_raw_data_;
-  int raw_data_size = bsdt.GetActualRawDataSize();
+  BlockSparseDataTensor<ElemT, QNT> &bsdt = gqten.GetBlkSparDataTen();
+  ElemT *raw_data_pointer = bsdt.pactual_raw_data_;
+  size_t raw_data_size = bsdt.GetActualRawDataSize();
 #ifdef GQTEN_MPI_TIMING_MODE
   Timer mpi_bcast_recv_gqten_data_timer("mpi_bcast_send_gqten_data: root = "
                                             + std::to_string(root)

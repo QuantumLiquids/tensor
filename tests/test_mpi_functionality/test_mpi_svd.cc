@@ -53,13 +53,13 @@ Index<U1QN> RandIndex(const unsigned qn_sct_num,  //how many quantum number sect
   return Index(qnsv, dir);
 }
 
-int main(int argc, char *argv[]){
-  namespace mpi = boost::mpi;
+int main(int argc, char *argv[]) {
   using std::vector;
+  namespace mpi = boost::mpi;
   mpi::environment env(mpi::threading::multiple);
   mpi::communicator world;
   size_t thread_num;
-  if(argc == 1){// no input paramter
+  if (argc == 1) {// no input parameter
     thread_num = 12;
   }else{
     thread_num = atoi(argv[1]);
@@ -79,9 +79,10 @@ int main(int argc, char *argv[]){
     DGQTensor1 dstate({index2_out,index1_in,index2_in, index1_out});
     dstate.Random(qn0);
     ZGQTensor1 zstate = ToComplex(dstate);
-    std::cout << "Random tensors." << "\n";
-    cout << "Concise Info of double tensors: \n";
-    cout << "dstate.gqten:"; dstate.ConciseShow();
+    std::cout << "Randomly generate double and complex tensors." << "\n";
+
+    cout << "Concise Infos of the double tensor: \n";
+    dstate.ConciseShow();
 
     const size_t svd_ldims = 2;
     const U1QN left_div = Div(dstate);
@@ -92,7 +93,7 @@ int main(int argc, char *argv[]){
     DGQTensor1 du,ds,dvt;
     GQTEN_Double actual_trunc_err;
     size_t D;
-    Timer parallel_svd_timer("parallel svd");
+    Timer parallel_svd_timer("Parallel SVD for the double tensor");
     MPISVDMaster(&dstate,
                  svd_ldims, left_div,
                  trunc_err, Dmin, Dmax,
@@ -105,7 +106,7 @@ int main(int argc, char *argv[]){
     DGQTensor1 du2, ds2, dvt2;
     GQTEN_Double actual_trunc_err2;
     size_t D2;
-    Timer single_processor_svd_timer("single processor svd");
+    Timer single_processor_svd_timer("Single processor SVD for the double tensor");
     SVD(&dstate,
         svd_ldims, left_div,
         trunc_err, Dmin, Dmax,
@@ -117,37 +118,37 @@ int main(int argc, char *argv[]){
     DGQTensor1 ds_diff = ds+(-ds2);
     EXPECT_NEAR(ds_diff.Normalize()/ds.Normalize(), 0.0, 1e-13 );
 
+    std::cout << "Results from single processor SVD == Results from MPI SVD (double tensor)" << std::endl;
 
-
-
-
-
-    ZGQTensor1 zu,zvt;
+    ZGQTensor1 zu, zvt;
     DGQTensor1 zs;
-    parallel_svd_timer.ClearAndRestart();
+    Timer parallel_svd_timer_complex("Parallel SVD for the complex tensor");
     MPISVDMaster(&zstate,
                  svd_ldims, left_div,
                  trunc_err, Dmin, Dmax,
                  &zu, &zs, &zvt, &actual_trunc_err, &D,
                  world
     );
-    parallel_svd_timer.PrintElapsed();
+    parallel_svd_timer_complex.PrintElapsed();
 
     //by single processor svd
     ZGQTensor1 zu2, zvt2;
     DGQTensor1 zs2;
-    single_processor_svd_timer.ClearAndRestart();
+    Timer single_processor_svd_timer_complex("Single processor SVD for the complex tensor");
     SVD(&zstate,
         svd_ldims, left_div,
         trunc_err, Dmin, Dmax,
         &zu2, &zs2, &zvt2, &actual_trunc_err2, &D2
     );
-    single_processor_svd_timer.PrintElapsed();
+    single_processor_svd_timer_complex.PrintElapsed();
+
     EXPECT_EQ(D, D2);
     EXPECT_NEAR(actual_trunc_err2, actual_trunc_err, 1e-13);
-    DGQTensor1 zs_diff = zs+(-zs2);
-    EXPECT_NEAR(zs_diff.Normalize()/zs.Normalize(), 0.0, 1e-13 );
-  }else{
+    DGQTensor1 zs_diff = zs + (-zs2);
+    EXPECT_NEAR(zs_diff.Normalize() / zs.Normalize(), 0.0, 1e-13);
+    std::cout << "Results from single processor SVD == Results from MPI SVD (complex tensor)" << std::endl;
+
+  } else {
     MPISVDSlave<GQTEN_Double>(world);
     MPISVDSlave<GQTEN_Complex>(world);
   }
@@ -176,7 +177,7 @@ int main(int argc, char *argv[]){
     cout << "Concise Info of tensors: \n";
     cout << "state.gqten:"; state.ConciseShow();
 
-    //paramter
+    //parameter
     const size_t svd_ldims = 2;
     const U1U1QN left_div = Div(state);
     const GQTEN_Double trunc_err = 1e-8;

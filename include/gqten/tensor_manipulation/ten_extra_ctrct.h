@@ -60,16 +60,16 @@ class TensorExtraContractionExecutor: public Executor {
   const GQTensor<TenElemT, QNT> *pa_;
   const GQTensor<TenElemT, QNT> *pb_;
   GQTensor<TenElemT, QNT> *pc_;
-  ushort a_ctrct_axes_start_; //ctrct_axes include this one
-  ushort b_ctrct_axes_start_;
-  ushort a_ctrct_axes_end_; //ctrct_axes do not include this one
-  ushort b_ctrct_axes_end_; //ctrct_axes do not include this one
-  ushort ctrct_axes_size_;
+  size_t a_ctrct_axes_start_; //ctrct_axes include this one
+  size_t b_ctrct_axes_start_;
+  size_t a_ctrct_axes_end_; //ctrct_axes do not include this one
+  size_t b_ctrct_axes_end_; //ctrct_axes do not include this one
+  size_t ctrct_axes_size_;
 
-  ushort a_trans_critical_axe_;
+  size_t a_trans_critical_axe_;
   //if a_trans_critical_axe_ > 0, transpose happen between (a_trans_ctritical_axe_ - 1, a_trans_ctritical_axe_),
   //else a_trans_critical_axe_ == 0, no need to transpose. (this design can be reconsidered)
-  ushort b_trans_critical_axe_;
+  size_t b_trans_critical_axe_;
   //if b_trans_critical_axe_ == 0, no need to transpose
 
   TenElemT* a_trans_data_ = nullptr;
@@ -77,7 +77,6 @@ class TensorExtraContractionExecutor: public Executor {
   // so that we can save some memory.
   TenElemT* b_trans_data_ = nullptr;
   std::vector<RawDataCtrctTask> raw_data_ctrct_tasks_;
-  //and maybe more ...
 };
 
 /**
@@ -125,23 +124,23 @@ b_trans_critical_axe_( b_ctrct_head ? b_ctrct_axes_start : b_ctrct_axes_end_) {}
 template <typename TenElemT, typename QNT, bool a_ctrct_tail, bool b_ctrct_head>
 void TensorExtraContractionExecutor<TenElemT, QNT, a_ctrct_tail, b_ctrct_head>::GenerateDataBlk_() {
   using std::vector;
-  const ushort a_rank(pa_->Rank()), b_rank(pb_->Rank());
+  const size_t a_rank(pa_->Rank()), b_rank(pb_->Rank());
   vector<vector<size_t>> saved_axes_set(2), ctrct_axes_set(2);
   ctrct_axes_set[0].reserve(ctrct_axes_size_);
   ctrct_axes_set[1].reserve(ctrct_axes_size_);
   saved_axes_set[0].reserve(pa_->Rank() - ctrct_axes_size_);
   saved_axes_set[1].reserve(pb_->Rank() - ctrct_axes_size_);
-  for(ushort i = 0; i < ctrct_axes_size_; i ++ ) {
-    ctrct_axes_set[0].push_back((a_ctrct_axes_start_+i)%a_rank);
-    ctrct_axes_set[1].push_back((b_ctrct_axes_start_+i)%b_rank);
+  for (size_t i = 0; i < ctrct_axes_size_; i++) {
+    ctrct_axes_set[0].push_back((a_ctrct_axes_start_ + i) % a_rank);
+    ctrct_axes_set[1].push_back((b_ctrct_axes_start_ + i) % b_rank);
   }
-  const ushort save_axes_size_a = a_rank - ctrct_axes_size_;
-  const ushort save_axes_size_b = b_rank - ctrct_axes_size_;
-  for(ushort i = 0; i < save_axes_size_a; i ++) {
-    saved_axes_set[0].push_back( (a_ctrct_axes_end_+i)%a_rank);
+  const size_t save_axes_size_a = a_rank - ctrct_axes_size_;
+  const size_t save_axes_size_b = b_rank - ctrct_axes_size_;
+  for (size_t i = 0; i < save_axes_size_a; i++) {
+    saved_axes_set[0].push_back((a_ctrct_axes_end_ + i) % a_rank);
   }
-  for(ushort i = 0; i < save_axes_size_b; i ++) {
-    saved_axes_set[1].push_back( (b_ctrct_axes_end_+i)%b_rank);
+  for (size_t i = 0; i < save_axes_size_b; i++) {
+    saved_axes_set[1].push_back((b_ctrct_axes_end_ + i) % b_rank);
   }
 #ifndef NDEBUG
   auto& indexesa = pa_->GetIndexes();
