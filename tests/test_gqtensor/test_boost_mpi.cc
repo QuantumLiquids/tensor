@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
   delete[] B;
 
   if (world.rank() == 0) {
-    std::cout << "Test for double random tensor." << std::endl;
+    std::cout << "<====== Test For Double Random Tensor ======> " << std::endl;
     auto index1_in = RandIndex(50, 400, gqten::IN);
     auto index2_in = RandIndex(4, 1, gqten::IN);
     auto index1_out = RandIndex(4, 1, gqten::OUT);
@@ -135,13 +135,13 @@ int main(int argc, char *argv[]) {
 
     mpi_double_transf_timer.PrintElapsed();
     EXPECT_EQ(t1, t3);
-    std::cout << "Send-Receive-Send For Random Tensor Success." << std::endl;
+    std::cout << "Success: Send-Receive-Send For Double Random Tensor." << std::endl;
 
     SendBroadCastGQTensor(world, t1, 0);
   } else {
     DGQTensor t2;
 
-    recv_gqten(world, mpi::any_source,// from process1
+    recv_gqten(world, mpi::any_source,// from process 0
                mpi::any_tag,//tag
                t2);
 
@@ -205,7 +205,7 @@ int main(int argc, char *argv[]) {
 #endif
 
   if (world.rank() == 0) {
-    std::cout << "Test for complex random tensor." << std::endl;
+    std::cout << "<====== Test For Complex Random Tensor ======>" << std::endl;
     auto index1_in = RandIndex(50, 400, gqten::IN);
     auto index2_in = RandIndex(4, 1, gqten::IN);
     auto index1_out = RandIndex(4, 1, gqten::OUT);
@@ -216,7 +216,7 @@ int main(int argc, char *argv[]) {
 
     t1.ConciseShow();
 
-    Timer mpi_complex_transf_timer("mpi_send_recv_send");
+    Timer mpi_complex_transf_timer("mpi_send_recv_send(complex)");
     send_gqten(world, 1, //to process 1
                35,//tag
                t1);
@@ -227,7 +227,7 @@ int main(int argc, char *argv[]) {
 
     mpi_complex_transf_timer.PrintElapsed();
     EXPECT_EQ(t1, t3);
-    std::cout << "Send-Receive-Send For Complex Random Tensor Success." << std::endl;
+    std::cout << "Success: Send-Receive-Send For Complex Random Tensor." << std::endl;
 
     SendBroadCastGQTensor(world, t1, 0);
   } else {
