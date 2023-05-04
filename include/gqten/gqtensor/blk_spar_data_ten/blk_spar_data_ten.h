@@ -13,7 +13,6 @@
 #ifndef GQTEN_GQTENSOR_BLK_SPAR_DATA_TEN_BLK_SPAR_DATA_TEN_H
 #define GQTEN_GQTENSOR_BLK_SPAR_DATA_TEN_BLK_SPAR_DATA_TEN_H
 
-
 #include "gqten/framework/value_t.h"                                      // CoorsT, ShapeT
 #include "gqten/framework/bases/streamable.h"                             // Streamable
 #include "gqten/gqtensor/index.h"                                         // IndexVec, CalcQNSctNumOfIdxs
@@ -23,7 +22,7 @@
 #include "gqten/utility/utils_inl.h"                                      // CalcEffOneDimArrayOffset, CalcMultiDimDataOffsets, Reorder, ArrayEq, VecMultiSelectElemts
 
 #include "gqten/framework/hp_numeric/mpi_fun.h"
-#include <boost/serialization/serialization.hpp>  
+#include <boost/serialization/serialization.hpp>
 // #include <boost/serialization/map.hpp>    
 #include <boost/serialization/split_member.hpp>
 #include <boost/serialization/array.hpp>
@@ -39,14 +38,13 @@
 #include <stdlib.h>     // malloc, free
 #include <string.h>     // memcpy, memset
 #ifdef Release
-  #define NDEBUG
+#define NDEBUG
 #endif
 #include <assert.h>     // assert
 
-
 namespace gqten {
 
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 class GQTensor;
 
 /**
@@ -55,9 +53,9 @@ Block sparse data tensor.
 @tparam ElemT Type of the tensor element.
 @tparam QNT   Type of the quantum number.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 class BlockSparseDataTensor : public Streamable {
-public:
+ public:
   /// Type of block index to data block ordered mapping.
   using BlkIdxDataBlkMap = std::map<size_t, DataBlk<QNT>>;
 
@@ -110,17 +108,17 @@ public:
   std::vector<RawDataCtrctTask> DataBlkGenForExtraTenCtrct(
       const BlockSparseDataTensor &,
       const BlockSparseDataTensor &,
-      const size_t ,
-      const size_t ,
+      const size_t,
+      const size_t,
       const size_t
   );
 
-    std::vector<RawDataCtrctTask> DataBlkGenForTenCtrct(
-      const std::map<size_t, gqten::DataBlk<QNT>>&,
-      const std::map<size_t, gqten::DataBlk<QNT>>&,
+  std::vector<RawDataCtrctTask> DataBlkGenForTenCtrct(
+      const std::map<size_t, gqten::DataBlk<QNT>> &,
+      const std::map<size_t, gqten::DataBlk<QNT>> &,
       const std::vector<std::vector<size_t>> &,
       const std::vector<std::vector<size_t>> &,
-      std::vector<size_t>&
+      std::vector<size_t> &
   );
 
   std::map<size_t, DataBlkMatSvdRes<ElemT>> DataBlkDecompSVD(
@@ -128,8 +126,8 @@ public:
   ) const;
 
   std::map<size_t, DataBlkMatSvdRes<ElemT>> DataBlkDecompSVDMaster(
-    const IdxDataBlkMatMap<QNT> &,
-    boost::mpi::communicator& 
+      const IdxDataBlkMatMap<QNT> &,
+      boost::mpi::communicator &
   ) const;
 
   void DataBlkCopySVDUdata(
@@ -169,7 +167,7 @@ public:
   void Random(void);
   void Transpose(const std::vector<size_t> &);
   void FuseFirstTwoIndex(
-      const std::vector<std::tuple<size_t,size_t,size_t,size_t>>&
+      const std::vector<std::tuple<size_t, size_t, size_t, size_t>> &
   );
   GQTEN_Double Normalize(void);
   void Conj(void);
@@ -188,12 +186,12 @@ public:
       std::vector<int> &
   );
 
-  template <bool a_ctrct_tail, bool b_ctrct_head>
+  template<bool a_ctrct_tail, bool b_ctrct_head>
   void CtrctAccordingTask(
-      const ElemT* a_raw_data,
-      const ElemT* b_raw_data,
+      const ElemT *a_raw_data,
+      const ElemT *b_raw_data,
       const std::vector<RawDataCtrctTask> &raw_data_ctrct_tasks
-      );
+  );
   void ConstructExpandedDataOnFirstIndex(
       const BlockSparseDataTensor &,
       const BlockSparseDataTensor &,
@@ -208,12 +206,12 @@ public:
   );
 
   void OutOfPlaceMatrixTransposeForSelectedDataBlk(
-      const std::set<size_t>& selected_data_blk_idxs,
+      const std::set<size_t> &selected_data_blk_idxs,
       const size_t critical_axe,
-      ElemT* transposed_data
-      ) const;
+      ElemT *transposed_data
+  ) const;
 
-  bool HasDataBlkQNInfo(){
+  bool HasDataBlkQNInfo() {
     return blk_idx_data_blk_map_.begin()->second.HasQNBlkInfo();
   }
 
@@ -265,34 +263,34 @@ public:
   static std::vector<size_t> GenBlkIdxQNBlkCoorPartHashMap(
       const BlkIdxDataBlkMap &,
       const std::vector<size_t> &
-      );
+  );
 
   void CollectiveLinearCombine(
-    const std::vector<const BlockSparseDataTensor *>
+      const std::vector<const BlockSparseDataTensor *>
   );
 
   void MPISend(
-    boost::mpi::communicator& world,
-    const int dest,
-    const int tag
+      boost::mpi::communicator &world,
+      const int dest,
+      const int tag
   );
 
   boost::mpi::status MPIRecv(
-    boost::mpi::communicator& world,
-    const int source,
-    const int tag
+      boost::mpi::communicator &world,
+      const int source,
+      const int tag
   );
 
   boost::mpi::status MPIRecvIdxDataBlkMap(
-    boost::mpi::communicator& world,
-    const int source,
-    const int tag
+      boost::mpi::communicator &world,
+      const int source,
+      const int tag
   );
 
   boost::mpi::status MPIRecvActualData(
-    boost::mpi::communicator& world,
-    const int source,
-    const int tag
+      boost::mpi::communicator &world,
+      const int source,
+      const int tag
   );
 
   /// Rank of the tensor.
@@ -302,7 +300,7 @@ public:
   /// A pointer which point to the indexes of corresponding GQTensor.
   const IndexVec<QNT> *pgqten_indexes = nullptr;
 
-private:
+ private:
   /// Ordered map from block index to data block for existed blocks.
   BlkIdxDataBlkMap blk_idx_data_blk_map_;
 
@@ -344,16 +342,16 @@ private:
   void RawDataInsert_(const size_t, const size_t, const bool init = false);
 
   void RawDataCopy_(const std::vector<RawDataCopyTask> &, const ElemT *);
-  void RawDataCopy_(const std::vector<ElemT*>&,
-                    const std::vector<ElemT*>&,
-                    const std::vector<size_t>&);
+  void RawDataCopy_(const std::vector<ElemT *> &,
+                    const std::vector<ElemT *> &,
+                    const std::vector<size_t> &);
   void RawDataCopyNoAdd_(const std::vector<RawDataCopyTask> &, const ElemT *);
   void RawDataCopyAndScale_(
       const RawDataCopyAndScaleTask<ElemT> &,
       const ElemT *
   );
   void RawDataSetZeros_(const size_t, const size_t);
-  void RawDataSetZeros_(const std::vector<size_t>&, const std::vector<size_t>&);
+  void RawDataSetZeros_(const std::vector<size_t> &, const std::vector<size_t> &);
   void RawDataSetZeros_(const std::vector<RawDataSetZerosTask> &);
   void RawDataDuplicateFromReal_(const GQTEN_Double *, const size_t);
 
@@ -371,33 +369,40 @@ private:
       const ElemT
   );
 
+  void RawDataTwoMatMultiplyAndAssignInBatch_(
+      const ElemT **,
+      const ElemT **,
+      ElemT **,
+      const int *, const int *, const int *,
+      const ElemT *,
+      size_t group_count
+  );
+
   // Related to tensor decomposition
   ElemT *RawDataGenDenseDataBlkMat_(
       const TenDecompDataBlkMat<QNT> &
-  ) const ;
+  ) const;
 
   void RawDataRead_(std::istream &);
   void RawDataWrite_(std::ostream &) const;
 
-
   friend class boost::serialization::access;
   template<class Archive>
-  void save(Archive & ar, const unsigned int version) const;
+  void save(Archive &ar, const unsigned int version) const;
   template<class Archive>
-  void load(Archive & ar, const unsigned int version);
+  void load(Archive &ar, const unsigned int version);
   BOOST_SERIALIZATION_SPLIT_MEMBER()
 
-  template <typename ElemT2, typename QNT2>
+  template<typename ElemT2, typename QNT2>
   friend inline boost::mpi::status recv_gqten(boost::mpi::communicator world,
-                int source, int tag,
-                GQTensor<ElemT2, QNT2>& gqten);
-  
-  template <typename ElemT2, typename QNT2>
-  friend inline void RecvBroadCastGQTensor(boost::mpi::communicator world,
-                GQTensor<ElemT2, QNT2>& gqten,
-                const int root);
-};
+                                              int source, int tag,
+                                              GQTensor<ElemT2, QNT2> &gqten);
 
+  template<typename ElemT2, typename QNT2>
+  friend inline void RecvBroadCastGQTensor(boost::mpi::communicator world,
+                                           GQTensor<ElemT2, QNT2> &gqten,
+                                           const int root);
+};
 
 /**
 Create a block sparse data tensor using a pointer which point to the indexes
@@ -406,7 +411,7 @@ of corresponding GQTensor.
 @param pgqten_indexes A pointer which point to the indexes of corresponding
        GQTensor.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 BlockSparseDataTensor<ElemT, QNT>::BlockSparseDataTensor(
     const IndexVec<QNT> *pgqten_indexes
 ) : pgqten_indexes(pgqten_indexes) {
@@ -415,13 +420,12 @@ BlockSparseDataTensor<ElemT, QNT>::BlockSparseDataTensor(
   blk_multi_dim_offsets_ = CalcMultiDimDataOffsets(blk_shape);
 }
 
-
 /**
 Copy a block sparse data tensor.
 
 @param bsdt Another block sparse data tensor.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 BlockSparseDataTensor<ElemT, QNT>::BlockSparseDataTensor(
     const BlockSparseDataTensor &bsdt
 ) :
@@ -439,13 +443,12 @@ BlockSparseDataTensor<ElemT, QNT>::BlockSparseDataTensor(
   }
 }
 
-
 /**
 Assign a block sparse data tensor.
 
 @param rhs Another block sparse data tensor.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 BlockSparseDataTensor<ElemT, QNT> &
 BlockSparseDataTensor<ElemT, QNT>::operator=(const BlockSparseDataTensor &rhs) {
   free(pactual_raw_data_);
@@ -465,13 +468,11 @@ BlockSparseDataTensor<ElemT, QNT>::operator=(const BlockSparseDataTensor &rhs) {
   return *this;
 }
 
-
 /// Destroy a block sparse data tensor.
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 BlockSparseDataTensor<ElemT, QNT>::~BlockSparseDataTensor(void) {
   RawDataFree_();
 }
-
 
 /**
 Get an element using block coordinates and in-block data coordinates (in the
@@ -481,7 +482,7 @@ degeneracy space).
 
 @return The tensor element.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 ElemT BlockSparseDataTensor<ElemT, QNT>::ElemGet(
     const std::pair<CoorsT, CoorsT> &blk_coors_data_coors
 ) const {
@@ -500,8 +501,8 @@ ElemT BlockSparseDataTensor<ElemT, QNT>::ElemGet(
   }
 
   auto blk_idx_data_blk_it = blk_idx_data_blk_map_.find(
-                                 BlkCoorsToBlkIdx(blk_coors_data_coors.first)
-                             );
+      BlkCoorsToBlkIdx(blk_coors_data_coors.first)
+  );
   if (blk_idx_data_blk_it == blk_idx_data_blk_map_.end()) {
     return 0.0;
   } else {
@@ -515,7 +516,6 @@ ElemT BlockSparseDataTensor<ElemT, QNT>::ElemGet(
   }
 }
 
-
 /**
 Set an element using block coordinates and in-block data coordinates (in the
 degeneracy space).
@@ -525,7 +525,7 @@ degeneracy space).
 
 @param elem The value of the tensor element.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::ElemSet(
     const std::pair<CoorsT, CoorsT> &blk_coors_data_coors,
     const ElemT elem
@@ -548,22 +548,21 @@ void BlockSparseDataTensor<ElemT, QNT>::ElemSet(
   }
 
   auto blk_idx_data_blk_it = blk_idx_data_blk_map_.find(
-                                 BlkCoorsToBlkIdx(blk_coors_data_coors.first)
-                             );
+      BlkCoorsToBlkIdx(blk_coors_data_coors.first)
+  );
   if (blk_idx_data_blk_it == blk_idx_data_blk_map_.end()) {
     blk_idx_data_blk_it = DataBlkInsert(blk_coors_data_coors.first);
   }
   size_t inblk_data_idx = blk_idx_data_blk_it->second.DataCoorsToInBlkDataIdx(
-                              blk_coors_data_coors.second
-                          );
+      blk_coors_data_coors.second
+  );
   *(pactual_raw_data_ + blk_idx_data_blk_it->second.data_offset + inblk_data_idx) = elem;
 }
-
 
 /**
 Rank 0 (scalar) check.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 bool BlockSparseDataTensor<ElemT, QNT>::IsScalar(void) const {
 #ifdef NDEBUG
   return (ten_rank == 0);
@@ -580,11 +579,10 @@ bool BlockSparseDataTensor<ElemT, QNT>::IsScalar(void) const {
 #endif
 }
 
-
 /**
 Read a BlockSparseDataTensor from a stream.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::StreamRead(std::istream &is) {
   size_t data_blk_num;
   is >> data_blk_num;
@@ -604,15 +602,14 @@ void BlockSparseDataTensor<ElemT, QNT>::StreamRead(std::istream &is) {
   RawDataRead_(is);
 }
 
-
 /**
 Write a BlockSparseDataTensor to a stream.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::StreamWrite(std::ostream &os) const {
   os << blk_idx_data_blk_map_.size() << "\n";
-  for (auto &blk_idx_data_blk : blk_idx_data_blk_map_) {
-    for (auto &blk_coor : blk_idx_data_blk.second.blk_coors) {
+  for (auto &blk_idx_data_blk: blk_idx_data_blk_map_) {
+    for (auto &blk_coor: blk_idx_data_blk.second.blk_coors) {
       os << blk_coor << "\n";
     }
   }
@@ -645,13 +642,13 @@ void BlockSparseDataTensor<ElemT, QNT>::save(Archive & ar, const unsigned int ve
 /** 
  * load the shell and allocate the memory, no data is read.
  */
-template <typename ElemT, typename QNT>
-template <class Archive>
-void BlockSparseDataTensor<ElemT, QNT>::load(Archive & ar, const unsigned int version){
+template<typename ElemT, typename QNT>
+template<class Archive>
+void BlockSparseDataTensor<ElemT, QNT>::load(Archive &ar, const unsigned int version) {
   size_t data_blk_num;
   ar & data_blk_num;
-  std::vector< CoorsT > blk_coors_s(data_blk_num, CoorsT(ten_rank));
-  std::vector< size_t > idxs(data_blk_num);
+  std::vector<CoorsT> blk_coors_s(data_blk_num, CoorsT(ten_rank));
+  std::vector<size_t> idxs(data_blk_num);
   for (size_t i = 0; i < data_blk_num; ++i) {
     ar & idxs[i];
     for (size_t j = 0; j < ten_rank; ++j) {
@@ -665,53 +662,52 @@ void BlockSparseDataTensor<ElemT, QNT>::load(Archive & ar, const unsigned int ve
   Allocate();
 }
 
-
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 inline void BlockSparseDataTensor<ElemT, QNT>::MPISend(
-  boost::mpi::communicator& world,
-  const int dest,
-  const int tag){
+    boost::mpi::communicator &world,
+    const int dest,
+    const int tag) {
   world.send(dest, tag, *this);
-  int tag_data = 2*tag+1;
-  if(IsScalar() && actual_raw_data_size_ ==0 ){
+  int tag_data = 2 * tag + 1;
+  if (IsScalar() && actual_raw_data_size_ == 0) {
     ElemT zero = ElemT(0.0);
-    ElemT* data_pointer = &zero;
+    ElemT *data_pointer = &zero;
     int data_size = 1;
     hp_numeric::MPI_Send(data_pointer, data_size, dest, tag_data, MPI_Comm(world));
-  }else{
+  } else {
     hp_numeric::MPI_Send(pactual_raw_data_, actual_raw_data_size_, dest, tag_data, MPI_Comm(world));
   }
 }
 
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 inline boost::mpi::status BlockSparseDataTensor<ElemT, QNT>::MPIRecv(
-    boost::mpi::communicator& world,
+    boost::mpi::communicator &world,
     const int source,
-    const int tag){
-  boost::mpi::status recv_ten_status=world.recv(source, tag, *this);
+    const int tag) {
+  boost::mpi::status recv_ten_status = world.recv(source, tag, *this);
   const int data_source = recv_ten_status.source();
-  const int data_tag = 2*recv_ten_status.tag() +1;
+  const int data_tag = 2 * recv_ten_status.tag() + 1;
   hp_numeric::MPI_Recv(pactual_raw_data_, actual_raw_data_size_, data_source, data_tag, MPI_Comm(world));
   return recv_ten_status;
 }
 
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 inline boost::mpi::status BlockSparseDataTensor<ElemT, QNT>::MPIRecvIdxDataBlkMap(
-    boost::mpi::communicator& world,
+    boost::mpi::communicator &world,
     const int source,
     const int tag
-){
-  return world.recv(source, tag, *this) ;
+) {
+  return world.recv(source, tag, *this);
 }
 
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 inline boost::mpi::status BlockSparseDataTensor<ElemT, QNT>::MPIRecvActualData(
-    boost::mpi::communicator& world,
+    boost::mpi::communicator &world,
     const int source,
     const int tag_data
-){
+) {
   assert(source != boost::mpi::any_source);
-  boost::mpi::status recv_ten_status=world.recv(source, tag_data, pactual_raw_data_, actual_raw_data_size_);
+  boost::mpi::status recv_ten_status = world.recv(source, tag_data, pactual_raw_data_, actual_raw_data_size_);
   return recv_ten_status;
 }
 
@@ -720,17 +716,16 @@ Re-calculate and reset the data offset of each data block in a BlkIdxDataBlkMap.
 
 @param blk_idx_data_blk_map A block index <-> data block mapping.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::ResetDataOffset(
     BlkIdxDataBlkMap &blk_idx_data_blk_map
 ) {
   size_t data_offset = 0;
-  for (auto &blk_idx_data_blk : blk_idx_data_blk_map) {
+  for (auto &blk_idx_data_blk: blk_idx_data_blk_map) {
     blk_idx_data_blk.second.data_offset = data_offset;
     data_offset += blk_idx_data_blk.second.size;
   }
 }
-
 
 /**
 Generate block index map <-> quantum block info part hash value.
@@ -740,15 +735,15 @@ Generate block index map <-> quantum block info part hash value.
 
 @return Block index (in even index) <-> part hash value map (in odd index).
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 std::vector<size_t>
 BlockSparseDataTensor<ElemT, QNT>::GenBlkIdxQNBlkInfoPartHashMap(
     const BlkIdxDataBlkMap &blk_idx_data_blk_map,
     const std::vector<size_t> &axes
 ) {
   std::vector<size_t> blk_idx_qnblk_info_part_hash_map;
-  blk_idx_qnblk_info_part_hash_map.reserve( 2 * blk_idx_data_blk_map.size() );
-  for (auto &blk_idx_data_blk : blk_idx_data_blk_map) {
+  blk_idx_qnblk_info_part_hash_map.reserve(2 * blk_idx_data_blk_map.size());
+  for (auto &blk_idx_data_blk: blk_idx_data_blk_map) {
     blk_idx_qnblk_info_part_hash_map[
         blk_idx_data_blk.first
     ] = blk_idx_data_blk.second.GetQNBlkInfo().PartHash(axes);
@@ -756,18 +751,17 @@ BlockSparseDataTensor<ElemT, QNT>::GenBlkIdxQNBlkInfoPartHashMap(
   return blk_idx_qnblk_info_part_hash_map;
 }
 
-
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 std::vector<size_t>
 BlockSparseDataTensor<ElemT, QNT>::GenBlkIdxQNBlkCoorPartHashMap(
     const BlkIdxDataBlkMap &blk_idx_data_blk_map,
     const std::vector<size_t> &axes
 ) {
   std::vector<size_t> blk_idx_qnblk_info_part_hash_map;
-  blk_idx_qnblk_info_part_hash_map.reserve( 2 * blk_idx_data_blk_map.size() );
-  for (auto &blk_idx_data_blk : blk_idx_data_blk_map) {
+  blk_idx_qnblk_info_part_hash_map.reserve(2 * blk_idx_data_blk_map.size());
+  for (auto &blk_idx_data_blk: blk_idx_data_blk_map) {
     blk_idx_qnblk_info_part_hash_map.push_back(blk_idx_data_blk.first);
-    const ShapeT& blk_coors = blk_idx_data_blk.second.blk_coors;
+    const ShapeT &blk_coors = blk_idx_data_blk.second.blk_coors;
     blk_idx_qnblk_info_part_hash_map.push_back(VecPartHasher(blk_coors, axes));
   }
   return blk_idx_qnblk_info_part_hash_map;
@@ -780,7 +774,7 @@ Equivalence check. Only check data, not quantum number information.
 
 @return Equivalence check result.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 bool BlockSparseDataTensor<ElemT, QNT>::operator==(
     const BlockSparseDataTensor &rhs
 ) const {

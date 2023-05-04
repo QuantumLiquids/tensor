@@ -14,23 +14,21 @@
 #ifndef GQTEN_FRAMEWORK_HP_NUMERIC_BLAS_LEVEL1_H
 #define GQTEN_FRAMEWORK_HP_NUMERIC_BLAS_LEVEL1_H
 
-
 #include "gqten/framework/value_t.h"      // GQTEN_Double, GQTEN_Complex
+#include "gqten/framework/flops_count.h"  // flops
 
 #ifdef Release
-  #define NDEBUG
+#define NDEBUG
 #endif
 #include <assert.h>     // assert
 
 #include "mkl.h"      // cblas_*axpy, cblas_*scal
-
 
 namespace gqten {
 
 
 /// High performance numerical functions.
 namespace hp_numeric {
-
 
 inline void VectorAddTo(
     const GQTEN_Double *x,
@@ -39,8 +37,10 @@ inline void VectorAddTo(
     const GQTEN_Double a = 1.0
 ) {
   cblas_daxpy(size, a, x, 1, y, 1);
+#ifdef GQTEN_COUNT_FLOPS
+  flops += 2 * size;
+#endif
 }
-
 
 inline void VectorAddTo(
     const GQTEN_Complex *x,
@@ -49,8 +49,10 @@ inline void VectorAddTo(
     const GQTEN_Complex a = 1.0
 ) {
   cblas_zaxpy(size, &a, x, 1, y, 1);
+#ifdef GQTEN_COUNT_FLOPS
+  flops += 8 * size;
+#endif
 }
-
 
 inline void VectorScaleCopy(
     const GQTEN_Double *x,
@@ -60,8 +62,10 @@ inline void VectorScaleCopy(
 ) {
   cblas_dcopy(size, x, 1, y, 1);
   cblas_dscal(size, a, y, 1);
+#ifdef GQTEN_COUNT_FLOPS
+  flops += size;
+#endif
 }
-
 
 inline void VectorScaleCopy(
     const GQTEN_Complex *x,
@@ -71,21 +75,24 @@ inline void VectorScaleCopy(
 ) {
   cblas_zcopy(size, x, 1, y, 1);
   cblas_zscal(size, &a, y, 1);
+#ifdef GQTEN_COUNT_FLOPS
+  flops += 6 * size;
+#endif
 }
 
 inline void VectorCopy(
-  const GQTEN_Double* source,
-  const size_t size,
-  GQTEN_Double* dest
-){
+    const GQTEN_Double *source,
+    const size_t size,
+    GQTEN_Double *dest
+) {
   cblas_dcopy(size, source, 1, dest, 1);
 }
 
 inline void VectorCopy(
-  const GQTEN_Complex* source,
-  const size_t size,
-  GQTEN_Complex* dest
-){
+    const GQTEN_Complex *source,
+    const size_t size,
+    GQTEN_Complex *dest
+) {
   cblas_zcopy(size, source, 1, dest, 1);
 }
 
@@ -95,8 +102,10 @@ inline void VectorScale(
     const GQTEN_Double a
 ) {
   cblas_dscal(size, a, x, 1);
+#ifdef GQTEN_COUNT_FLOPS
+  flops += size;
+#endif
 }
-
 
 inline void VectorScale(
     GQTEN_Complex *x,
@@ -104,23 +113,32 @@ inline void VectorScale(
     const GQTEN_Complex a
 ) {
   cblas_zscal(size, &a, x, 1);
+#ifdef GQTEN_COUNT_FLOPS
+  flops += 6 * size;
+#endif
 }
 
 /**
- * @note return sqrt(sum(x^2)) not sum(x^2)
+ * @note return sqrt(sum(x^2)) instead of sum(x^2)
  */
 inline double Vector2Norm(
-  GQTEN_Double *x,
-  const size_t size
-){
+    GQTEN_Double *x,
+    const size_t size
+) {
   return cblas_dnrm2(size, x, 1);
+#ifdef GQTEN_COUNT_FLOPS
+  flops += 2 * size;
+#endif
 }
 
 inline double Vector2Norm(
-  GQTEN_Complex *x,
-  const size_t size
-){
+    GQTEN_Complex *x,
+    const size_t size
+) {
   return cblas_dznrm2(size, x, 1);
+#ifdef GQTEN_COUNT_FLOPS
+  flops += 8 * size;
+#endif
 }
 
 inline void VectorRealToCplx(
@@ -128,7 +146,7 @@ inline void VectorRealToCplx(
     const size_t size,
     GQTEN_Complex *cplx
 ) {
-  for (size_t i = 0; i < size; ++i) { cplx[i]= real[i]; }
+  for (size_t i = 0; i < size; ++i) { cplx[i] = real[i]; }
 }
 } /* hp_numeric */
 } /* gqten */
