@@ -672,30 +672,6 @@ void GQTensor<ElemT, QNT>::ConciseShow(const size_t indent_level) const{
           << "actual data size:\t" << data_size << "\n";
     cout  << IndentPrinter(indent_level+1) 
           << "tensor sparsity:\t" << double(data_size) / double(size_) << endl;
-template<typename ElemT, typename QNT>
-void GQTensor<ElemT, QNT>::ConciseShow(const size_t indent_level) const {
-  using std::cout;
-  using std::endl;
-  cout << IndentPrinter(indent_level) << "GQTensor Concise Info: " << "\n";
-  cout << IndentPrinter(indent_level + 1) << "tensor shape:" << "\t[";
-  VectorPrinter(shape_);
-  cout << "]\n";
-  cout << IndentPrinter(indent_level + 1) << "tensor elementary type:\t"
-       << ElemenTypeOfTensor(*this) << "\n";
-  cout << IndentPrinter(indent_level + 1)
-       << "tensor qumtum number block number:\t"
-       << GetQNBlkNum() << "\n";
-  cout << IndentPrinter(indent_level + 1)
-       << "tensor size(product of shape):\t" << size_ << "\n";
-  if (IsDefault()) {
-    cout << IndentPrinter(indent_level + 1) << "default tensor" << endl;
-    return;
-  }
-  size_t data_size = pblk_spar_data_ten_->GetActualRawDataSize();
-  cout << IndentPrinter(indent_level + 1)
-       << "actual data size:\t" << data_size << "\n";
-  cout << IndentPrinter(indent_level + 1)
-       << "tensor sparsity:\t" << double(data_size) / double(size_) << endl;
 }
 
 /**
