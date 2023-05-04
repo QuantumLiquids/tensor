@@ -14,22 +14,20 @@
 #ifndef GQTEN_FRAMEWORK_HP_NUMERIC_BLAS_LEVEL3_H
 #define GQTEN_FRAMEWORK_HP_NUMERIC_BLAS_LEVEL3_H
 
-
 #include "gqten/framework/value_t.h"      // GQTEN_Double, GQTEN_Complex
+#include "gqten/framework/flops_count.h"  // flops
 
 #ifdef Release
-  #define NDEBUG
+#define NDEBUG
 #endif
 #include <assert.h>     // assert
 
 #include "mkl.h"      //cblas_*gemm
 
-
 namespace gqten {
 
 /// High performance numerical functions.
 namespace hp_numeric {
-
 
 inline void MatMultiply(
     const GQTEN_Double *a,
@@ -48,8 +46,10 @@ inline void MatMultiply(
       beta,
       c, n
   );
+#ifdef GQTEN_COUNT_FLOPS
+  flops += m * n * (2 * k + 2);
+#endif
 }
-
 
 inline void MatMultiply(
     const GQTEN_Complex *a,
@@ -69,22 +69,22 @@ inline void MatMultiply(
       &beta,
       c, n
   );
+#ifdef GQTEN_COUNT_FLOPS
+  flops += m * n * (8 * k + 8);
+#endif
 }
 
-
-
-
 inline void MatMultiplyBatch(
-    const GQTEN_Double **a_array, const GQTEN_Double **b_array, 
+    const GQTEN_Double **a_array, const GQTEN_Double **b_array,
     const MKL_INT *m_array, const MKL_INT *k_array, const MKL_INT *n_array,
     const GQTEN_Double *beta_array,
-    GQTEN_Double **c_array, 
+    GQTEN_Double **c_array,
     const MKL_INT group_count) {
 
-    const CBLAS_LAYOUT Layout = CblasRowMajor;
-    const MKL_INT* lda_array = k_array;
-    const MKL_INT *ldb_array = n_array;
-    const MKL_INT *ldc_array = n_array;
+  const CBLAS_LAYOUT Layout = CblasRowMajor;
+  const MKL_INT *lda_array = k_array;
+  const MKL_INT *ldb_array = n_array;
+  const MKL_INT *ldc_array = n_array;
 
 #ifdef GQTEN_USE_MKL_GEMM_BATCH
   // NOTE: DONOT use this part code now, except contracting one index
@@ -140,26 +140,28 @@ inline void MatMultiplyBatch(
           beta_array[i],
           c_array[idx], ldc_array[i]);
       ++idx;
+#ifdef GQTEN_COUNT_FLOPS
+      flops += m_array[i] * n_array[i] * (2 * k_array[i] + 2);
+#endif
     }
   }
 
 #endif
 }
 
-
 inline void MatMultiplyBatch(
-    const GQTEN_Complex **a_array, 
-    const GQTEN_Complex **b_array, 
-    const MKL_INT *m_array,  const MKL_INT *k_array, const MKL_INT *n_array,
+    const GQTEN_Complex **a_array,
+    const GQTEN_Complex **b_array,
+    const MKL_INT *m_array, const MKL_INT *k_array, const MKL_INT *n_array,
     const GQTEN_Complex *beta_array,
     GQTEN_Complex **c_array,
     const MKL_INT group_count) {
-    
-    const CBLAS_LAYOUT Layout = CblasRowMajor;
 
-    const MKL_INT* lda_array = k_array;
-    const MKL_INT *ldb_array = n_array;
-    const MKL_INT *ldc_array = n_array;
+  const CBLAS_LAYOUT Layout = CblasRowMajor;
+
+  const MKL_INT *lda_array = k_array;
+  const MKL_INT *ldb_array = n_array;
+  const MKL_INT *ldc_array = n_array;
 
 #ifdef GQTEN_USE_MKL_GEMM_BATCH
   // NOTE: DONOT use this part code now, except contracting one index
@@ -232,12 +234,13 @@ inline void MatMultiplyBatch(
           &beta_array[i],
           c_array[idx], ldc_array[i]);
       ++idx;
+#ifdef GQTEN_COUNT_FLOPS
+      flops += m_array[i] * n_array[i] * (8 * k_array[i] + 8);
+#endif
     }
   }
 #endif
 }
-
-
 
 inline void MatMultiply(
     const GQTEN_Double *a,
@@ -260,6 +263,9 @@ inline void MatMultiply(
       beta,
       c, n
   );
+#ifdef GQTEN_COUNT_FLOPS
+  flops += m * n * (2 * k + 2);
+#endif
 }
 
 inline void MatMultiply(
@@ -284,6 +290,9 @@ inline void MatMultiply(
       &beta,
       c, n
   );
+#ifdef GQTEN_COUNT_FLOPS
+  flops += m * n * (8 * k + 8);
+#endif
 }
 
 } /* hp_numeric */

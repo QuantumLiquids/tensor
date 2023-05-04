@@ -65,6 +65,9 @@ class GQTensor : public Showable {
   /// Get indexes of the GQTensor.
   const IndexVec<QNT> &GetIndexes(void) const { return indexes_; }
 
+  /// Get index of the GQTensor.
+  const Index<QNT> &GetIndex(const size_t i) const { return indexes_[i]; }
+
   /// Get the shape of the GQTensor.
   const ShapeT &GetShape(void) const { return shape_; }
 
