@@ -15,7 +15,7 @@
 #define GQTEN_FRAMEWORK_HP_NUMERIC_BLAS_LEVEL3_H
 
 #include "gqten/framework/value_t.h"      // GQTEN_Double, GQTEN_Complex
-#include "gqten/framework/flops_count.h"  // flops
+#include "gqten/framework/flops_count.h"  // flop
 
 #ifdef Release
 #define NDEBUG
@@ -47,7 +47,7 @@ inline void MatMultiply(
       c, n
   );
 #ifdef GQTEN_COUNT_FLOPS
-  flops += m * n * (2 * k + 2);
+  flop += m * n * (2 * k + 2);
 #endif
 }
 
@@ -70,7 +70,7 @@ inline void MatMultiply(
       c, n
   );
 #ifdef GQTEN_COUNT_FLOPS
-  flops += m * n * (8 * k + 8);
+  flop += m * n * (8 * k + 8);
 #endif
 }
 
@@ -141,7 +141,7 @@ inline void MatMultiplyBatch(
           c_array[idx], ldc_array[i]);
       ++idx;
 #ifdef GQTEN_COUNT_FLOPS
-      flops += m_array[i] * n_array[i] * (2 * k_array[i] + 2);
+      flop += m_array[i] * n_array[i] * (2 * k_array[i] + 2);
 #endif
     }
   }
@@ -235,7 +235,7 @@ inline void MatMultiplyBatch(
           c_array[idx], ldc_array[i]);
       ++idx;
 #ifdef GQTEN_COUNT_FLOPS
-      flops += m_array[i] * n_array[i] * (8 * k_array[i] + 8);
+      flop += m_array[i] * n_array[i] * (8 * k_array[i] + 8);
 #endif
     }
   }
@@ -264,7 +264,7 @@ inline void MatMultiply(
       c, n
   );
 #ifdef GQTEN_COUNT_FLOPS
-  flops += m * n * (2 * k + 2);
+  flop += m * n * (2 * k + 2);
 #endif
 }
 
@@ -291,7 +291,7 @@ inline void MatMultiply(
       c, n
   );
 #ifdef GQTEN_COUNT_FLOPS
-  flops += m * n * (8 * k + 8);
+  flop += m * n * (8 * k + 8);
 #endif
 }
 

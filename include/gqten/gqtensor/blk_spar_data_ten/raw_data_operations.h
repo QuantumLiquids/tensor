@@ -158,6 +158,15 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataTranspose_(
   pactual_raw_data_ = ptransed_actual_raw_data;
 }
 
+/**
+calculate the 2-norm of the raw data array.
+
+@return The 2-norm
+*/
+template <typename ElemT, typename QNT>
+GQTEN_Double BlockSparseDataTensor<ElemT, QNT>::RawDataNorm_(void) {
+  return hp_numeric::Vector2Norm(pactual_raw_data_, actual_raw_data_size_);
+}
 
 /**
 Normalize the raw data array.

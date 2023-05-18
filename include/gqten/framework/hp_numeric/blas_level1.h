@@ -15,7 +15,7 @@
 #define GQTEN_FRAMEWORK_HP_NUMERIC_BLAS_LEVEL1_H
 
 #include "gqten/framework/value_t.h"      // GQTEN_Double, GQTEN_Complex
-#include "gqten/framework/flops_count.h"  // flops
+#include "gqten/framework/flops_count.h"  // flop
 
 #ifdef Release
 #define NDEBUG
@@ -38,7 +38,7 @@ inline void VectorAddTo(
 ) {
   cblas_daxpy(size, a, x, 1, y, 1);
 #ifdef GQTEN_COUNT_FLOPS
-  flops += 2 * size;
+  flop += 2 * size;
 #endif
 }
 
@@ -50,7 +50,7 @@ inline void VectorAddTo(
 ) {
   cblas_zaxpy(size, &a, x, 1, y, 1);
 #ifdef GQTEN_COUNT_FLOPS
-  flops += 8 * size;
+  flop += 8 * size;
 #endif
 }
 
@@ -63,7 +63,7 @@ inline void VectorScaleCopy(
   cblas_dcopy(size, x, 1, y, 1);
   cblas_dscal(size, a, y, 1);
 #ifdef GQTEN_COUNT_FLOPS
-  flops += size;
+  flop += size;
 #endif
 }
 
@@ -76,7 +76,7 @@ inline void VectorScaleCopy(
   cblas_zcopy(size, x, 1, y, 1);
   cblas_zscal(size, &a, y, 1);
 #ifdef GQTEN_COUNT_FLOPS
-  flops += 6 * size;
+  flop += 6 * size;
 #endif
 }
 
@@ -103,7 +103,7 @@ inline void VectorScale(
 ) {
   cblas_dscal(size, a, x, 1);
 #ifdef GQTEN_COUNT_FLOPS
-  flops += size;
+  flop += size;
 #endif
 }
 
@@ -114,7 +114,7 @@ inline void VectorScale(
 ) {
   cblas_zscal(size, &a, x, 1);
 #ifdef GQTEN_COUNT_FLOPS
-  flops += 6 * size;
+  flop += 6 * size;
 #endif
 }
 
@@ -127,7 +127,7 @@ inline double Vector2Norm(
 ) {
   return cblas_dnrm2(size, x, 1);
 #ifdef GQTEN_COUNT_FLOPS
-  flops += 2 * size;
+  flop += 2 * size;
 #endif
 }
 
@@ -137,7 +137,7 @@ inline double Vector2Norm(
 ) {
   return cblas_dznrm2(size, x, 1);
 #ifdef GQTEN_COUNT_FLOPS
-  flops += 8 * size;
+  flop += 8 * size;
 #endif
 }
 

@@ -437,6 +437,17 @@ void GQTensor<ElemT, QNT>::Transpose(
   pblk_spar_data_ten_->Transpose(transed_idxes_order);
 }
 
+/**
+ * Calculate the 2-norm of the tensor
+ * @return the 2-norm
+ */
+template <typename ElemT, typename QNT>
+GQTEN_Double GQTensor<ElemT, QNT>::Get2Norm(void) {
+  assert(!IsDefault());
+  GQTEN_Double norm = pblk_spar_data_ten_->Norm();
+  return norm;
+}
+
 
 /**
 Normalize the tensor and return its norm.
@@ -490,6 +501,7 @@ GQTensor<ElemT, QNT> GQTensor<ElemT, QNT>::operator+(
 ) const {
   assert(!(IsDefault() || rhs.IsDefault()));
   assert(indexes_ == rhs.indexes_);
+//  assert(Div() == rhs.Div());
   GQTensor<ElemT, QNT> res(indexes_);
   res.pblk_spar_data_ten_->AddTwoBSDTAndAssignIn(
       *pblk_spar_data_ten_,
@@ -722,7 +734,15 @@ std::pair<CoorsT, CoorsT> GQTensor<ElemT, QNT>::CoorsToBlkCoorsDataCoors_(
 
 
 const int kMPIDataTagMultiplyFactor=11;
-
+/**
+ * Note use this function rather world.send() directly
+ * @tparam ElemT
+ * @tparam QNT
+ * @param world
+ * @param dest
+ * @param tag
+ * @param gqten
+ */
 template <typename ElemT, typename QNT>
 inline void send_gqten(boost::mpi::communicator world,
                 int dest, int tag,

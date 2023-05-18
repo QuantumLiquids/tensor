@@ -169,6 +169,7 @@ class BlockSparseDataTensor : public Streamable {
   void FuseFirstTwoIndex(
       const std::vector<std::tuple<size_t, size_t, size_t, size_t>> &
   );
+  GQTEN_Double Norm(void);
   GQTEN_Double Normalize(void);
   void Conj(void);
 
@@ -357,6 +358,7 @@ class BlockSparseDataTensor : public Streamable {
 
   void RawDataRand_(void);
   void RawDataTranspose_(const std::vector<RawDataTransposeTask> &);
+  GQTEN_Double RawDataNorm_(void);
   GQTEN_Double RawDataNormalize_(void);
   void RawDataConj_(void);
 

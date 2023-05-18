@@ -32,12 +32,13 @@ inline void MPI_Send(const size_t n,
   ::MPI_Send((const void *) (&n), 1, MPI_UNSIGNED_LONG_LONG, dest, tag, comm);
 }
 
-inline void MPI_Recv(size_t &n,
+inline ::MPI_Status MPI_Recv(size_t &n,
                      const int source,
                      const int tag,
                      const MPI_Comm &comm) {
   ::MPI_Status status;
   ::MPI_Recv((void *) (&n), 1, MPI_UNSIGNED_LONG_LONG, source, tag, comm, &status);
+  return status;
 }
 
 ///< Block point-to-point communication wrapper

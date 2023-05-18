@@ -13,13 +13,12 @@
 #ifndef GQTEN_UTILITY_TIMER_H
 #define GQTEN_UTILITY_TIMER_H
 
-
 #include <iostream>     // cout, endl
 #include <string>       // string
 #include <iomanip>      // setprecision
 
-#include <time.h>
-#include <sys/time.h>
+#include <ctime>
+#include <chrono>
 
 #define STATUS bool
 #define SLEEPING false
@@ -27,12 +26,11 @@
 
 namespace gqten {
 
-
 /**
 Timer.
 */
 class Timer {
-public:
+ public:
   /**
   Create a timer with a note.
 
@@ -40,35 +38,35 @@ public:
   */
   Timer(const std::string &notes) :
       start_(GetWallTime_()),
-      pass_(0.0),
+      pass_{0},
       status_(RUNNING),
       notes_(notes) {}
 
   Timer(void) : Timer("") {}
 
-  void Suspend(void) { 
-    assert(status_==RUNNING);
+  void Suspend(void) {
+    assert(status_ == RUNNING);
     pass_ += GetWallTime_() - start_;
     status_ = SLEEPING;
   }
   /// Restart the timer.
   void Restart(void) {
-    assert(status_==SLEEPING);
-    start_ = GetWallTime_(); 
+    assert(status_ == SLEEPING);
+    start_ = GetWallTime_();
     status_ = RUNNING;
   }
-  void ClearAndRestart(void){
-    pass_ = 0.0;
-    start_ = GetWallTime_(); 
+  void ClearAndRestart(void) {
+    pass_ = std::chrono::nanoseconds{0};
+    start_ = GetWallTime_();
     status_ = RUNNING;
   }
 
   /// Return elapsed time (seconds).
-  double Elapsed(void) { 
-    if(status_==RUNNING){
-      return GetWallTime_() - start_ + pass_; 
-    }else{
-      return pass_;
+  double Elapsed(void) {
+    if (status_ == RUNNING) {
+      return (std::chrono::duration_cast<std::chrono::nanoseconds>(GetWallTime_() - start_).count() + pass_.count() ) * 1.e-9;
+    } else {
+      return pass_.count() * 1.e-9;
     }
   }
 
@@ -85,23 +83,26 @@ public:
     } else {
       std::cout << " " << notes_ << " ";
     }
-    std::cout << std::setw(precision+3) << std::setprecision(precision)
+    std::cout << std::setw(precision + 3) << std::setprecision(precision)
               << std::fixed << elapsed_time
               << std::endl;
     return elapsed_time;
   }
 
-private:
-  double start_;
-  double pass_;
-  STATUS status_; 
+ private:
+  std::chrono::time_point<std::chrono::high_resolution_clock> start_;
+  std::chrono::nanoseconds pass_;
+//  double pass_;
+  STATUS status_;
   std::string notes_;
 
-  double GetWallTime_(void) {
-    struct timeval time;
-    if (gettimeofday(&time, NULL)) { return 0; }
-    return (double)time.tv_sec + (double)time.tv_usec * .000001;
+  std::chrono::time_point<std::chrono::high_resolution_clock> GetWallTime_(void) {
+    std::chrono::time_point<std::chrono::high_resolution_clock> time_point = std::chrono::high_resolution_clock::now();
+    return time_point;
+//    struct timeval time;
+//    if (gettimeofday(&time, NULL)) { return 0; }
+//    return (double)time.tv_sec + (double)time.tv_usec * .000001;
   }
 };
-} /* gqten */ 
+} /* gqten */
 #endif /* ifndef GQTEN_UTILITY_TIMER_H */

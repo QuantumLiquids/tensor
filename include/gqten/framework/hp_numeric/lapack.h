@@ -16,7 +16,7 @@
 
 
 #include "gqten/framework/value_t.h"
-#include "gqten/framework/flops_count.h"  // flops
+#include "gqten/framework/flops_count.h"  // flop
 
 #include <algorithm>    // min
 #include <cstring>      // memcpy, memset
@@ -66,7 +66,7 @@ inline void MatSVD(
               );
   assert(info == 0);
 #ifdef GQTEN_COUNT_FLOPS
-  flops += 4 * m * n * n - 4 * n * n * n/ 3;
+  flop += 4 * m * n * n - 4 * n * n * n/ 3;
   // a rough estimation
 #endif
 }
@@ -103,7 +103,7 @@ inline void MatSVD(
               );
   assert(info == 0);
 #ifdef GQTEN_COUNT_FLOPS
-  flops += 8 * m * n * n - 8 * n * n * n/ 3;
+  flop += 8 * m * n * n - 8 * n * n * n/ 3;
   // a rough estimation
 #endif
 }
@@ -139,7 +139,7 @@ inline void MatQR(
     }
   }
 #ifdef GQTEN_COUNT_FLOPS
-  flops += 2 * m * n * n - 2 * n * n * n/ 3;
+  flop += 2 * m * n * n - 2 * n * n * n/ 3;
   // the book "Numerical Linear Algebra" by Trefethen and Bau
   // assume Householder transformations
 #endif
@@ -176,7 +176,7 @@ inline void MatQR(
     }
   }
 #ifdef GQTEN_COUNT_FLOPS
-  flops += 8 * m * n * n - 8 * n * n * n/ 3;
+  flop += 8 * m * n * n - 8 * n * n * n/ 3;
   // the book "Numerical Linear Algebra" by Trefethen and Bau
   // assume Householder transformations
   // roughly estimate for complex number

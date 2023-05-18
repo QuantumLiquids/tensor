@@ -3,7 +3,7 @@
 * Author: Hao-Xin Wang<wanghx18@mails.tsinghua.edu.cn>
 * Creation Date: 2023-05-01
 *
-* Description: GraceQ/tensor project. count the flops in hp_numeric
+* Description: GraceQ/tensor project. count the flop in hp_numeric
 */
 
 
@@ -12,9 +12,9 @@
 
 namespace gqten {
 
-#ifdef GQTEN_COUNT_FLOPS
-inline size_t flops = 0;
-#endif
+
+inline size_t flop = 0;
+
 
 }//gqten
 

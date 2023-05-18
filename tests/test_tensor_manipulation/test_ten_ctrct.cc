@@ -114,11 +114,11 @@ void RunTestTenCtrct1DCase(GQTensor<TenElemT, QNT> &t, const QNT &div) {
   GQTensor<TenElemT, QNT> t_res;
   auto t_dag = Dag(t);
   Timer contract_timer("contract");
-  size_t start_flops = flops;
+  size_t start_flops = flop;
   Contract(&t, &t_dag, {{0}, {0}}, &t_res);
-  size_t end_flops = flops;
+  size_t end_flops = flop;
   double elapsed_time = contract_timer.Elapsed();
-  std::cout << "flops = " << end_flops - start_flops << std::endl;
+  std::cout << "flop = " << end_flops - start_flops << std::endl;
   double Gflops_s = (end_flops - start_flops) * 1.e-9 / elapsed_time;
   std::cout << "Gflops/s = " << Gflops_s << std::endl;
   TenElemT res = 0.0;
