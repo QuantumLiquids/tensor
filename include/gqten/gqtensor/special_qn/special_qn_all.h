@@ -12,7 +12,7 @@
 #include "gqten/gqtensor/special_qn/u1qn.h"
 #include "gqten/gqtensor/special_qn/u1u1qn.h"
 #include "gqten/gqtensor/special_qn/u1u1znqn.h"
-
+#include "gqten/gqtensor/special_qn/u1u1zqn.h"
 
 
 #endif //GQTEN_GQTENSOR_SPECIAL_QN_SPECIAL_QN_ALL_H

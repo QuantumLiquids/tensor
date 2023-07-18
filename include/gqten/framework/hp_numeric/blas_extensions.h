@@ -14,16 +14,18 @@
 #ifndef GQTEN_FRAMEWORK_HP_NUMERIC_BLAS_EXTENSIONS
 #define GQTEN_FRAMEWORK_HP_NUMERIC_BLAS_EXTENSIONS
 
-
 #include "gqten/framework/value_t.h"      // GQTEN_Double, GQTEN_Complex
 
 #ifdef Release
-  #define NDEBUG
+#define NDEBUG
 #endif
 #include <assert.h>     // assert
 
-#include "mkl.h"
-
+#ifndef USE_OPENBLAS
+  #include "mkl.h"
+#else
+  #include <cblas.h>
+#endif
 
 namespace gqten {
 
@@ -35,12 +37,12 @@ namespace hp_numeric {
  */
 inline void MatrixTransposeBatch(
     const GQTEN_Double **Amat_array,
-    GQTEN_Double** Bmat_array,
-    const size_t * rows_array,
-    const size_t * cols_array,
+    GQTEN_Double **Bmat_array,
+    const size_t *rows_array,
+    const size_t *cols_array,
     const size_t group_count
-    ) {
-#if INTEL_MKL_VERSION >= (20210004)
+) {
+#if defined(INTEL_MKL_VERSION) && INTEL_MKL_VERSION >= (20210004)
   char * trans_array = new char[group_count];
   double * alpha_array = new double[group_count];
   size_t * group_size = new size_t[group_count];
@@ -61,7 +63,7 @@ inline void MatrixTransposeBatch(
   delete [] trans_array;
   delete [] alpha_array;
   delete [] group_size;
-#else
+#elif defined(INTEL_MKL_VERSION)
   for(size_t i = 0; i < group_count; i++) {
     mkl_domatcopy(
         'R', 'T',
@@ -71,20 +73,30 @@ inline void MatrixTransposeBatch(
         Bmat_array[i], rows_array[i]
         );
   }
+#else
+  // Use OpenBLAS style implementation here
+  for (size_t i = 0; i < group_count; i++) {
+    cblas_domatcopy(
+        CblasRowMajor, CblasTrans,
+        rows_array[i], cols_array[i],
+        1.0,
+        Amat_array[i], cols_array[i],
+        Bmat_array[i], rows_array[i]
+    );
+  }
 #endif
 }
 
-
 inline void MatrixTransposeBatch(
-    const GQTEN_Complex** Amat_array,
-    GQTEN_Complex** Bmat_array,
-    const size_t * rows_array,
-    const size_t * cols_array,
+    const GQTEN_Complex **Amat_array,
+    GQTEN_Complex **Bmat_array,
+    const size_t *rows_array,
+    const size_t *cols_array,
     const size_t group_count
 ) {
   //TODO: question: if MKL_Complex16 == GQTEN_Complex
   //?? MKL_Complex16 ** == GQTEN_Complex**?
-#if INTEL_MKL_VERSION >= (20210004)
+#if defined(INTEL_MKL_VERSION) && INTEL_MKL_VERSION >= (20210004)
   char * trans_array = new char[group_count];
   MKL_Complex16 * alpha_array = new MKL_Complex16[group_count];
   size_t * group_size = new size_t[group_count];
@@ -105,7 +117,7 @@ inline void MatrixTransposeBatch(
   delete [] trans_array;
   delete [] alpha_array;
   delete [] group_size;
-#else
+#elif defined(INTEL_MKL_VERSION)
   for(size_t i = 0; i < group_count; i++) {
     mkl_zomatcopy(
         'R', 'T',
@@ -113,6 +125,18 @@ inline void MatrixTransposeBatch(
         MKL_Complex16(1.0),
         Amat_array[i], cols_array[i],
         Bmat_array[i], rows_array[i]
+    );
+  }
+#else
+  // Use OpenBLAS style implementation here
+  double alpha[2] = {1.0, 0.0};
+  for (size_t i = 0; i < group_count; i++) {
+    cblas_zomatcopy(
+        CblasRowMajor, CblasTrans,
+        rows_array[i], cols_array[i],
+        alpha,
+        reinterpret_cast<const double *>(Amat_array[i]), cols_array[i] ,
+        reinterpret_cast<double *>(Bmat_array[i]), rows_array[i]
     );
   }
 #endif

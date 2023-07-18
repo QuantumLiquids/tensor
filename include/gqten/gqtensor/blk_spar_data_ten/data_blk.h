@@ -13,24 +13,21 @@
 #ifndef GQTEN_GQTENSOR_BLK_SPAR_DATA_TEN_DATA_BLK_H
 #define GQTEN_GQTENSOR_BLK_SPAR_DATA_TEN_DATA_BLK_H
 
-
 #include "gqten/framework/value_t.h"                        // CoorsT, ShapeT
 #include "gqten/gqtensor/blk_spar_data_ten/qnblk_info.h"    // QNBlkInfo
 #include "gqten/gqtensor/index.h"                           // IndexVec
 #include "gqten/utility/utils_inl.h"                        // CalcEffOneDimArrayOffset, CalcMultiDimDataOffsets, Reorder
 
-
 namespace gqten {
-
 
 /**
 Data block in a block sparse data tensor.
 
 @tparam QNT Type of the quantum number.
 */
-template <typename QNT>
+template<typename QNT>
 class DataBlk {
-public:
+ public:
   DataBlk(void) = default;
 
   /**
@@ -54,11 +51,10 @@ public:
   DataBlk(
       const CoorsT &blk_coors,
       const ShapeT &shape
-      ) :
+  ) :
       blk_coors(blk_coors),
       shape(shape),
-      has_qnblk_info_(false)
-      {
+      has_qnblk_info_(false) {
     CalcSize_();
   }
 
@@ -68,24 +64,25 @@ public:
   ) :
       blk_coors(std::move(blk_coors)),
       shape(std::move(shape)),
-      has_qnblk_info_(false)
-  {
+      has_qnblk_info_(false) {
     CalcSize_();
   }
 
-
   /// Get quantum number block info.
-  const QNBlkInfo<QNT> &GetQNBlkInfo(void) const { return qnblk_info_; }
+  const QNBlkInfo<QNT> &GetQNBlkInfo(void) const {
+    assert(has_qnblk_info_);
+    return qnblk_info_;
+  }
 
   /// Create and set quantum number block info if it doesn't exist.
   void SetQNBlkInfo(const IndexVec<QNT> &gqten_indexes) {
-    if(!has_qnblk_info_){
+    if (!has_qnblk_info_) {
       CreateQNBlkInfo_(gqten_indexes);
-      has_qnblk_info_=true;
+      has_qnblk_info_ = true;
     }
   }
 
-  bool HasQNBlkInfo(){
+  bool HasQNBlkInfo() {
     return has_qnblk_info_;
   };
 
@@ -121,7 +118,7 @@ public:
   /// The start offset of this data block in the 1D data array of block sparse data tensor.
   size_t data_offset;
 
-private:
+ private:
   QNBlkInfo<QNT> qnblk_info_;
 
   /**
@@ -131,9 +128,9 @@ private:
   */
   void CreateQNBlkInfo_(const IndexVec<QNT> &gqten_indexes) {
     QNSectorVec<QNT> qnscts;
-    qnscts.reserve( blk_coors.size() );
+    qnscts.reserve(blk_coors.size());
     for (size_t i = 0; i < blk_coors.size(); ++i) {
-      auto& qnsct = gqten_indexes[i].GetQNSct(blk_coors[i]);
+      auto &qnsct = gqten_indexes[i].GetQNSct(blk_coors[i]);
       qnscts.push_back(qnsct);
     }
     qnblk_info_ = QNBlkInfo<QNT>(qnscts);
@@ -144,7 +141,7 @@ private:
   size_t CalcSize_(void) {
     if (shape.size() == 0) { return 0; }
     size = 1;
-    for (auto dim : shape) { size *= dim; }
+    for (auto dim: shape) { size *= dim; }
     return size;
   }
 };

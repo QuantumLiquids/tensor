@@ -22,11 +22,16 @@
 #endif
 #include <assert.h>     // assert
 
+#ifndef USE_OPENBLAS
+
 #include "mkl.h"      // cblas_*axpy, cblas_*scal
 
+#else
+
+#include <cblas.h>
+
+#endif
 namespace gqten {
-
-
 /// High performance numerical functions.
 namespace hp_numeric {
 
@@ -150,4 +155,6 @@ inline void VectorRealToCplx(
 }
 } /* hp_numeric */
 } /* gqten */
+
+
 #endif /* ifndef GQTEN_FRAMEWORK_HP_NUMERIC_BLAS_LEVEL1_H */

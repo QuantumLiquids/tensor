@@ -23,8 +23,6 @@
 #include <iostream>
 #include <fstream>
 
-#include "mkl.h"    // Included after other header file. Because GraceQ needs redefine MKL_Complex16 to gqten::GQTEN_Complex
-
 
 using namespace gqten;
 using namespace std;

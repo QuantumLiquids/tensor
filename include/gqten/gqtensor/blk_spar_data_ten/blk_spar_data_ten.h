@@ -753,6 +753,14 @@ BlockSparseDataTensor<ElemT, QNT>::GenBlkIdxQNBlkInfoPartHashMap(
   return blk_idx_qnblk_info_part_hash_map;
 }
 
+/**
+Generate block index <-> block part hash value map.
+
+@param blk_idx_data_blk_map A block index <-> data block map.
+@param axes Selected axes indexes for part hash.
+
+@return Block index (in even index) <-> part hash value map (in odd index).
+*/
 template<typename ElemT, typename QNT>
 std::vector<size_t>
 BlockSparseDataTensor<ElemT, QNT>::GenBlkIdxQNBlkCoorPartHashMap(

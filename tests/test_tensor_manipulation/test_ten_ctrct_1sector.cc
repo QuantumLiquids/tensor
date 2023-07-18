@@ -15,7 +15,6 @@
 #include "gtest/gtest.h"
 #include "../testing_utility.h"
 
-#include "mkl.h"
 #include <iostream>
 #include <fstream>
 #include "gqten/utility/timer.h"

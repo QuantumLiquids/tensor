@@ -119,8 +119,13 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkGenForTenCtrct(
               ) {
             beta = 1.0;
           } else {
+            auto c_blk_shape = GenTenCtrctDataBlkCoors(
+                a_data_blk.shape,
+                b_data_blk.shape,
+                saved_axes_set
+            );
             blk_idx_data_blk_map_[c_blk_idx] =
-                DataBlk<QNT>(c_blk_coors, *pgqten_indexes);
+                DataBlk<QNT>(std::move(c_blk_coors), std::move(c_blk_shape));
             beta = 0.0;
           }
           raw_data_ctrct_tasks.push_back(

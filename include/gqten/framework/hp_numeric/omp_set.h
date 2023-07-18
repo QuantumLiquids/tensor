@@ -19,30 +19,26 @@
 namespace gqten {
 /// High performance numerical functions.
 namespace hp_numeric {
-    
-    //thread for contract, svd, qr
-    inline unsigned tensor_manipulation_num_threads = kOmpDefaultNumThreads;
-    
-    inline void SetTensorManipulationThreads(unsigned thread){
-        assert(thread>0);
-        tensor_manipulation_num_threads = thread;
-        mkl_set_num_threads_local( 0 );	
-        mkl_set_num_threads(thread);
-        mkl_set_dynamic(true);
-    }
-    //just for compitable. TODO: remove this API
-    inline void SetTensorManipulationTotalThreads(unsigned thread){
-        assert(thread>0);
-        tensor_manipulation_num_threads = thread;
-        mkl_set_num_threads_local( 0 );	
-        mkl_set_num_threads(thread);
-        mkl_set_dynamic(true);        
-    }
 
+//thread for contract, svd, qr
+inline unsigned tensor_manipulation_num_threads = kOmpDefaultNumThreads;
 
-    inline unsigned GetTensorManipulationThreads(){
-        return tensor_manipulation_num_threads;
-    }
+inline void SetTensorManipulationThreads(unsigned thread) {
+  assert(thread > 0);
+  tensor_manipulation_num_threads = thread;
+#ifndef USE_OPENBLAS
+  mkl_set_num_threads(thread);
+//  mkl_set_num_threads_local(0);
+//  mkl_set_dynamic(true);
+#else
+  openblas_set_num_threads(thread);
+  //equivalent to  `export OMP_NUM_THREADS=4`, manually in script
+#endif
+}
+
+inline unsigned GetTensorManipulationThreads() {
+  return tensor_manipulation_num_threads;
+}
 
 } /* hp_numeric */
 } /* gqten */

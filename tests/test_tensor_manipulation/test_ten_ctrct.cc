@@ -16,8 +16,6 @@
 #include "../testing_utility.h"
 #include "gqten/utility/timer.h"
 
-#include "mkl.h"    // Included after other header file. Because GraceQ needs redefine MKL_Complex16 to gqten::GQTEN_Complex
-
 
 
 using namespace gqten;
@@ -71,12 +69,12 @@ struct TestContraction : public testing::Test {
 inline void CblasGemm(
     const CBLAS_LAYOUT Layout,
     const CBLAS_TRANSPOSE transa, const CBLAS_TRANSPOSE transb,
-    const MKL_INT m, const MKL_INT n, const MKL_INT k,
+    const size_t m, const size_t n, const size_t k,
     const gqten::GQTEN_Double alpha,
-    const gqten::GQTEN_Double *a, const MKL_INT lda,
-    const gqten::GQTEN_Double *b, const MKL_INT ldb,
+    const gqten::GQTEN_Double *a, const size_t lda,
+    const gqten::GQTEN_Double *b, const size_t ldb,
     const gqten::GQTEN_Double beta,
-    gqten::GQTEN_Double *c, const MKL_INT ldc) {
+    gqten::GQTEN_Double *c, const size_t ldc) {
   cblas_dgemm(
       Layout,
       transa, transb,
@@ -91,12 +89,12 @@ inline void CblasGemm(
 inline void CblasGemm(
     const CBLAS_LAYOUT Layout,
     const CBLAS_TRANSPOSE transa, const CBLAS_TRANSPOSE transb,
-    const MKL_INT m, const MKL_INT n, const MKL_INT k,
+    const size_t m, const size_t n, const size_t k,
     const gqten::GQTEN_Complex alpha,
-    const gqten::GQTEN_Complex *a, const MKL_INT lda,
-    const gqten::GQTEN_Complex *b, const MKL_INT ldb,
+    const gqten::GQTEN_Complex *a, const size_t lda,
+    const gqten::GQTEN_Complex *b, const size_t ldb,
     const gqten::GQTEN_Complex beta,
-    gqten::GQTEN_Complex *c, const MKL_INT ldc) {
+    gqten::GQTEN_Complex *c, const size_t ldc) {
   cblas_zgemm(
       Layout,
       transa, transb,
@@ -126,8 +124,6 @@ void RunTestTenCtrct1DCase(GQTensor<TenElemT, QNT> &t, const QNT &div) {
     res += std::norm(t.GetElem(coors));
   }
   GtestExpectNear(t_res.GetElem({}), res, kEpsilon);
-
-  mkl_free_buffers();
 }
 
 TEST_F(TestContraction, 1DCase) {
@@ -180,7 +176,6 @@ void RunTestTenCtrct2DCase1(
     idx++;
   }
 
-  mkl_free_buffers();
   delete[] dense_ta;
   delete[] dense_tb;
   delete[] dense_res;
@@ -217,7 +212,6 @@ void RunTestTenCtrct2DCase2(
   Contract(&ta, &tb, {{0, 1}, {1, 0}}, &res);
   GtestExpectNear(res.GetElem({}), res_scalar, kEpsilon);
 
-  mkl_free_buffers();
   delete[] dense_ta;
   delete[] dense_tb;
 }
@@ -292,7 +286,6 @@ void RunTestTenCtrct3DCase1(
     idx++;
   }
 
-  mkl_free_buffers();
   delete[] dense_ta;
   delete[] dense_tb;
   delete[] dense_res;
@@ -338,7 +331,6 @@ void RunTestTenCtrct3DCase2(
     idx++;
   }
 
-  mkl_free_buffers();
   delete[] dense_ta;
   delete[] dense_tb;
   delete[] dense_res;
@@ -375,7 +367,6 @@ void RunTestTenCtrct3DCase3(
   Contract(&ta, &tb, {{0, 1, 2}, {0, 1, 2}}, &res);
   GtestExpectNear(res.GetElem({}), res_scalar, kEpsilon);
 
-  mkl_free_buffers();
   delete[] dense_ta;
   delete[] dense_tb;
 }

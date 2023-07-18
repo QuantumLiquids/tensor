@@ -22,8 +22,15 @@
 #endif
 #include <assert.h>     // assert
 
-#include "mkl.h"      //cblas_*gemm
+#ifndef USE_OPENBLAS
 
+#include "mkl.h"      // cblas_*axpy, cblas_*scal
+
+#else
+
+#include <cblas.h>
+
+#endif
 namespace gqten {
 
 /// High performance numerical functions.
@@ -73,6 +80,64 @@ inline void MatMultiply(
   flop += m * n * (8 * k + 8);
 #endif
 }
+
+
+
+inline void MatMultiply(
+    const GQTEN_Double *a,
+    const CBLAS_TRANSPOSE cblas_transpose_a,
+    const GQTEN_Double *b,
+    const CBLAS_TRANSPOSE cblas_transpose_b,
+    const size_t m,
+    const size_t k,
+    const size_t n,
+    const size_t lda,
+    const size_t ldb,
+    const GQTEN_Double beta,
+    GQTEN_Double *c) {
+  cblas_dgemm(
+      CblasRowMajor, cblas_transpose_a, cblas_transpose_b,
+      m, n, k,
+      1.0,
+      a, lda,
+      b, ldb,
+      beta,
+      c, n
+  );
+#ifdef GQTEN_COUNT_FLOPS
+  flop += m * n * (2 * k + 2);
+#endif
+}
+
+
+inline void MatMultiply(
+    const GQTEN_Complex *a,
+    const CBLAS_TRANSPOSE cblas_transpose_a,
+    const GQTEN_Complex *b,
+    const CBLAS_TRANSPOSE cblas_transpose_b,
+    const size_t m,
+    const size_t k,
+    const size_t n,
+    const size_t lda,
+    const size_t ldb,
+    const GQTEN_Complex beta,
+    GQTEN_Complex *c) {
+  GQTEN_Complex alpha(1.0);
+  cblas_zgemm(
+      CblasRowMajor, cblas_transpose_a, cblas_transpose_b,
+      m, n, k,
+      &alpha,
+      a, lda,
+      b, ldb,
+      &beta,
+      c, n
+  );
+#ifdef GQTEN_COUNT_FLOPS
+  flop += m * n * (8 * k + 8);
+#endif
+}
+
+#ifndef USE_OPENBLAS
 
 inline void MatMultiplyBatch(
     const GQTEN_Double **a_array, const GQTEN_Double **b_array,
@@ -148,6 +213,8 @@ inline void MatMultiplyBatch(
 
 #endif
 }
+
+
 
 inline void MatMultiplyBatch(
     const GQTEN_Complex **a_array,
@@ -242,58 +309,9 @@ inline void MatMultiplyBatch(
 #endif
 }
 
-inline void MatMultiply(
-    const GQTEN_Double *a,
-    const CBLAS_TRANSPOSE cblas_transpose_a,
-    const GQTEN_Double *b,
-    const CBLAS_TRANSPOSE cblas_transpose_b,
-    const size_t m,
-    const size_t k,
-    const size_t n,
-    const size_t lda,
-    const size_t ldb,
-    const GQTEN_Double beta,
-    GQTEN_Double *c) {
-  cblas_dgemm(
-      CblasRowMajor, cblas_transpose_a, cblas_transpose_b,
-      m, n, k,
-      1.0,
-      a, lda,
-      b, ldb,
-      beta,
-      c, n
-  );
-#ifdef GQTEN_COUNT_FLOPS
-  flop += m * n * (2 * k + 2);
-#endif
-}
 
-inline void MatMultiply(
-    const GQTEN_Complex *a,
-    const CBLAS_TRANSPOSE cblas_transpose_a,
-    const GQTEN_Complex *b,
-    const CBLAS_TRANSPOSE cblas_transpose_b,
-    const size_t m,
-    const size_t k,
-    const size_t n,
-    const size_t lda,
-    const size_t ldb,
-    const GQTEN_Complex beta,
-    GQTEN_Complex *c) {
-  GQTEN_Complex alpha(1.0);
-  cblas_zgemm(
-      CblasRowMajor, cblas_transpose_a, cblas_transpose_b,
-      m, n, k,
-      &alpha,
-      a, lda,
-      b, ldb,
-      &beta,
-      c, n
-  );
-#ifdef GQTEN_COUNT_FLOPS
-  flop += m * n * (8 * k + 8);
+
 #endif
-}
 
 } /* hp_numeric */
 } /* gqten */

@@ -104,7 +104,7 @@ void RunTestQrCase(
   GQTensor<TenElemT, QNT> t_restored;
   gqten::Contract(&q, &r, {{ldims}, {0}}, &t_restored);
   CheckTwoTenClose(t_restored, t);
-  mkl_free_buffers();
+//  mkl_free_buffers();
 }
 
 

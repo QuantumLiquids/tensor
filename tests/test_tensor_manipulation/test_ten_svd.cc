@@ -15,7 +15,6 @@
 #include "gtest/gtest.h"
 #include "../testing_utility.h"
 
-#include "mkl.h"    // Included after other header file. Because GraceQ needs redefine MKL_Complex16 to gqten::GQTEN_Complex
 #include <thread>     //hardware_concurrency()
 
 using namespace gqten;
@@ -222,7 +221,6 @@ void RunTestSvdCase(
     GtestExpectNear(norm_ratio * norm_ratio, trunc_err, 1E-02);
   }
 
-  mkl_free_buffers();
   delete [] dense_mat;
   free(dense_s);
   free(dense_u);
