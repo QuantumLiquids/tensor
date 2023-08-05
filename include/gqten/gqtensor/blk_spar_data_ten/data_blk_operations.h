@@ -161,6 +161,36 @@ void BlockSparseDataTensor<ElemT, QNT>::DataBlksInsert(
   DataBlksInsert(blk_idxs, blk_coors_s, alloc_mem, init);
 }
 
+template<typename ElemT, typename QNT>
+DataBlk<QNT> BlockSparseDataTensor<ElemT, QNT>::GetMaxSizeDataBlk(void) const {
+  if (actual_raw_data_size_ == 0) {
+    return DataBlk<QNT>();
+  }
+
+  size_t max_size = 0;
+  size_t max_idx;
+  for (auto &idx_data_blk: blk_idx_data_blk_map_) {
+    size_t this_blk_size = idx_data_blk.second.size();
+    if (this_blk_size > max_size) {
+      max_size = this_blk_size;
+      max_idx = idx_data_blk.first;
+    }
+  }
+  return blk_idx_data_blk_map_.at(max_idx);
+}
+
+template<typename ElemT, typename QNT>
+size_t BlockSparseDataTensor<ElemT, QNT>::GetMaxDataBlkSize(void) const {
+  if (actual_raw_data_size_ == 0) {
+    return 0;
+  }
+  size_t max_size = 0;
+  for (auto &idx_data_blk: blk_idx_data_blk_map_) {
+    size_t this_blk_size = idx_data_blk.second.size();
+    max_size = std::max(max_size, this_blk_size);
+  }
+  return max_size;
+}
 /**
 Copy and rescale raw data from another tensor.
 */

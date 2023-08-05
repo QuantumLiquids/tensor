@@ -22,21 +22,20 @@
 #include <boost/serialization/serialization.hpp>
 
 namespace gqten {
-namespace special_qn{
-
+namespace special_qn {
 
 //Showable
 class U1QN : public Showable {
  public:
   U1QN(void);
   U1QN(const int val);
-  U1QN(const std::string& name, const int val);
-  U1QN(const U1QN& );
+  U1QN(const std::string &name, const int val);
+  U1QN(const U1QN &);
   //Compatible
 
   U1QN(const QNCardVec &qncards);
 
-  U1QN& operator=(const U1QN& );
+  U1QN &operator=(const U1QN &);
 
   ~U1QN(void);
 
@@ -46,39 +45,47 @@ class U1QN : public Showable {
   U1QN operator+(const U1QN &rhs) const;
   U1QN operator-(const U1QN &rhs) const;
 
-  size_t dim(void) const {return 1; }
+  size_t dim(void) const { return 1; }
 
   //Compatible
   U1QNVal GetQNVal(const size_t idx) const {
-    assert(idx==0);
+    assert(idx == 0);
     return U1QNVal(val_);
   }
 
-  bool operator==(const U1QN& rhs) const {
+  bool operator==(const U1QN &rhs) const {
     return val_ == rhs.val_;
   }
 
-  bool operator!=(const U1QN& rhs) const {
+  bool operator!=(const U1QN &rhs) const {
     return !(*this == rhs);
   }
 
   //Hashable
-  size_t Hash() const {return hash_; }
+  size_t Hash() const { return hash_; }
 
-  void StreamRead(std::istream& ) ;
-  void StreamWrite(std::ostream& ) const ;
+  void StreamRead(std::istream &);
+  void StreamWrite(std::ostream &) const;
 
   void Show(const size_t indent_level = 0) const override;
 
+  //Generate QN 0 element
+  static U1QN Zero(void) {
+    return U1QN((const int) 0, (const size_t) 0);
+  }
+
  private:
-  size_t CalcHash_(void) const ;
+
+  U1QN(const int val, const size_t hash) : val_(0), hash_(hash) {}
+
+  size_t CalcHash_(void) const;
 
   int val_;
   size_t hash_;
 
   friend class boost::serialization::access;
   template<class Archive>
-  void serialize(Archive & ar, const unsigned int version){
+  void serialize(Archive &ar, const unsigned int version) {
     ar & val_;
     ar & hash_;
   }
@@ -90,7 +97,7 @@ inline U1QN::U1QN(const int val) : val_(val), hash_(CalcHash_()) {}
 
 inline U1QN::U1QN(const std::string &name, const int val) : val_(val), hash_(CalcHash_()) {}
 
-inline U1QN::U1QN(const U1QN & rhs) : val_(rhs.val_), hash_(rhs.hash_) {}
+inline U1QN::U1QN(const U1QN &rhs) : val_(rhs.val_), hash_(rhs.hash_) {}
 
 inline U1QN::U1QN(const QNCardVec &qncards) {
   const int val = qncards[0].GetValPtr()->GetVal();
@@ -100,7 +107,7 @@ inline U1QN::U1QN(const QNCardVec &qncards) {
 
 inline U1QN::~U1QN() {}
 
-inline U1QN& U1QN::operator=(const U1QN &rhs) {
+inline U1QN &U1QN::operator=(const U1QN &rhs) {
   val_ = rhs.val_;
   hash_ = rhs.hash_;
   return *this;
@@ -110,18 +117,18 @@ inline U1QN U1QN::operator-() const {
   return U1QN(-val_);
 }
 
-inline U1QN& U1QN::operator+=(const U1QN &rhs) {
+inline U1QN &U1QN::operator+=(const U1QN &rhs) {
   val_ += rhs.val_;
   hash_ = CalcHash_();
   return *this;
 }
 
 inline U1QN U1QN::operator+(const U1QN &rhs) const {
-  return U1QN( val_ + rhs.val_ );
+  return U1QN(val_ + rhs.val_);
 }
 
 inline U1QN U1QN::operator-(const U1QN &rhs) const {
-  return U1QN( val_ - rhs.val_ );
+  return U1QN(val_ - rhs.val_);
 }
 
 inline void U1QN::StreamRead(std::istream &is) {
@@ -136,7 +143,6 @@ inline void U1QN::StreamWrite(std::ostream &os) const {
 inline void U1QN::Show(const size_t indent_level) const {
   std::cout << IndentPrinter(indent_level) << "U1QN:  " << val_ << "\n";
 }
-
 
 inline size_t U1QN::CalcHash_() const {
   ///< a faith realization compatible with QN<U1QNVal>
@@ -164,7 +170,7 @@ inline std::ostream &operator<<(std::ostream &os, const U1QN &qn) {
   return os;
 }
 
-inline size_t Hash(const U1QN& qn) { return qn.Hash(); }
+inline size_t Hash(const U1QN &qn) { return qn.Hash(); }
 
 }//special_qn
 }//gqten

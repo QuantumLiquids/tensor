@@ -70,6 +70,10 @@ class U1U1ZQN : public Showable {
 
   void Show(const size_t indent_level = 0) const override;
 
+  static U1U1ZQN Zero(size_t n) {
+    return U1U1ZQN(n, 0, 0, 0);
+  }
+
  private:
   size_t CalcHash_(void) const;
 

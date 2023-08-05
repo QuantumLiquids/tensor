@@ -13,12 +13,13 @@
 #ifndef GQTEN_FRAMEWORK_HP_NUMERIC_TEN_TRANS_H
 #define GQTEN_FRAMEWORK_HP_NUMERIC_TEN_TRANS_H
 
-
 #include <vector>     // vector
 
+#ifndef PLAIN_TRANSPOSE
 
 #include "hptt.h"
 
+#endif
 
 namespace gqten {
 
@@ -26,22 +27,19 @@ namespace gqten {
 /// High performance numerical functions.
 namespace hp_numeric {
 
-
 const int kTensorTransposeDefaultNumThreads = 4;
 
-
 inline int tensor_transpose_num_threads = kTensorTransposeDefaultNumThreads;
-
 
 inline int TensorTransposeNumThreads(void) {
   return tensor_transpose_num_threads;
 }
 
-
 inline void SetTensorTransposeNumThreads(const int num_threads) {
   tensor_transpose_num_threads = num_threads;
 }
 
+#ifndef PLAIN_TRANSPOSE
 
 template <typename ElemT>
 void TensorTranspose(
@@ -86,6 +84,67 @@ void TensorTranspose(
   );
   tentrans_plan->execute();
 }
+
+#else
+template<typename ElemT, typename IntType>
+void TensorTranspose(
+    const std::vector<IntType> &transed_order,
+    const size_t ten_rank,
+    ElemT *original_data,
+    const std::vector<size_t> &original_shape,
+    ElemT *transed_data,
+    const std::vector<IntType> &transed_shape
+) {
+  // Calculate the strides for each dimension in the original tensor
+  std::vector<size_t> original_strides(ten_rank, 1);
+  size_t stride = 1;
+  for (int i = ten_rank - 1; i >= 0; --i) {
+    original_strides[i] = stride;
+    stride *= original_shape[i];
+  }
+
+  // Calculate the total number of elements in the original tensor
+  size_t total_elements = stride;
+
+  // Calculate the strides for each dimension in the transposed tensor
+  std::vector<size_t> transed_strides(ten_rank, 1);
+  stride = 1;
+  for (int i = ten_rank - 1; i >= 0; --i) {
+    transed_strides[i] = stride;
+    stride *= transed_shape[i];
+  }
+
+  // Loop over each element in the original tensor
+  std::vector<size_t> original_coords(ten_rank, 0);
+  std::vector<size_t> transed_coords(ten_rank);
+  for (size_t index = 0; index < total_elements; ++index) {
+    // Calculate the coordinates of the current element in the original tensor
+
+    size_t remaining_index = index;
+
+    for (int i = 0; i < ten_rank; ++i) {
+      original_coords[i] = remaining_index / original_strides[i];
+      remaining_index %= original_strides[i];
+    }
+
+    // Permute the coordinates according to the transposition order
+
+    for (size_t i = 0; i < ten_rank; ++i) {
+      transed_coords[i] = original_coords[transed_order[i]];
+    }
+
+    // Calculate the index of the corresponding element in the transposed tensor
+    size_t transed_index = 0;
+    for (size_t i = 0; i < ten_rank; ++i) {
+      transed_index += transed_coords[i] * transed_strides[i];
+    }
+
+    // Copy the data to the transposed position
+    transed_data[transed_index] = original_data[index];
+  }
+}
+
+#endif
 
 } /* hp_numeric */
 } /* gqten */

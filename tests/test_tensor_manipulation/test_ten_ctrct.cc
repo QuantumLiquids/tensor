@@ -8,6 +8,10 @@
 
 #define GQTEN_COUNT_FLOPS 1
 
+
+//#define PLAIN_TRANSPOSE 1
+
+
 #include "gqten/gqtensor_all.h"
 #include "gqten/tensor_manipulation/ten_ctrct.h"            // Contract
 #include "gqten/tensor_manipulation/basic_operations.h"     // Dag
@@ -15,8 +19,6 @@
 #include "gtest/gtest.h"
 #include "../testing_utility.h"
 #include "gqten/utility/timer.h"
-
-
 
 using namespace gqten;
 

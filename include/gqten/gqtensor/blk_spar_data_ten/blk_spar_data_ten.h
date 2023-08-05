@@ -93,6 +93,9 @@ class BlockSparseDataTensor : public Streamable {
       const bool
   );
 
+  DataBlk<QNT> GetMaxSizeDataBlk(void) const;
+  size_t GetMaxDataBlkSize(void) const;
+
   void DataBlkCopyAndScale(
       const RawDataCopyAndScaleTask<ElemT> &,
       const ElemT *
@@ -217,6 +220,10 @@ class BlockSparseDataTensor : public Streamable {
   }
 
   void CopyFromReal(const BlockSparseDataTensor<GQTEN_Double, QNT> &);
+
+  void ElementWiseInv(void);
+  void ElementWiseInv(double tolerance);
+  void ElementWiseSqrt(void);
 
   // Operators overload
   bool operator==(const BlockSparseDataTensor &) const;
@@ -629,15 +636,15 @@ void BlockSparseDataTensor<ElemT, QNT>::StreamWrite(std::ostream &os) const {
 /**
  * @note only save the shell, no data!
  */
-template <typename ElemT, typename QNT>
-template <class Archive>
-void BlockSparseDataTensor<ElemT, QNT>::save(Archive & ar, const unsigned int version) const{
+template<typename ElemT, typename QNT>
+template<class Archive>
+void BlockSparseDataTensor<ElemT, QNT>::save(Archive &ar, const unsigned int version) const {
   ar & blk_idx_data_blk_map_.size();
-  for (auto &blk_idx_data_blk : blk_idx_data_blk_map_) {
-      ar & blk_idx_data_blk.first;
-      for (auto &blk_coor : blk_idx_data_blk.second.blk_coors) {
-        ar & blk_coor;
-      }
+  for (auto &blk_idx_data_blk: blk_idx_data_blk_map_) {
+    ar & blk_idx_data_blk.first;
+    for (auto &blk_coor: blk_idx_data_blk.second.blk_coors) {
+      ar & blk_coor;
+    }
   }
 }
 

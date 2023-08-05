@@ -14,7 +14,6 @@
 #ifndef GQTEN_GQTENSOR_BLK_SPAR_DATA_TEN_RAW_DATA_OPERATIONS_H
 #define GQTEN_GQTENSOR_BLK_SPAR_DATA_TEN_RAW_DATA_OPERATIONS_H
 
-
 #include "gqten/gqtensor/blk_spar_data_ten/blk_spar_data_ten.h"
 #include "gqten/framework/value_t.h"                                      // CoorsT, ShapeT
 #include "gqten/gqtensor/blk_spar_data_ten/raw_data_operation_tasks.h"    // RawDataTransposeTask
@@ -33,43 +32,39 @@
 #include <stdlib.h>     // malloc, free, calloc
 #include <string.h>     // memcpy, memset
 #ifdef Release
-  #define NDEBUG
+#define NDEBUG
 #endif
 #include <assert.h>     // assert
 
-
 namespace gqten {
-
 
 /**
 Release the raw data, set the pointer to null, set the size to 0.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::RawDataFree_(void) {
   free(pactual_raw_data_);
   pactual_raw_data_ = nullptr;
   actual_raw_data_size_ = 0;
 }
 
-
 /**
 Directly set raw data point to nullptr and set actual raw data size to 0.
 
 @note The memory may leak!!
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::RawDataDiscard_(void) {
   pactual_raw_data_ = nullptr;
   actual_raw_data_size_ = 0;
 }
-
 
 /**
 Allocate memoery using a size.
 
 @param init Whether initialize the memory to 0.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::RawDataAlloc_(
     const size_t size,
     const bool init
@@ -86,7 +81,6 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataAlloc_(
   actual_raw_data_size_ = size;
 }
 
-
 /**
 Insert a subarray to the raw data array and decide whether initialize the memory
 of the subarray.
@@ -95,7 +89,7 @@ of the subarray.
 @param size   The size of the subarray.
 @param init   Whether initialize the inserted subarray to 0.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::RawDataInsert_(
     const size_t offset,
     const size_t size,
@@ -109,7 +103,7 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataInsert_(
   } else {
     size_t new_data_size = actual_raw_data_size_ + size;
     ElemT *new_pdata = (ElemT *) malloc(new_data_size * sizeof(ElemT));
-    hp_numeric::VectorCopy(pactual_raw_data_, offset, new_pdata );
+    hp_numeric::VectorCopy(pactual_raw_data_, offset, new_pdata);
     hp_numeric::VectorCopy(
         pactual_raw_data_ + offset,
         actual_raw_data_size_ - offset,
@@ -125,26 +119,24 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataInsert_(
   }
 }
 
-
 /**
 Random set all the actual raw data to [0, 1].
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::RawDataRand_(void) {
   for (size_t i = 0; i < actual_raw_data_size_; ++i) {
     Rand(pactual_raw_data_[i]);
   }
 }
 
-
 /**
 Tensor transpose for the 1D raw data array.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::RawDataTranspose_(
     const std::vector<RawDataTransposeTask> &raw_data_trans_tasks) {
   ElemT *ptransed_actual_raw_data = (ElemT *) malloc(actual_raw_data_size_ * sizeof(ElemT));
-  for (auto &trans_task : raw_data_trans_tasks) {
+  for (auto &trans_task: raw_data_trans_tasks) {
     hp_numeric::TensorTranspose(
         trans_task.transed_order,
         trans_task.ten_rank,
@@ -163,7 +155,7 @@ calculate the 2-norm of the raw data array.
 
 @return The 2-norm
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 GQTEN_Double BlockSparseDataTensor<ElemT, QNT>::RawDataNorm_(void) {
   return hp_numeric::Vector2Norm(pactual_raw_data_, actual_raw_data_size_);
 }
@@ -173,19 +165,18 @@ Normalize the raw data array.
 
 @return The norm before normalization.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 GQTEN_Double BlockSparseDataTensor<ElemT, QNT>::RawDataNormalize_(void) {
   double norm = hp_numeric::Vector2Norm(pactual_raw_data_, actual_raw_data_size_);
-  double inv_norm = 1.0/norm;
+  double inv_norm = 1.0 / norm;
   hp_numeric::VectorScale(pactual_raw_data_, actual_raw_data_size_, inv_norm);
   return norm;
 }
 
-
 /**
 Complex conjugate for raw data.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::RawDataConj_(void) {
   if (std::is_same<ElemT, GQTEN_Double>::value) {
     // Do nothing
@@ -196,7 +187,6 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataConj_(void) {
   }
 }
 
-
 /**
 Copy a piece of raw data from another place. You can decided whether add this
 piece on the original one.
@@ -204,12 +194,12 @@ piece on the original one.
 @param raw_data_copy_tasks Raw data copy task list.
 @param psrc_raw_data The pointer to source data.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::RawDataCopy_(
     const std::vector<RawDataCopyTask> &raw_data_copy_tasks,
     const ElemT *psrc_raw_data
 ) {
-  for (auto &task : raw_data_copy_tasks) {
+  for (auto &task: raw_data_copy_tasks) {
     if (task.copy_and_add) {
       hp_numeric::VectorAddTo(
           psrc_raw_data + task.src_data_offset,
@@ -218,31 +208,31 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataCopy_(
       );
     } else {
       hp_numeric::VectorCopy(
-        psrc_raw_data + task.src_data_offset,
-        task.src_data_size,
-        pactual_raw_data_ + task.dest_data_offset
+          psrc_raw_data + task.src_data_offset,
+          task.src_data_size,
+          pactual_raw_data_ + task.dest_data_offset
       );
     }
   }
 }
 
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::RawDataCopy_(
-  const std::vector<ElemT*>& src_pointers,
-  const std::vector<ElemT*>& dest_pointers,
-  const std::vector<size_t>& copy_sizes
-){
+    const std::vector<ElemT *> &src_pointers,
+    const std::vector<ElemT *> &dest_pointers,
+    const std::vector<size_t> &copy_sizes
+) {
   size_t task_size = src_pointers.size();
   int ompth = hp_numeric::tensor_manipulation_num_threads;
-  #pragma omp parallel for default(none) \
+#pragma omp parallel for default(none) \
                 shared(task_size, dest_pointers, src_pointers, copy_sizes)\
                 num_threads(ompth)\
-                schedule(dynamic) 
-  for(size_t i = 0;i<task_size;i++){
+                schedule(dynamic)
+  for (size_t i = 0; i < task_size; i++) {
     memcpy(
-      dest_pointers[i],
-      src_pointers[i],
-      copy_sizes[i] * sizeof(ElemT)
+        dest_pointers[i],
+        src_pointers[i],
+        copy_sizes[i] * sizeof(ElemT)
     );
   }
 }
@@ -253,19 +243,19 @@ The destination must be different and there is no addition
 @param raw_data_copy_tasks Raw data copy task list.
 @param psrc_raw_data The pointer to source data.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::RawDataCopyNoAdd_(
     const std::vector<RawDataCopyTask> &raw_data_copy_tasks,
     const ElemT *psrc_raw_data
 ) {
   size_t task_size = raw_data_copy_tasks.size();
   size_t ompth = hp_numeric::tensor_manipulation_num_threads;
-  
-  #pragma omp parallel for default(none) \
+
+#pragma omp parallel for default(none) \
                 shared(task_size, raw_data_copy_tasks, pactual_raw_data_, psrc_raw_data)\
                 num_threads(ompth)\
-                schedule(dynamic) 
-  for(size_t i = 0; i < task_size;i++){
+                schedule(dynamic)
+  for (size_t i = 0; i < task_size; i++) {
     RawDataCopyTask task = raw_data_copy_tasks[i];
     memcpy(
         pactual_raw_data_ + task.dest_data_offset,
@@ -275,7 +265,6 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataCopyNoAdd_(
   }
 }
 
-
 /**
 Copy and scale a piece of raw data from another place. You can decided whether
 add this piece on the original one.
@@ -283,16 +272,16 @@ add this piece on the original one.
 @param raw_data_copy_tasks Raw data copy task list.
 @param psrc_raw_data The pointer to source data.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::RawDataCopyAndScale_(
     const RawDataCopyAndScaleTask<ElemT> &raw_data_copy_and_scale_task,
     const ElemT *psrc_raw_data
 ) {
   auto dest_data_offset = blk_idx_data_blk_map_[
-                              BlkCoorsToBlkIdx(
-                                  raw_data_copy_and_scale_task.dest_blk_coors
-                              )
-                          ].data_offset;
+      BlkCoorsToBlkIdx(
+          raw_data_copy_and_scale_task.dest_blk_coors
+      )
+  ].data_offset;
   if (raw_data_copy_and_scale_task.copy_and_add) {
     hp_numeric::VectorAddTo(
         psrc_raw_data + raw_data_copy_and_scale_task.src_data_offset,
@@ -310,13 +299,12 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataCopyAndScale_(
   }
 }
 
-
 /**
 Set a piece of data to zeros.
 @param offset  starting point of the piece of data
 @param size    the size the piece of data
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::RawDataSetZeros_(
     const size_t offset,
     const size_t size
@@ -324,31 +312,30 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataSetZeros_(
   memset(pactual_raw_data_ + offset, 0, size * sizeof(ElemT));
 }
 
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::RawDataSetZeros_(
-    const std::vector<size_t>& offsets,
-    const std::vector<size_t>& sizes
+    const std::vector<size_t> &offsets,
+    const std::vector<size_t> &sizes
 ) {
-  assert(offsets.size()==sizes.size());
-  for(size_t i=0;i<offsets.size();i++){
+  assert(offsets.size() == sizes.size());
+  for (size_t i = 0; i < offsets.size(); i++) {
     RawDataSetZeros_(offsets[i], sizes[i]);
   }
 }
 
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::RawDataSetZeros_(
     const std::vector<RawDataSetZerosTask> &set_zeros_tasks
 ) {
-  for (auto &task : set_zeros_tasks) {
+  for (auto &task: set_zeros_tasks) {
     RawDataSetZeros_(task.data_offset, task.data_size);
   }
 }
 
-
 /**
 Duplicate a whole same size real raw data array from another place.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::RawDataDuplicateFromReal_(
     const GQTEN_Double *preal_raw_data_, const size_t size) {
   if (std::is_same<ElemT, GQTEN_Complex>::value) {
@@ -358,13 +345,12 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataDuplicateFromReal_(
   }
 }
 
-
 /**
 Multiply the raw data by a scalar.
 
 @param s A scalar.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::RawDataMultiplyByScalar_(
     const ElemT s
 ) {
@@ -373,11 +359,10 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataMultiplyByScalar_(
   }
 }
 
-
 /**
 Multiply two matrices and assign in.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::RawDataTwoMatMultiplyAndAssignIn_(
     const ElemT *a,
     const ElemT *b,
@@ -395,15 +380,14 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataTwoMatMultiplyAndAssignIn_(
   );
 }
 
-
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 ElemT *BlockSparseDataTensor<ElemT, QNT>::RawDataGenDenseDataBlkMat_(
     const TenDecompDataBlkMat<QNT> &data_blk_mat
 ) const {
   auto rows = data_blk_mat.rows;
   auto cols = data_blk_mat.cols;
   ElemT *mat = (ElemT *) calloc(rows * cols, sizeof(ElemT));
-  for (auto &elem : data_blk_mat.elems) {
+  for (auto &elem: data_blk_mat.elems) {
     auto i = elem.first[0];
     auto j = elem.first[1];
     auto row_offset = std::get<1>(data_blk_mat.row_scts[i]);
@@ -412,7 +396,7 @@ ElemT *BlockSparseDataTensor<ElemT, QNT>::RawDataGenDenseDataBlkMat_(
     auto n = std::get<2>(data_blk_mat.col_scts[j]);
     auto blk_idx_in_bsdt = elem.second;
     auto sub_mem_begin = pactual_raw_data_ +
-                         blk_idx_data_blk_map_.at(blk_idx_in_bsdt).data_offset;
+        blk_idx_data_blk_map_.at(blk_idx_in_bsdt).data_offset;
     SubMatMemCpy(
         rows, cols,
         row_offset, col_offset,
@@ -423,28 +407,60 @@ ElemT *BlockSparseDataTensor<ElemT, QNT>::RawDataGenDenseDataBlkMat_(
   return mat;
 }
 
-
 /**
 Read raw data from a stream.
 
 @param is Input stream.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::RawDataRead_(std::istream &is) {
   is.seekg(1, std::ios::cur);    // Skip the line break.
   is.read((char *) pactual_raw_data_, actual_raw_data_size_ * sizeof(ElemT));
 }
-
 
 /**
 Write raw data to a stream.
 
 @param os Output stream.
 */
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::RawDataWrite_(std::ostream &os) const {
   os.write((char *) pactual_raw_data_, actual_raw_data_size_ * sizeof(ElemT));
   os << std::endl;
+}
+template<typename ElemT, typename QNT>
+void BlockSparseDataTensor<ElemT, QNT>::ElementWiseInv(void) {
+  int ompth = hp_numeric::tensor_manipulation_num_threads;
+#pragma omp parallel for default(none) \
+                shared(pactual_raw_data_, actual_raw_data_size_)\
+                num_threads(ompth)\
+                schedule(static)
+  for (size_t i = 0; i < actual_raw_data_size_; i++) {
+    *(pactual_raw_data_ + i) = 1.0 / (*(pactual_raw_data_ + i));
+  }
+}
+template<typename ElemT, typename QNT>
+void BlockSparseDataTensor<ElemT, QNT>::ElementWiseInv(double tolerance) {
+  int ompth = hp_numeric::tensor_manipulation_num_threads;
+#pragma omp parallel for default(none) \
+                shared(pactual_raw_data_, tolerance)\
+                num_threads(ompth)\
+                schedule(static)
+  for (size_t i = 0; i < actual_raw_data_size_; i++) {
+    ElemT &elem = *(pactual_raw_data_ + i);
+    elem = (std::abs(elem) < tolerance) ? ElemT(0) : 1.0 / elem;
+  }
+}
+template<typename ElemT, typename QNT>
+void BlockSparseDataTensor<ElemT, QNT>::ElementWiseSqrt(void) {
+  int ompth = hp_numeric::tensor_manipulation_num_threads;
+#pragma omp parallel for default(none) \
+                shared(pactual_raw_data_, actual_raw_data_size_)\
+                num_threads(ompth)\
+                schedule(static)
+  for (size_t i = 0; i < actual_raw_data_size_; i++) {
+    *(pactual_raw_data_ + i) = std::sqrt(*(pactual_raw_data_ + i));
+  }
 }
 } /* gqten */
 #endif /* ifndef GQTEN_GQTENSOR_BLK_SPAR_DATA_TEN_RAW_DATA_OPERATIONS_H */

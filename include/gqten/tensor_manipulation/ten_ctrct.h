@@ -13,7 +13,6 @@
 #ifndef GQTEN_TENSOR_MANIPULATION_TEN_CTRCT_H
 #define GQTEN_TENSOR_MANIPULATION_TEN_CTRCT_H
 
-
 #include "gqten/framework/bases/executor.h"                 // Executor
 #include "gqten/gqtensor_all.h"
 #include "gqten/tensor_manipulation/basic_operations.h"     // ToComplex
@@ -21,16 +20,14 @@
 #include <vector>     // vector
 
 #ifdef Release
-  #define NDEBUG
+#define NDEBUG
 #endif
 #include <assert.h>     // assert
 
-
 namespace gqten {
 
-
 // Forward declarations
-template <typename TenElemT, typename QNT>
+template<typename TenElemT, typename QNT>
 void TenCtrctInitResTen(
     const GQTensor<TenElemT, QNT> *,
     const GQTensor<TenElemT, QNT> *,
@@ -49,9 +46,9 @@ Tensor contraction executor.
 @tparam TenElemT The type of tensor elements.
 @tparam QNT The quantum number type of the tensors.
 */
-template <typename TenElemT, typename QNT>
+template<typename TenElemT, typename QNT>
 class TensorContractionExecutor : public Executor {
-public:
+ public:
   TensorContractionExecutor(
       const GQTensor<TenElemT, QNT> *,
       const GQTensor<TenElemT, QNT> *,
@@ -61,7 +58,7 @@ public:
 
   void Execute(void) override;
 
-private:
+ private:
   const GQTensor<TenElemT, QNT> *pa_;
   const GQTensor<TenElemT, QNT> *pb_;
   GQTensor<TenElemT, QNT> *pc_;
@@ -73,7 +70,6 @@ private:
   std::vector<RawDataCtrctTask> raw_data_ctrct_tasks_;
 };
 
-
 /**
 Initialize a tensor contraction executor.
 
@@ -82,7 +78,7 @@ Initialize a tensor contraction executor.
 @param axes_set To-be contracted tensor axes indexes. For example, {{0, 1}, {3, 2}}.
 @param pc Pointer to result tensor \f$ C \f$.
 */
-template <typename TenElemT, typename QNT>
+template<typename TenElemT, typename QNT>
 TensorContractionExecutor<TenElemT, QNT>::TensorContractionExecutor(
     const GQTensor<TenElemT, QNT> *pa,
     const GQTensor<TenElemT, QNT> *pb,
@@ -92,13 +88,13 @@ TensorContractionExecutor<TenElemT, QNT>::TensorContractionExecutor(
   assert(pc_->IsDefault());    // Only empty tensor can take the result
   // Check indexes matching
 #ifndef NDEBUG
-  auto& indexesa = pa->GetIndexes();
-  auto& indexesb = pb->GetIndexes();
-  for(size_t i = 0; i < axes_set[0].size(); ++i){
+  auto &indexesa = pa->GetIndexes();
+  auto &indexesb = pb->GetIndexes();
+  for (size_t i = 0; i < axes_set[0].size(); ++i) {
     assert(indexesa[axes_set[0][i]] == InverseIndex(indexesb[axes_set[1][i]]));
   }
 #endif
-  std::vector< std::vector<size_t> > saved_axes_set = TenCtrctGenSavedAxesSet(
+  std::vector<std::vector<size_t> > saved_axes_set = TenCtrctGenSavedAxesSet(
       pa->Rank(),
       pb->Rank(),
       axes_set
@@ -118,20 +114,19 @@ TensorContractionExecutor<TenElemT, QNT>::TensorContractionExecutor(
 
   TenCtrctInitResTen(pa_, pb_, saved_axes_set, pc_);
   raw_data_ctrct_tasks_ = pc_->GetBlkSparDataTen().DataBlkGenForTenCtrct(
-                              pa_->GetBlkSparDataTen(),
-                              pb_->GetBlkSparDataTen(),
-                              axes_set_,
-                              saved_axes_set
-                          );
+      pa_->GetBlkSparDataTen(),
+      pb_->GetBlkSparDataTen(),
+      axes_set_,
+      saved_axes_set
+  );
 
   SetStatus(ExecutorStatus::INITED);
 }
 
-
 /**
 Allocate memory and perform raw data contraction calculation.
 */
-template <typename TenElemT, typename QNT>
+template<typename TenElemT, typename QNT>
 void TensorContractionExecutor<TenElemT, QNT>::Execute(void) {
   SetStatus(ExecutorStatus::EXEING);
 
@@ -146,7 +141,6 @@ void TensorContractionExecutor<TenElemT, QNT>::Execute(void) {
   SetStatus(ExecutorStatus::FINISH);
 }
 
-
 /**
 Function version for tensor contraction.
 
@@ -158,7 +152,7 @@ Function version for tensor contraction.
 @param axes_set To-be contracted tensor axes indexes. For example, {{0, 1}, {3, 2}}.
 @param pc Pointer to result tensor \f$ C \f$.
 */
-template <typename TenElemT, typename QNT>
+template<typename TenElemT, typename QNT>
 void Contract(
     const GQTensor<TenElemT, QNT> *pa,
     const GQTensor<TenElemT, QNT> *pb,
@@ -174,8 +168,7 @@ void Contract(
   ten_ctrct_executor.Execute();
 }
 
-
-template <typename QNT>
+template<typename QNT>
 void Contract(
     const GQTensor<GQTEN_Double, QNT> *pa,
     const GQTensor<GQTEN_Complex, QNT> *pb,
@@ -186,8 +179,7 @@ void Contract(
   Contract(&cplx_a, pb, axes_set, pc);
 }
 
-
-template <typename QNT>
+template<typename QNT>
 void Contract(
     const GQTensor<GQTEN_Complex, QNT> *pa,
     const GQTensor<GQTEN_Double, QNT> *pb,
@@ -198,6 +190,17 @@ void Contract(
   Contract(pa, &cplx_b, axes_set, pc);
 }
 
+template<typename TenElemT, typename QNT>
+void Contract(
+    const GQTensor<TenElemT, QNT> *pa,
+    const std::vector<size_t> &axes_a,
+    const GQTensor<TenElemT, QNT> *pb,
+    const std::vector<size_t> &axes_b,
+    GQTensor<TenElemT, QNT> *pc
+) {
+  std::vector<std::vector<size_t>> axes_set = {axes_a, axes_b};
+  Contract(pa, pb, axes_set, pc);
+}
 
 /**
 Initialize tensor contraction result tensor.
@@ -207,31 +210,29 @@ Initialize tensor contraction result tensor.
 @param axes_set To-be contracted tensor axes indexes. For example, {{0, 1}, {3, 2}}.
 @param pc Pointer to result tensor \f$ C \f$.
 */
-template <typename TenElemT, typename QNT>
+template<typename TenElemT, typename QNT>
 void TenCtrctInitResTen(
     const GQTensor<TenElemT, QNT> *pa,
     const GQTensor<TenElemT, QNT> *pb,
     const std::vector<std::vector<size_t>> &saved_axes_set,
     GQTensor<TenElemT, QNT> *pc
 ) {
-  const auto& a_ctrct_axes = saved_axes_set[0];
-  const auto& b_ctrct_axes = saved_axes_set[1];
+  const auto &a_ctrct_axes = saved_axes_set[0];
+  const auto &b_ctrct_axes = saved_axes_set[1];
   const size_t c_rank = a_ctrct_axes.size() + b_ctrct_axes.size();
   IndexVec<QNT> c_idxs;
   c_idxs.reserve(c_rank);
-  auto& a_idxs = pa->GetIndexes();
-  auto& b_idxs = pb->GetIndexes();
-  for(size_t saved_axes_a : a_ctrct_axes) {
-    c_idxs.push_back( a_idxs[saved_axes_a] );
+  auto &a_idxs = pa->GetIndexes();
+  auto &b_idxs = pb->GetIndexes();
+  for (size_t saved_axes_a: a_ctrct_axes) {
+    c_idxs.push_back(a_idxs[saved_axes_a]);
   }
-  for(size_t saved_axes_b : b_ctrct_axes) {
-    c_idxs.push_back( b_idxs[saved_axes_b] );
+  for (size_t saved_axes_b: b_ctrct_axes) {
+    c_idxs.push_back(b_idxs[saved_axes_b]);
   }
 
   (*pc) = GQTensor<TenElemT, QNT>(std::move(c_idxs));
 }
-
-
 
 inline bool TenCtrctNeedTransCheck(
     const std::vector<size_t> &first_part_axes,
@@ -239,23 +240,23 @@ inline bool TenCtrctNeedTransCheck(
     std::vector<int> &trans_orders
 ) {
   bool need_trans(false);
-  for(size_t i = 0; i < first_part_axes.size(); i++) {
-    if( first_part_axes[i] != i ){
+  for (size_t i = 0; i < first_part_axes.size(); i++) {
+    if (first_part_axes[i] != i) {
       need_trans = true;
       break;
     }
   }
-  if(!need_trans){
+  if (!need_trans) {
     const size_t first_part_axes_size = first_part_axes.size();
-    for(size_t i = 0;i < second_part_axes.size(); i++ ) {
-      if( second_part_axes[i] != i + first_part_axes_size ){
+    for (size_t i = 0; i < second_part_axes.size(); i++) {
+      if (second_part_axes[i] != i + first_part_axes_size) {
         need_trans = true;
         break;
       }
     }
   }
 
-  if( need_trans ){
+  if (need_trans) {
     const size_t trans_order_size = first_part_axes.size() + second_part_axes.size();
     const size_t first_part_axes_size = first_part_axes.size();
     trans_orders.resize(trans_order_size);
@@ -271,10 +272,10 @@ inline bool TenCtrctNeedTransCheck(
         second_part_axes.end()
     );
      */
-    for(size_t i = 0; i < first_part_axes_size; i++ ){
+    for (size_t i = 0; i < first_part_axes_size; i++) {
       trans_orders[i] = first_part_axes[i];
     }
-    for(size_t i = 0; i < second_part_axes.size(); i++){
+    for (size_t i = 0; i < second_part_axes.size(); i++) {
       trans_orders[i + first_part_axes_size] = second_part_axes[i];
     }
   }
