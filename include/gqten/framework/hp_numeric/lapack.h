@@ -23,6 +23,7 @@
 #ifdef Release
 #define NDEBUG
 #endif
+
 #include <assert.h>     // assert
 
 #ifndef USE_OPENBLAS
@@ -53,7 +54,7 @@ inline lapack_int MatSVD(
   u = (GQTEN_Double *) malloc((ldu * m) * sizeof(GQTEN_Double));
   s = (GQTEN_Double *) malloc(ldu * sizeof(GQTEN_Double));
   vt = (GQTEN_Double *) malloc((ldvt * ldu) * sizeof(GQTEN_Double));
-
+#ifdef FAST_SVD
   auto info = LAPACKE_dgesdd(
       LAPACK_ROW_MAJOR, 'S',
       m, n,
@@ -62,6 +63,19 @@ inline lapack_int MatSVD(
       u, ldu,
       vt, ldvt
   );
+#else // More stable
+  double *superb = new double[m];
+  auto info = LAPACKE_dgesvd(
+      LAPACK_ROW_MAJOR, 'S', 'S',
+      m, n,
+      mat, lda,
+      s,
+      u, ldu,
+      vt, ldvt,
+      superb
+  );
+  delete[] superb;
+#endif
   assert(info == 0);
 #ifdef GQTEN_COUNT_FLOPS
   flop += 4 * m * n * n - 4 * n * n * n / 3;
@@ -85,17 +99,6 @@ inline lapack_int MatSVD(
   s = (GQTEN_Double *) malloc(ldu * sizeof(GQTEN_Double));
   vt = (GQTEN_Complex *) malloc((ldvt * ldu) * sizeof(GQTEN_Complex));
 
-  u = (GQTEN_Complex *) malloc((ldu * m) * sizeof(GQTEN_Complex));
-#ifndef USE_OPENBLAS
-  auto info = LAPACKE_zgesdd(
-      LAPACK_ROW_MAJOR, 'S',
-      m, n,
-      mat, lda,
-      s,
-      u, ldu,
-      vt, ldvt
-  );
-#else
   auto info = LAPACKE_zgesdd(
       LAPACK_ROW_MAJOR, 'S',
       m, n,
@@ -104,7 +107,6 @@ inline lapack_int MatSVD(
       reinterpret_cast<lapack_complex_double *>(u), ldu,
       reinterpret_cast<lapack_complex_double *>(vt), ldvt
   );
-#endif
   assert(info == 0);
 #ifdef GQTEN_COUNT_FLOPS
   flop += 8 * m * n * n - 8 * n * n * n / 3;
@@ -177,9 +179,6 @@ inline void MatQR(
   }
 
   // Create Q matrix
-#ifndef USE_OPENBLAS
-  LAPACKE_zungqr(LAPACK_ROW_MAJOR, m, k, k, mat, n, tau);     // un: unitary
-#else
   LAPACKE_zungqr(LAPACK_ROW_MAJOR,
                  m,
                  k,
@@ -187,7 +186,6 @@ inline void MatQR(
                  reinterpret_cast<lapack_complex_double *>(mat),
                  n,
                  reinterpret_cast<lapack_complex_double *>(tau));
-#endif
   free(tau);
   q = (GQTEN_Complex *) malloc((m * k) * elem_type_size);
   if (m == n) {

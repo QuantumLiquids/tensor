@@ -24,7 +24,7 @@
 #include "gqten/gqtensor_all.h"
 #include <set>
 
-namespace gqten{
+namespace gqten {
 
 /**
  *
@@ -38,21 +38,23 @@ namespace gqten{
  *  this two parameters don't change the result of contraction,
  *  but support some hints to reduce operators and increase the performance.
  */
-template <typename TenElemT, typename QNT, bool a_ctrct_tail, bool b_ctrct_head>
-class TensorExtraContractionExecutor: public Executor {
- public:
+template<typename TenElemT, typename QNT, bool a_ctrct_tail, bool b_ctrct_head>
+class TensorExtraContractionExecutor : public Executor {
+public:
   TensorExtraContractionExecutor(
-      const GQTensor<TenElemT, QNT>* ,
-      const GQTensor<TenElemT, QNT>* ,
+      const GQTensor<TenElemT, QNT> *,
+      const GQTensor<TenElemT, QNT> *,
       const size_t a_ctrct_axes_start,
       const size_t b_ctrct_axes_start,
       const size_t ctrct_axes_size,
-      GQTensor<TenElemT, QNT>*
-      );
+      GQTensor<TenElemT, QNT> *
+  );
+
   void Execute(void) override;
 
- private:
+private:
   void GenerateDataBlk_();
+
   void TransposePrepare_();
 
   void ExecutePost_();//clear transpose data;
@@ -72,10 +74,10 @@ class TensorExtraContractionExecutor: public Executor {
   size_t b_trans_critical_axe_;
   //if b_trans_critical_axe_ == 0, no need to transpose
 
-  TenElemT* a_trans_data_ = nullptr;
+  TenElemT *a_trans_data_ = nullptr;
   //TODO: more template parameter to determine if the original data is need to save,
   // so that we can save some memory.
-  TenElemT* b_trans_data_ = nullptr;
+  TenElemT *b_trans_data_ = nullptr;
   std::vector<RawDataCtrctTask> raw_data_ctrct_tasks_;
 };
 
@@ -103,25 +105,25 @@ class TensorExtraContractionExecutor: public Executor {
  *
  *  question: meaning for set status?
  */
-template <typename TenElemT, typename QNT, bool a_ctrct_tail, bool b_ctrct_head>
+template<typename TenElemT, typename QNT, bool a_ctrct_tail, bool b_ctrct_head>
 TensorExtraContractionExecutor<TenElemT, QNT, a_ctrct_tail, b_ctrct_head>::TensorExtraContractionExecutor(
-    const GQTensor<TenElemT, QNT>* pa,
-    const GQTensor<TenElemT, QNT>* pb,
+    const GQTensor<TenElemT, QNT> *pa,
+    const GQTensor<TenElemT, QNT> *pb,
     const size_t a_ctrct_axes_start,
     const size_t b_ctrct_axes_start,
     const size_t ctrct_axes_size,
-    GQTensor<TenElemT, QNT>* pc
+    GQTensor<TenElemT, QNT> *pc
 ) : pa_(pa), pb_(pb), pc_(pc),
-a_ctrct_axes_start_(a_ctrct_axes_start),
-b_ctrct_axes_start_(b_ctrct_axes_start),
-a_ctrct_axes_end_((a_ctrct_axes_start + ctrct_axes_size)%(pa->Rank())),
-b_ctrct_axes_end_((b_ctrct_axes_start + ctrct_axes_size)%(pb->Rank())),
-ctrct_axes_size_(ctrct_axes_size),
-a_trans_critical_axe_( a_ctrct_tail ? a_ctrct_axes_end_ : a_ctrct_axes_start),
-b_trans_critical_axe_( b_ctrct_head ? b_ctrct_axes_start : b_ctrct_axes_end_) {}
+    a_ctrct_axes_start_(a_ctrct_axes_start),
+    b_ctrct_axes_start_(b_ctrct_axes_start),
+    a_ctrct_axes_end_((a_ctrct_axes_start + ctrct_axes_size) % (pa->Rank())),
+    b_ctrct_axes_end_((b_ctrct_axes_start + ctrct_axes_size) % (pb->Rank())),
+    ctrct_axes_size_(ctrct_axes_size),
+    a_trans_critical_axe_(a_ctrct_tail ? a_ctrct_axes_end_ : a_ctrct_axes_start),
+    b_trans_critical_axe_(b_ctrct_head ? b_ctrct_axes_start : b_ctrct_axes_end_) {}
 
 
-template <typename TenElemT, typename QNT, bool a_ctrct_tail, bool b_ctrct_head>
+template<typename TenElemT, typename QNT, bool a_ctrct_tail, bool b_ctrct_head>
 void TensorExtraContractionExecutor<TenElemT, QNT, a_ctrct_tail, b_ctrct_head>::GenerateDataBlk_() {
   using std::vector;
   const size_t a_rank(pa_->Rank()), b_rank(pb_->Rank());
@@ -143,9 +145,9 @@ void TensorExtraContractionExecutor<TenElemT, QNT, a_ctrct_tail, b_ctrct_head>::
     saved_axes_set[1].push_back((b_ctrct_axes_end_ + i) % b_rank);
   }
 #ifndef NDEBUG
-  auto& indexesa = pa_->GetIndexes();
-  auto& indexesb = pb_->GetIndexes();
-  for(size_t i = 0; i < ctrct_axes_size_; ++i){
+  auto &indexesa = pa_->GetIndexes();
+  auto &indexesb = pb_->GetIndexes();
+  for (size_t i = 0; i < ctrct_axes_size_; ++i) {
     assert(indexesa[ctrct_axes_set[0][i]] == InverseIndex(indexesb[ctrct_axes_set[1][i]]));
   }
 #endif
@@ -159,29 +161,29 @@ void TensorExtraContractionExecutor<TenElemT, QNT, a_ctrct_tail, b_ctrct_head>::
   );
 }
 
-template <typename TenElemT, typename QNT, bool a_ctrct_tail, bool b_ctrct_head>
+template<typename TenElemT, typename QNT, bool a_ctrct_tail, bool b_ctrct_head>
 void TensorExtraContractionExecutor<TenElemT, QNT, a_ctrct_tail, b_ctrct_head>::TransposePrepare_() {
   using std::set;
-  if(a_trans_critical_axe_ > 0 ){
-    const auto& a_bsdt = pa_->GetBlkSparDataTen();
+  if (a_trans_critical_axe_ > 0) {
+    const auto &a_bsdt = pa_->GetBlkSparDataTen();
     const size_t a_raw_data_size = a_bsdt.GetActualRawDataSize();
-    a_trans_data_ = (TenElemT*) malloc( a_raw_data_size *sizeof(TenElemT) );
+    a_trans_data_ = (TenElemT *) malloc(a_raw_data_size * sizeof(TenElemT));
     set<size_t> selected_data_blk_idxs;
-    for(auto& task : raw_data_ctrct_tasks_){
+    for (auto &task: raw_data_ctrct_tasks_) {
       selected_data_blk_idxs.insert(task.a_blk_idx);
     }
     a_bsdt.OutOfPlaceMatrixTransposeForSelectedDataBlk(
         selected_data_blk_idxs,
         a_trans_critical_axe_,
         a_trans_data_
-        );
+    );
   }
-  if(b_trans_critical_axe_ > 0) {
-    const auto& b_bsdt = pb_->GetBlkSparDataTen();
+  if (b_trans_critical_axe_ > 0) {
+    const auto &b_bsdt = pb_->GetBlkSparDataTen();
     const size_t b_raw_data_size = b_bsdt.GetActualRawDataSize();
-    b_trans_data_ = (TenElemT*) malloc( b_raw_data_size *sizeof(TenElemT) );
+    b_trans_data_ = (TenElemT *) malloc(b_raw_data_size * sizeof(TenElemT));
     set<size_t> selected_data_blk_idxs;
-    for(auto& task : raw_data_ctrct_tasks_){
+    for (auto &task: raw_data_ctrct_tasks_) {
       selected_data_blk_idxs.insert(task.b_blk_idx);
     }
     b_bsdt.OutOfPlaceMatrixTransposeForSelectedDataBlk(
@@ -192,13 +194,13 @@ void TensorExtraContractionExecutor<TenElemT, QNT, a_ctrct_tail, b_ctrct_head>::
   }
 }
 
-template <typename TenElemT, typename QNT, bool a_ctrct_tail, bool b_ctrct_head>
+template<typename TenElemT, typename QNT, bool a_ctrct_tail, bool b_ctrct_head>
 void TensorExtraContractionExecutor<TenElemT, QNT, a_ctrct_tail, b_ctrct_head>::ExecutePost_() {
   free(a_trans_data_);
   free(b_trans_data_);
 }
 
-template <typename TenElemT, typename QNT, bool a_ctrct_tail, bool b_ctrct_head>
+template<typename TenElemT, typename QNT, bool a_ctrct_tail, bool b_ctrct_head>
 void TensorExtraContractionExecutor<TenElemT, QNT, a_ctrct_tail, b_ctrct_head>::Execute() {
 #ifdef GQTEN_TIMING_MODE
   Timer extrac_contraction_generate_data_blk("ExtraContraction.Execute.GenerateDataBlk");
@@ -214,20 +216,20 @@ void TensorExtraContractionExecutor<TenElemT, QNT, a_ctrct_tail, b_ctrct_head>::
   extrac_contraction_tranpose.PrintElapsed();
 #endif
 
-  const TenElemT* a_raw_data;
-  const TenElemT* b_raw_data;
-  if( a_trans_critical_axe_ > 0){
+  const TenElemT *a_raw_data;
+  const TenElemT *b_raw_data;
+  if (a_trans_critical_axe_ > 0) {
     a_raw_data = a_trans_data_;
-  } else{
+  } else {
     a_raw_data = pa_->GetBlkSparDataTen().GetActualRawDataPtr();
   }
 
-  if( b_trans_critical_axe_ > 0){
+  if (b_trans_critical_axe_ > 0) {
     b_raw_data = b_trans_data_;
-  } else{
+  } else {
     b_raw_data = pb_->GetBlkSparDataTen().GetActualRawDataPtr();
   }
-  auto& bsdt_c = pc_->GetBlkSparDataTen();
+  auto &bsdt_c = pc_->GetBlkSparDataTen();
 #ifdef GQTEN_TIMING_MODE
   Timer extrac_contraction_do_ctrct_task("ExtraContraction.Execute.CtrctAccordingTask");
 #endif
@@ -236,7 +238,7 @@ void TensorExtraContractionExecutor<TenElemT, QNT, a_ctrct_tail, b_ctrct_head>::
       a_raw_data,
       b_raw_data,
       raw_data_ctrct_tasks_
-      );
+  );
 #ifdef GQTEN_TIMING_MODE
   extrac_contraction_do_ctrct_task.PrintElapsed();
 #endif
@@ -257,18 +259,18 @@ void TensorExtraContractionExecutor<TenElemT, QNT, a_ctrct_tail, b_ctrct_head>::
  * @param b_ctrct_axes_size
  * @param pc
  */
-template <typename TenElemT, typename QNT, bool a_ctrct_tail = true, bool b_ctrct_head = true>
+template<typename TenElemT, typename QNT, bool a_ctrct_tail = true, bool b_ctrct_head = true>
 void Contract(
-    const GQTensor<TenElemT, QNT>& pa, //use ref to make sure it is not a null pointer
-    const GQTensor<TenElemT, QNT>& pb, //TODO: unify the style of code
+    const GQTensor<TenElemT, QNT> &pa, //use ref to make sure it is not a null pointer
+    const GQTensor<TenElemT, QNT> &pb, //TODO: unify the style of code
     const size_t a_ctrct_axes_start,
     const size_t b_ctrct_axes_start,
     const size_t ctrct_axes_size,
-    GQTensor<TenElemT, QNT>& pc
+    GQTensor<TenElemT, QNT> &pc
 ) {
-  auto extra_contraction_executor =  TensorExtraContractionExecutor<TenElemT, QNT, a_ctrct_tail, b_ctrct_head>(
-    &pa, &pb, a_ctrct_axes_start, b_ctrct_axes_start, ctrct_axes_size, &pc
-      );
+  auto extra_contraction_executor = TensorExtraContractionExecutor<TenElemT, QNT, a_ctrct_tail, b_ctrct_head>(
+      &pa, &pb, a_ctrct_axes_start, b_ctrct_axes_start, ctrct_axes_size, &pc
+  );
   extra_contraction_executor.Execute();
 }
 

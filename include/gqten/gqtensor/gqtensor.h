@@ -144,6 +144,11 @@ class GQTensor : public Showable {
 
   void Show(const size_t indent_level = 0) const override;
   void ConciseShow(const size_t indent_level = 0) const;
+
+  size_t GetActualDataSize(void) const;
+
+  const ElemT *GetRawDataPtr(void) const;
+
  private:
   /// The rank of the GQTensor.
   size_t rank_ = 0;

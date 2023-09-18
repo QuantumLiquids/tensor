@@ -669,6 +669,17 @@ void GQTensor<ElemT, QNT>::ConciseShow(const size_t indent_level) const {
        << "tensor sparsity:\t" << double(data_size) / double(size_) << endl;
 }
 
+
+template<typename ElemT, typename QNT>
+size_t GQTensor<ElemT, QNT>::GetActualDataSize(void) const {
+  return pblk_spar_data_ten_->GetActualRawDataSize();
+}
+
+template<typename ElemT, typename QNT>
+const ElemT*  GQTensor<ElemT, QNT>::GetRawDataPtr(void) const {
+  return pblk_spar_data_ten_->GetActualRawDataPtr();
+}
+
 /**
 Calculate shape from tensor rank.
 */
