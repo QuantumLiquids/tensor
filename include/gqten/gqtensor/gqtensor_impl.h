@@ -32,6 +32,7 @@
 #ifdef Release
 #define NDEBUG
 #endif
+
 #include <assert.h>     // assert
 
 namespace gqten {
@@ -633,6 +634,57 @@ void GQTensor<ElemT, QNT>::Show(const size_t indent_level) const {
   }
 }
 
+template<typename ElemT, typename QNT>
+GQTensor<ElemT, QNT> &GQTensor<ElemT, QNT>::RemoveTrivialIndexes(void) {
+  if (this->IsDefault()) {
+    return *this;
+  }
+  std::vector<size_t> trivial_idx_nums;
+  std::vector<Index<QNT>> trivial_idxs;
+  for (size_t i = 0; i < rank_; i++) {
+    if (shape_[i] == 1) {
+      trivial_idx_nums.push_back(i);
+      trivial_idxs.push_back(InverseIndex(GetIndex(i)));
+    }
+  }
+
+  GQTensor scale_ten({trivial_idxs});
+  std::vector<size_t> zero_coor(trivial_idx_nums.size(), 0);
+  scale_ten(zero_coor) = ElemT(1);
+  std::vector<size_t> natural_num_coor(trivial_idx_nums.size());
+  for (size_t i = 0; i < natural_num_coor.size(); i++) {
+    natural_num_coor[i] = i;
+  }
+  GQTensor tmp;
+  Contract(this, trivial_idx_nums, &scale_ten, natural_num_coor, &tmp);
+  *this = std::move(tmp);
+  return *this;
+}
+
+template<typename ElemT, typename QNT>
+GQTensor<ElemT, QNT> &GQTensor<ElemT, QNT>::RemoveTrivialIndexes(const std::vector<size_t> &trivial_idx_axes) {
+  if (this->IsDefault()) {
+    return *this;
+  }
+  std::vector<Index<QNT>> trivial_idxs;
+  for (auto trivial_idx_axe: trivial_idx_axes) {
+    trivial_idxs.push_back(InverseIndex(GetIndex(trivial_idx_axe)));
+  }
+
+  GQTensor scale_ten({trivial_idxs});
+  std::vector<size_t> zero_coor(trivial_idx_axes.size(), 0);
+  scale_ten(zero_coor) = ElemT(1);
+  std::vector<size_t> natural_num_coor(trivial_idx_axes.size());
+  for (size_t i = 0; i < natural_num_coor.size(); i++) {
+    natural_num_coor[i] = i;
+  }
+  GQTensor tmp;
+  Contract(this, trivial_idx_axes, &scale_ten, natural_num_coor, &tmp);
+  *this = std::move(tmp);
+  return *this;
+}
+
+
 template<typename QNT>
 std::string ElemenTypeOfTensor(const GQTensor<GQTEN_Double, QNT> &t) {
   return "GQTEN_Double";
@@ -676,7 +728,7 @@ size_t GQTensor<ElemT, QNT>::GetActualDataSize(void) const {
 }
 
 template<typename ElemT, typename QNT>
-const ElemT*  GQTensor<ElemT, QNT>::GetRawDataPtr(void) const {
+const ElemT *GQTensor<ElemT, QNT>::GetRawDataPtr(void) const {
   return pblk_spar_data_ten_->GetActualRawDataPtr();
 }
 
@@ -727,6 +779,7 @@ std::pair<CoorsT, CoorsT> GQTensor<ElemT, QNT>::CoorsToBlkCoorsDataCoors_(
 }
 
 const int kMPIDataTagMultiplyFactor = 11;
+
 /**
  * Note use this function rather world.send() directly
  * @tparam ElemT
@@ -746,9 +799,9 @@ inline void send_gqten(boost::mpi::communicator world,
   }
 #ifdef GQTEN_MPI_TIMING_MODE
   Timer mpi_send_gqten_wrapper_timer("mpi_send_gqten_wrapper: from rank "
-                                         + std::to_string(world.rank())
-                                         + " to "
-                                         + std::to_string(dest)
+                                     + std::to_string(world.rank())
+                                     + " to "
+                                     + std::to_string(dest)
   );
 #endif
   world.send(dest, tag, gqten);
@@ -766,11 +819,11 @@ inline void send_gqten(boost::mpi::communicator world,
   }
 #ifdef GQTEN_MPI_TIMING_MODE
   Timer mpi_send_gqten_data_timer("mpi_send_gqten_data: from rank "
-                                      + std::to_string(world.rank())
-                                      + " to "
-                                      + std::to_string(dest)
-                                      + ", data size = "
-                                      + std::to_string(data_size)
+                                  + std::to_string(world.rank())
+                                  + " to "
+                                  + std::to_string(dest)
+                                  + ", data size = "
+                                  + std::to_string(data_size)
   );
 #endif
   hp_numeric::MPI_Send(data_pointer, data_size, dest, tag_data, MPI_Comm(world));
@@ -796,9 +849,9 @@ inline boost::mpi::status recv_gqten(boost::mpi::communicator world,
   // boost::mpi::request reqs[2];
 #ifdef GQTEN_MPI_TIMING_MODE
   Timer mpi_recv_gqten_wrapper_timer("mpi_recv_gqten_wrapper: from rank "
-                                         + std::to_string(source)
-                                         + " to "
-                                         + std::to_string(world.rank())
+                                     + std::to_string(source)
+                                     + " to "
+                                     + std::to_string(world.rank())
   );
 #endif
   auto s = world.recv(source, tag, gqten);
@@ -811,11 +864,11 @@ inline boost::mpi::status recv_gqten(boost::mpi::communicator world,
   size_t data_size = bsdt.GetActualRawDataSize();
 #ifdef GQTEN_MPI_TIMING_MODE
   Timer mpi_recv_gqten_data_timer("mpi_recv_gqten_data: from rank "
-                                      + std::to_string(source)
-                                      + " to "
-                                      + std::to_string(world.rank())
-                                      + ", data size = "
-                                      + std::to_string(data_size)
+                                  + std::to_string(source)
+                                  + " to "
+                                  + std::to_string(world.rank())
+                                  + ", data size = "
+                                  + std::to_string(data_size)
   );
 #endif
   hp_numeric::MPI_Recv(data_pointer, data_size, source, tag_data, MPI_Comm(world));
@@ -851,9 +904,9 @@ inline void SendBroadCastGQTensor(
   }
 #ifdef GQTEN_MPI_TIMING_MODE
   Timer mpi_bcast_send_gqten_data_timer("mpi_bcast_send_gqten_data: root = "
-                                            + std::to_string(root)
-                                            + " data size = "
-                                            + std::to_string(raw_data_size)
+                                        + std::to_string(root)
+                                        + " data size = "
+                                        + std::to_string(raw_data_size)
   );
 #endif
   //below broadcast need safely remove const
@@ -883,9 +936,9 @@ inline void RecvBroadCastGQTensor(
   size_t raw_data_size = bsdt.GetActualRawDataSize();
 #ifdef GQTEN_MPI_TIMING_MODE
   Timer mpi_bcast_recv_gqten_data_timer("mpi_bcast_send_gqten_data: root = "
-                                            + std::to_string(root)
-                                            + " data size = "
-                                            + std::to_string(raw_data_size)
+                                        + std::to_string(root)
+                                        + " data size = "
+                                        + std::to_string(raw_data_size)
   );
 #endif
   hp_numeric::MPI_Bcast(raw_data_pointer, raw_data_size, root, MPI_Comm(world));
@@ -898,10 +951,12 @@ template<typename ElemT, typename QNT>
 void GQTensor<ElemT, QNT>::ElementWiseInv(void) {
   pblk_spar_data_ten_->ElementWiseInv();
 }
+
 template<typename ElemT, typename QNT>
 void GQTensor<ElemT, QNT>::ElementWiseInv(double tolerance) {
   pblk_spar_data_ten_->ElementWiseInv(tolerance);
 }
+
 template<typename ElemT, typename QNT>
 void GQTensor<ElemT, QNT>::ElementWiseSqrt(void) {
   pblk_spar_data_ten_->ElementWiseSqrt();

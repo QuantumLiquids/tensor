@@ -43,13 +43,17 @@ class GQTensor : public Showable {
   GQTensor(void) = default;
 
   GQTensor(const IndexVec<QNT> &);
+
   GQTensor(const IndexVec<QNT> &&);
+
   GQTensor(IndexVec<QNT> &&);
 
   GQTensor(const GQTensor &);
+
   GQTensor &operator=(const GQTensor &);
 
   GQTensor(GQTensor &&) noexcept;
+
   GQTensor &operator=(GQTensor &&) noexcept;
 
   /// Destroy a GQTensor.
@@ -103,14 +107,22 @@ class GQTensor : public Showable {
 
   // Element getter and setter.
   ElemT GetElem(const std::vector<size_t> &) const;
+
   void SetElem(const std::vector<size_t> &, const ElemT);
+
   struct GQTensorElementAccessDeref;
+
   GQTensorElementAccessDeref operator()(const std::vector<size_t> &);
+
   GQTensorElementAccessDeref operator()(const std::vector<size_t> &) const;
+
   GQTensorElementAccessDeref operator()(void);
+
   GQTensorElementAccessDeref operator()(void) const;
+
   template<typename... OtherCoorsT>
   GQTensorElementAccessDeref operator()(const size_t, const OtherCoorsT...);
+
   template<typename... OtherCoorsT>
   GQTensorElementAccessDeref operator()(
       const size_t,
@@ -119,30 +131,49 @@ class GQTensor : public Showable {
 
   // Inplace operations.
   void Random(const QNT &);
+
   void Transpose(const std::vector<size_t> &);
+
   void FuseIndex(const size_t, const size_t);
+
   GQTEN_Double Get2Norm(void);
+
   GQTEN_Double Normalize(void);
+
   void Dag(void);
+
   void ElementWiseInv(void);
+
   void ElementWiseInv(double tolerance);
+
   void ElementWiseSqrt(void);
 
   // Operators overload.
   bool operator==(const GQTensor &) const;
+
   bool operator!=(const GQTensor &rhs) const { return !(*this == rhs); }
 
   GQTensor operator-(void) const;
+
   GQTensor operator+(const GQTensor &) const;
+
   GQTensor &operator+=(const GQTensor &);
+
   GQTensor operator*(const ElemT) const;
+
   GQTensor &operator*=(const ElemT);
+
+  GQTensor &RemoveTrivialIndexes(void);
+
+  GQTensor &RemoveTrivialIndexes(const std::vector<size_t> &trivial_idx_axes);
 
   // Override base class
   void StreamRead(std::istream &);
+
   void StreamWrite(std::ostream &) const;
 
   void Show(const size_t indent_level = 0) const override;
+
   void ConciseShow(const size_t indent_level = 0) const;
 
   size_t GetActualDataSize(void) const;
@@ -168,12 +199,15 @@ class GQTensor : public Showable {
 
   std::pair<CoorsT, CoorsT> CoorsToBlkCoorsDataCoors_(const CoorsT &) const;
 
-  /// serialization of data,  for the mpi paralization, 
+  /// NB: Only serialization of shell of tensors. For the mpi communication,
   friend class boost::serialization::access;
+
   template<class Archive>
   void save(Archive &ar, const unsigned int version) const;
+
   template<class Archive>
   void load(Archive &ar, const unsigned int version);
+
   BOOST_SERIALIZATION_SPLIT_MEMBER()
 };
 

@@ -160,16 +160,10 @@ inline void MatQR(
   auto k = std::min(m, n);
   size_t elem_type_size = sizeof(GQTEN_Complex);
   auto tau = (GQTEN_Complex *) malloc(k * elem_type_size);
-#ifndef USE_OPENBLAS
-  LAPACKE_zgeqrf(LAPACK_ROW_MAJOR, m, n, mat, n, tau);
-#else
-  LAPACKE_zgeqrf(LAPACK_ROW_MAJOR,
-                 m,
-                 n,
+
+  LAPACKE_zgeqrf(LAPACK_ROW_MAJOR, m, n,
                  reinterpret_cast<lapack_complex_double *>(mat),
-                 n,
-                 reinterpret_cast<lapack_complex_double *>(tau));
-#endif
+                 n, reinterpret_cast<lapack_complex_double *>(tau));
 
   // Create R matrix
   r = (GQTEN_Complex *) malloc((k * n) * elem_type_size);
@@ -179,13 +173,9 @@ inline void MatQR(
   }
 
   // Create Q matrix
-  LAPACKE_zungqr(LAPACK_ROW_MAJOR,
-                 m,
-                 k,
-                 k,
+  LAPACKE_zungqr(LAPACK_ROW_MAJOR, m, k, k,
                  reinterpret_cast<lapack_complex_double *>(mat),
-                 n,
-                 reinterpret_cast<lapack_complex_double *>(tau));
+                 n, reinterpret_cast<lapack_complex_double *>(tau));
   free(tau);
   q = (GQTEN_Complex *) malloc((m * k) * elem_type_size);
   if (m == n) {
