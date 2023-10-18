@@ -136,7 +136,7 @@ class GQTensor : public Showable {
 
   void FuseIndex(const size_t, const size_t);
 
-  GQTEN_Double Get2Norm(void);
+  GQTEN_Double Get2Norm(void) const;
 
   GQTEN_Double Normalize(void);
 

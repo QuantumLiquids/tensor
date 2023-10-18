@@ -422,7 +422,7 @@ void GQTensor<ElemT, QNT>::Transpose(
  * @return the 2-norm
  */
 template<typename ElemT, typename QNT>
-GQTEN_Double GQTensor<ElemT, QNT>::Get2Norm(void) {
+GQTEN_Double GQTensor<ElemT, QNT>::Get2Norm(void) const {
   assert(!IsDefault());
   GQTEN_Double norm = pblk_spar_data_ten_->Norm();
   return norm;
