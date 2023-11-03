@@ -732,6 +732,11 @@ const ElemT *GQTensor<ElemT, QNT>::GetRawDataPtr(void) const {
   return pblk_spar_data_ten_->GetActualRawDataPtr();
 }
 
+template<typename ElemT, typename QNT>
+ElemT *GQTensor<ElemT, QNT>::GetRawDataPtr(void) {
+  return pblk_spar_data_ten_->GetActualRawDataPtr();
+}
+
 /**
 Calculate shape from tensor rank.
 */
@@ -961,6 +966,13 @@ template<typename ElemT, typename QNT>
 void GQTensor<ElemT, QNT>::ElementWiseSqrt(void) {
   pblk_spar_data_ten_->ElementWiseSqrt();
 }
+
+
+template<typename ElemT, typename QNT>
+void GQTensor<ElemT, QNT>::ElementWiseSign() {
+  pblk_spar_data_ten_->ElementWiseSign();
+}
+
 
 } /* gqten */
 #endif /* ifndef GQTEN_GQTENSOR_GQTENSOR_IMPL_H */

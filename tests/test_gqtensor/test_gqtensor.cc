@@ -27,19 +27,19 @@ using ZGQTensor = GQTensor<GQTEN_Complex, U1QN>;
 
 struct TestGQTensor : public testing::Test {
   std::string qn_nm = "qn";
-  U1QN qn0 =  U1QN({QNCard(qn_nm, U1QNVal( 0))});
-  U1QN qnp1 = U1QN({QNCard(qn_nm, U1QNVal( 1))});
-  U1QN qnp2 = U1QN({QNCard(qn_nm, U1QNVal( 2))});
+  U1QN qn0 = U1QN({QNCard(qn_nm, U1QNVal(0))});
+  U1QN qnp1 = U1QN({QNCard(qn_nm, U1QNVal(1))});
+  U1QN qnp2 = U1QN({QNCard(qn_nm, U1QNVal(2))});
   U1QN qnm1 = U1QN({QNCard(qn_nm, U1QNVal(-1))});
-  QNSctT qnsct0_s =  QNSctT(qn0,  4);
+  QNSctT qnsct0_s = QNSctT(qn0, 4);
   QNSctT qnsctp1_s = QNSctT(qnp1, 5);
   QNSctT qnsctm1_s = QNSctT(qnm1, 3);
-  QNSctT qnsct0_l =  QNSctT(qn0,  10);
+  QNSctT qnsct0_l = QNSctT(qn0, 10);
   QNSctT qnsctp1_l = QNSctT(qnp1, 8);
   QNSctT qnsctm1_l = QNSctT(qnm1, 12);
-  IndexT idx_in_s =  IndexT({qnsctm1_s, qnsct0_s, qnsctp1_s}, GQTenIndexDirType::IN);
+  IndexT idx_in_s = IndexT({qnsctm1_s, qnsct0_s, qnsctp1_s}, GQTenIndexDirType::IN);
   IndexT idx_out_s = IndexT({qnsctm1_s, qnsct0_s, qnsctp1_s}, GQTenIndexDirType::OUT);
-  IndexT idx_in_l =  IndexT({qnsctm1_l, qnsct0_l, qnsctp1_l}, GQTenIndexDirType::IN);
+  IndexT idx_in_l = IndexT({qnsctm1_l, qnsct0_l, qnsctp1_l}, GQTenIndexDirType::IN);
   IndexT idx_out_l = IndexT({qnsctm1_l, qnsct0_l, qnsctp1_l}, GQTenIndexDirType::OUT);
 
   DGQTensor dten_default = DGQTensor();
@@ -61,7 +61,7 @@ struct TestGQTensor : public testing::Test {
 };
 
 
-template <typename GQTensorT>
+template<typename GQTensorT>
 void RunTestGQTensorCommonConstructorCase(
     const GQTensorT &ten,
     const std::vector<IndexT> &indexes) {
@@ -101,7 +101,7 @@ TEST_F(TestGQTensor, TestCommonConstructor) {
 }
 
 
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void RunTestGQTensorElemAssignmentCase(
     const GQTensor<ElemT, QNT> &t_init,
     const std::vector<ElemT> elems,
@@ -110,7 +110,7 @@ void RunTestGQTensorElemAssignmentCase(
   for (size_t i = 0; i < elems.size(); ++i) {
     t(coors[i]) = elems[i];
   }
-  for (auto coor : GenAllCoors(t.GetShape())) {
+  for (auto coor: GenAllCoors(t.GetShape())) {
     auto coor_it = std::find(coors.cbegin(), coors.cend(), coor);
     if (coor_it != coors.end()) {
       auto elem_idx = std::distance(coors.cbegin(), coor_it);
@@ -142,8 +142,10 @@ TEST_F(TestGQTensor, TestElemAssignment) {
   EXPECT_EQ(dten_1d_s2(1), elem1);
   RunTestGQTensorElemAssignmentCase(dten_1d_s, {drand()}, {{0}});
   RunTestGQTensorElemAssignmentCase(dten_1d_s, {drand()}, {{1}});
-  RunTestGQTensorElemAssignmentCase(dten_1d_s, {drand(), drand()}, {{0}, {1}});
-  RunTestGQTensorElemAssignmentCase(dten_1d_s, {drand(), drand()}, {{1}, {2}});
+  RunTestGQTensorElemAssignmentCase(dten_1d_s, {drand(), drand()}, {{0},
+                                                                    {1}});
+  RunTestGQTensorElemAssignmentCase(dten_1d_s, {drand(), drand()}, {{1},
+                                                                    {2}});
 
   DGQTensor dten_2d_s2(dten_2d_s);
   dten_2d_s2(2, 3) = elem0;
@@ -156,14 +158,16 @@ TEST_F(TestGQTensor, TestElemAssignment) {
   RunTestGQTensorElemAssignmentCase(
       dten_2d_s,
       {drand(), drand()},
-      {{2, 3}, {1, 7}});
+      {{2, 3},
+       {1, 7}});
 
   RunTestGQTensorElemAssignmentCase(dten_3d_s, {drand()}, {{0, 0, 0}});
   RunTestGQTensorElemAssignmentCase(dten_3d_s, {drand()}, {{2, 3, 4}});
   RunTestGQTensorElemAssignmentCase(
       dten_3d_s,
       {drand(), drand()},
-      {{2, 3, 5}, {1, 7, 4}});
+      {{2, 3, 5},
+       {1, 7, 4}});
 
   RunTestGQTensorElemAssignmentCase(
       zten_1d_s,
@@ -176,11 +180,13 @@ TEST_F(TestGQTensor, TestElemAssignment) {
   RunTestGQTensorElemAssignmentCase(
       zten_1d_s,
       {zrand(), zrand()},
-      {{0}, {1}});
+      {{0},
+       {1}});
   RunTestGQTensorElemAssignmentCase(
       zten_1d_s,
       {zrand(), zrand()},
-      {{1}, {2}});
+      {{1},
+       {2}});
   RunTestGQTensorElemAssignmentCase(
       zten_2d_s,
       {zrand()},
@@ -192,17 +198,19 @@ TEST_F(TestGQTensor, TestElemAssignment) {
   RunTestGQTensorElemAssignmentCase(
       zten_2d_s,
       {zrand(), zrand()},
-      {{2, 3}, {1, 7}});
+      {{2, 3},
+       {1, 7}});
   RunTestGQTensorElemAssignmentCase(zten_3d_s, {zrand()}, {{0, 0, 0}});
   RunTestGQTensorElemAssignmentCase(zten_3d_s, {zrand()}, {{2, 3, 4}});
   RunTestGQTensorElemAssignmentCase(
       zten_3d_s,
       {zrand(), zrand()},
-      {{2, 3, 5}, {1, 7, 4}});
+      {{2, 3, 5},
+       {1, 7, 4}});
 }
 
 
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void RunTestGQTensorRandomCase(
     GQTensor<ElemT, QNT> &t,
     const QNT &div,
@@ -232,119 +240,119 @@ TEST_F(TestGQTensor, Random) {
       dten_2d_s,
       qn0,
       {
-        {qnsctm1_s, qnsctm1_s},
-        {qnsct0_s, qnsct0_s},
-        {qnsctp1_s, qnsctp1_s}
+          {qnsctm1_s, qnsctm1_s},
+          {qnsct0_s,  qnsct0_s},
+          {qnsctp1_s, qnsctp1_s}
       });
   RunTestGQTensorRandomCase(
       dten_2d_s,
       qnp1,
       {
-        {qnsctm1_s, qnsct0_s},
-        {qnsct0_s, qnsctp1_s}
+          {qnsctm1_s, qnsct0_s},
+          {qnsct0_s,  qnsctp1_s}
       });
   RunTestGQTensorRandomCase(
       dten_2d_s,
       qnm1,
       {
-        {qnsct0_s, qnsctm1_s},
-        {qnsctp1_s, qnsct0_s}
+          {qnsct0_s,  qnsctm1_s},
+          {qnsctp1_s, qnsct0_s}
       });
   RunTestGQTensorRandomCase(
       dten_2d_s,
       qnp2,
       {
-        {qnsctm1_s, qnsctp1_s}
+          {qnsctm1_s, qnsctp1_s}
       });
   RunTestGQTensorRandomCase(
       dten_2d_l,
       qn0,
       {
-        {qnsctm1_l, qnsctm1_l},
-        {qnsct0_l, qnsct0_l},
-        {qnsctp1_l, qnsctp1_l}
+          {qnsctm1_l, qnsctm1_l},
+          {qnsct0_l,  qnsct0_l},
+          {qnsctp1_l, qnsctp1_l}
       });
   RunTestGQTensorRandomCase(
       dten_2d_l,
       qnp1,
       {
-        {qnsctm1_l, qnsct0_l},
-        {qnsct0_l, qnsctp1_l}
+          {qnsctm1_l, qnsct0_l},
+          {qnsct0_l,  qnsctp1_l}
       });
   RunTestGQTensorRandomCase(
       dten_2d_l,
       qnm1,
       {
-        {qnsct0_l, qnsctm1_l},
-        {qnsctp1_l, qnsct0_l}
+          {qnsct0_l,  qnsctm1_l},
+          {qnsctp1_l, qnsct0_l}
       });
   RunTestGQTensorRandomCase(
       dten_2d_l,
       qnp2,
       {
-        {qnsctm1_l, qnsctp1_l}
+          {qnsctm1_l, qnsctp1_l}
       });
   RunTestGQTensorRandomCase(
       dten_3d_s,
       qn0,
       {
-        {qnsctm1_s, qnsctm1_s, qnsct0_s},
-        {qnsctm1_s, qnsct0_s, qnsctm1_s},
-        {qnsct0_s, qnsct0_s, qnsct0_s},
-        {qnsct0_s, qnsctp1_s, qnsctm1_s},
-        {qnsct0_s, qnsctm1_s, qnsctp1_s},
-        {qnsctp1_s, qnsctp1_s, qnsct0_s},
-        {qnsctp1_s, qnsct0_s, qnsctp1_s}
+          {qnsctm1_s, qnsctm1_s, qnsct0_s},
+          {qnsctm1_s, qnsct0_s,  qnsctm1_s},
+          {qnsct0_s,  qnsct0_s,  qnsct0_s},
+          {qnsct0_s,  qnsctp1_s, qnsctm1_s},
+          {qnsct0_s,  qnsctm1_s, qnsctp1_s},
+          {qnsctp1_s, qnsctp1_s, qnsct0_s},
+          {qnsctp1_s, qnsct0_s,  qnsctp1_s}
       });
   RunTestGQTensorRandomCase(
       dten_3d_s,
       qnp1,
       {
-        {qnsctm1_s, qnsct0_s, qnsct0_s},
-        {qnsctm1_s, qnsctm1_s, qnsctp1_s},
-        {qnsctm1_s, qnsctp1_s, qnsctm1_s},
-        {qnsct0_s, qnsctp1_s, qnsct0_s},
-        {qnsct0_s, qnsct0_s, qnsctp1_s},
-        {qnsctp1_s, qnsctp1_s, qnsctp1_s}
+          {qnsctm1_s, qnsct0_s,  qnsct0_s},
+          {qnsctm1_s, qnsctm1_s, qnsctp1_s},
+          {qnsctm1_s, qnsctp1_s, qnsctm1_s},
+          {qnsct0_s,  qnsctp1_s, qnsct0_s},
+          {qnsct0_s,  qnsct0_s,  qnsctp1_s},
+          {qnsctp1_s, qnsctp1_s, qnsctp1_s}
       });
   RunTestGQTensorRandomCase(
       dten_3d_s,
       qnp2,
       {
-        {qnsctm1_s, qnsctp1_s, qnsct0_s},
-        {qnsctm1_s, qnsct0_s, qnsctp1_s},
-        {qnsct0_s, qnsctp1_s, qnsctp1_s}
+          {qnsctm1_s, qnsctp1_s, qnsct0_s},
+          {qnsctm1_s, qnsct0_s,  qnsctp1_s},
+          {qnsct0_s,  qnsctp1_s, qnsctp1_s}
       });
   RunTestGQTensorRandomCase(
       dten_3d_l,
       qn0,
       {
-        {qnsctm1_l, qnsctm1_l, qnsct0_l},
-        {qnsctm1_l, qnsct0_l, qnsctm1_l},
-        {qnsct0_l, qnsct0_l, qnsct0_l},
-        {qnsct0_l, qnsctp1_l, qnsctm1_l},
-        {qnsct0_l, qnsctm1_l, qnsctp1_l},
-        {qnsctp1_l, qnsctp1_l, qnsct0_l},
-        {qnsctp1_l, qnsct0_l, qnsctp1_l} 
+          {qnsctm1_l, qnsctm1_l, qnsct0_l},
+          {qnsctm1_l, qnsct0_l,  qnsctm1_l},
+          {qnsct0_l,  qnsct0_l,  qnsct0_l},
+          {qnsct0_l,  qnsctp1_l, qnsctm1_l},
+          {qnsct0_l,  qnsctm1_l, qnsctp1_l},
+          {qnsctp1_l, qnsctp1_l, qnsct0_l},
+          {qnsctp1_l, qnsct0_l,  qnsctp1_l}
       });
   RunTestGQTensorRandomCase(
       dten_3d_l,
       qnp1,
       {
-        {qnsctm1_l, qnsct0_l, qnsct0_l},
-        {qnsctm1_l, qnsctm1_l, qnsctp1_l},
-        {qnsctm1_l, qnsctp1_l, qnsctm1_l},
-        {qnsct0_l, qnsctp1_l, qnsct0_l},
-        {qnsct0_l, qnsct0_l, qnsctp1_l},
-        {qnsctp1_l, qnsctp1_l, qnsctp1_l}
+          {qnsctm1_l, qnsct0_l,  qnsct0_l},
+          {qnsctm1_l, qnsctm1_l, qnsctp1_l},
+          {qnsctm1_l, qnsctp1_l, qnsctm1_l},
+          {qnsct0_l,  qnsctp1_l, qnsct0_l},
+          {qnsct0_l,  qnsct0_l,  qnsctp1_l},
+          {qnsctp1_l, qnsctp1_l, qnsctp1_l}
       });
   RunTestGQTensorRandomCase(
       dten_3d_l,
       qnp2,
       {
-        {qnsctm1_l, qnsctp1_l, qnsct0_l},
-        {qnsctm1_l, qnsct0_l, qnsctp1_l},
-        {qnsct0_l, qnsctp1_l, qnsctp1_l}
+          {qnsctm1_l, qnsctp1_l, qnsct0_l},
+          {qnsctm1_l, qnsct0_l,  qnsctp1_l},
+          {qnsct0_l,  qnsctp1_l, qnsctp1_l}
       });
 
   RunTestGQTensorRandomCase(zten_scalar, U1QN(), {});
@@ -356,124 +364,124 @@ TEST_F(TestGQTensor, Random) {
       zten_2d_s,
       qn0,
       {
-        {qnsctm1_s, qnsctm1_s},
-        {qnsct0_s, qnsct0_s},
-        {qnsctp1_s, qnsctp1_s}
+          {qnsctm1_s, qnsctm1_s},
+          {qnsct0_s,  qnsct0_s},
+          {qnsctp1_s, qnsctp1_s}
       });
   RunTestGQTensorRandomCase(
       zten_2d_s,
       qnp1,
       {
-        {qnsctm1_s, qnsct0_s},
-        {qnsct0_s, qnsctp1_s}
+          {qnsctm1_s, qnsct0_s},
+          {qnsct0_s,  qnsctp1_s}
       });
   RunTestGQTensorRandomCase(
       zten_2d_s,
       qnm1,
       {
-        {qnsct0_s, qnsctm1_s},
-        {qnsctp1_s, qnsct0_s}
+          {qnsct0_s,  qnsctm1_s},
+          {qnsctp1_s, qnsct0_s}
       });
   RunTestGQTensorRandomCase(
       zten_2d_s,
       qnp2,
       {
-        {qnsctm1_s, qnsctp1_s}
+          {qnsctm1_s, qnsctp1_s}
       });
   RunTestGQTensorRandomCase(
       zten_2d_l,
       qn0,
       {
-        {qnsctm1_l, qnsctm1_l},
-        {qnsct0_l, qnsct0_l},
-        {qnsctp1_l, qnsctp1_l}
+          {qnsctm1_l, qnsctm1_l},
+          {qnsct0_l,  qnsct0_l},
+          {qnsctp1_l, qnsctp1_l}
       });
   RunTestGQTensorRandomCase(
       zten_2d_l,
       qnp1,
       {
-        {qnsctm1_l, qnsct0_l},
-        {qnsct0_l, qnsctp1_l}
+          {qnsctm1_l, qnsct0_l},
+          {qnsct0_l,  qnsctp1_l}
       });
   RunTestGQTensorRandomCase(
       zten_2d_l,
       qnm1,
       {
-        {qnsct0_l, qnsctm1_l},
-        {qnsctp1_l, qnsct0_l}
+          {qnsct0_l,  qnsctm1_l},
+          {qnsctp1_l, qnsct0_l}
       });
   RunTestGQTensorRandomCase(
       zten_2d_l,
       qnp2,
       {
-        {qnsctm1_l, qnsctp1_l}
+          {qnsctm1_l, qnsctp1_l}
       });
   RunTestGQTensorRandomCase(
       zten_3d_s,
       qn0,
       {
-        {qnsctm1_s, qnsctm1_s, qnsct0_s},
-        {qnsctm1_s, qnsct0_s, qnsctm1_s},
-        {qnsct0_s, qnsct0_s, qnsct0_s},
-        {qnsct0_s, qnsctp1_s, qnsctm1_s},
-        {qnsct0_s, qnsctm1_s, qnsctp1_s},
-        {qnsctp1_s, qnsctp1_s, qnsct0_s},
-        {qnsctp1_s, qnsct0_s, qnsctp1_s}
+          {qnsctm1_s, qnsctm1_s, qnsct0_s},
+          {qnsctm1_s, qnsct0_s,  qnsctm1_s},
+          {qnsct0_s,  qnsct0_s,  qnsct0_s},
+          {qnsct0_s,  qnsctp1_s, qnsctm1_s},
+          {qnsct0_s,  qnsctm1_s, qnsctp1_s},
+          {qnsctp1_s, qnsctp1_s, qnsct0_s},
+          {qnsctp1_s, qnsct0_s,  qnsctp1_s}
       });
   RunTestGQTensorRandomCase(
       zten_3d_s,
       qnp1,
       {
-        {qnsctm1_s, qnsct0_s, qnsct0_s},
-        {qnsctm1_s, qnsctm1_s, qnsctp1_s},
-        {qnsctm1_s, qnsctp1_s, qnsctm1_s},
-        {qnsct0_s, qnsctp1_s, qnsct0_s},
-        {qnsct0_s, qnsct0_s, qnsctp1_s},
-        {qnsctp1_s, qnsctp1_s, qnsctp1_s}
+          {qnsctm1_s, qnsct0_s,  qnsct0_s},
+          {qnsctm1_s, qnsctm1_s, qnsctp1_s},
+          {qnsctm1_s, qnsctp1_s, qnsctm1_s},
+          {qnsct0_s,  qnsctp1_s, qnsct0_s},
+          {qnsct0_s,  qnsct0_s,  qnsctp1_s},
+          {qnsctp1_s, qnsctp1_s, qnsctp1_s}
       });
   RunTestGQTensorRandomCase(
       zten_3d_s,
       qnp2,
       {
-        {qnsctm1_s, qnsctp1_s, qnsct0_s},
-        {qnsctm1_s, qnsct0_s, qnsctp1_s},
-        {qnsct0_s, qnsctp1_s, qnsctp1_s}
+          {qnsctm1_s, qnsctp1_s, qnsct0_s},
+          {qnsctm1_s, qnsct0_s,  qnsctp1_s},
+          {qnsct0_s,  qnsctp1_s, qnsctp1_s}
       });
   RunTestGQTensorRandomCase(
       zten_3d_l,
       qn0,
       {
-        {qnsctm1_l, qnsctm1_l, qnsct0_l},
-        {qnsctm1_l, qnsct0_l, qnsctm1_l},
-        {qnsct0_l, qnsct0_l, qnsct0_l},
-        {qnsct0_l, qnsctp1_l, qnsctm1_l},
-        {qnsct0_l, qnsctm1_l, qnsctp1_l},
-        {qnsctp1_l, qnsctp1_l, qnsct0_l},
-        {qnsctp1_l, qnsct0_l, qnsctp1_l}
+          {qnsctm1_l, qnsctm1_l, qnsct0_l},
+          {qnsctm1_l, qnsct0_l,  qnsctm1_l},
+          {qnsct0_l,  qnsct0_l,  qnsct0_l},
+          {qnsct0_l,  qnsctp1_l, qnsctm1_l},
+          {qnsct0_l,  qnsctm1_l, qnsctp1_l},
+          {qnsctp1_l, qnsctp1_l, qnsct0_l},
+          {qnsctp1_l, qnsct0_l,  qnsctp1_l}
       });
   RunTestGQTensorRandomCase(
       zten_3d_l,
       qnp1,
       {
-        {qnsctm1_l, qnsct0_l, qnsct0_l},
-        {qnsctm1_l, qnsctm1_l, qnsctp1_l},
-        {qnsctm1_l, qnsctp1_l, qnsctm1_l},
-        {qnsct0_l, qnsctp1_l, qnsct0_l},
-        {qnsct0_l, qnsct0_l, qnsctp1_l},
-        {qnsctp1_l, qnsctp1_l, qnsctp1_l}
+          {qnsctm1_l, qnsct0_l,  qnsct0_l},
+          {qnsctm1_l, qnsctm1_l, qnsctp1_l},
+          {qnsctm1_l, qnsctp1_l, qnsctm1_l},
+          {qnsct0_l,  qnsctp1_l, qnsct0_l},
+          {qnsct0_l,  qnsct0_l,  qnsctp1_l},
+          {qnsctp1_l, qnsctp1_l, qnsctp1_l}
       });
   RunTestGQTensorRandomCase(
       zten_3d_l,
       qnp2,
       {
-        {qnsctm1_l, qnsctp1_l, qnsct0_l},
-        {qnsctm1_l, qnsct0_l, qnsctp1_l},
-        {qnsct0_l, qnsctp1_l, qnsctp1_l}
+          {qnsctm1_l, qnsctp1_l, qnsct0_l},
+          {qnsctm1_l, qnsct0_l,  qnsctp1_l},
+          {qnsct0_l,  qnsctp1_l, qnsctp1_l}
       });
 }
 
 
-template <typename GQTensorT>
+template<typename GQTensorT>
 void RunTestGQTensorEqCase(
     const GQTensorT &lhs, const GQTensorT &rhs, bool test_eq = true) {
   if (test_eq) {
@@ -519,7 +527,7 @@ TEST_F(TestGQTensor, TestEq) {
 }
 
 
-template <typename GQTensorT>
+template<typename GQTensorT>
 void RunTestGQTensorCopyAndMoveConstructorsCase(const GQTensorT &t) {
   GQTensorT gqten_cpy(t);
   EXPECT_EQ(gqten_cpy, t);
@@ -556,7 +564,7 @@ TEST_F(TestGQTensor, TestCopyAndMoveConstructors) {
 }
 
 
-template <typename GQTensorT>
+template<typename GQTensorT>
 void RunTestGQTensorTransposeCase(
     const GQTensorT &t, const std::vector<size_t> &axes) {
   auto transed_t = t;
@@ -568,7 +576,7 @@ void RunTestGQTensorTransposeCase(
       EXPECT_EQ(transed_t.GetIndexes()[i], t.GetIndexes()[axes[i]]);
       EXPECT_EQ(transed_t.GetShape()[i], t.GetShape()[axes[i]]);
     }
-    for (auto &coors : GenAllCoors(t.GetShape())) {
+    for (auto &coors: GenAllCoors(t.GetShape())) {
       EXPECT_EQ(
           transed_t.GetElem(TransCoors(coors, axes)),
           t.GetElem(coors)
@@ -619,17 +627,17 @@ TEST_F(TestGQTensor, TestTranspose) {
 }
 
 
-template <typename GQTensorT>
+template<typename GQTensorT>
 void RunTestGQTensorNormalizeCase(GQTensorT &t) {
   auto norm2 = 0.0;
-  for (auto &coors : GenAllCoors(t.GetShape())) {
+  for (auto &coors: GenAllCoors(t.GetShape())) {
     norm2 += std::norm(t.GetElem(coors));
   }
   auto norm = t.Normalize();
   EXPECT_NEAR(norm, std::sqrt(norm2), 1e-14);
 
   norm2 = 0.0;
-  for (auto &coors : GenAllCoors(t.GetShape())) {
+  for (auto &coors: GenAllCoors(t.GetShape())) {
     norm2 += std::norm(t.GetElem(coors));
   }
   EXPECT_NEAR(norm2, 1.0, kEpsilon);
@@ -669,12 +677,12 @@ TEST_F(TestGQTensor, TestNormalize) {
 }
 
 
-template <typename GQTensorT>
+template<typename GQTensorT>
 void RunTestGQTensorSumCase(const GQTensorT &lhs, const GQTensorT &rhs) {
   auto sum1 = lhs + rhs;
   GQTensorT sum2(lhs);
   sum2 += rhs;
-  for (auto &coors : GenAllCoors(lhs.GetShape())) {
+  for (auto &coors: GenAllCoors(lhs.GetShape())) {
     auto elem_sum = lhs.GetElem(coors) + rhs.GetElem(coors);
     EXPECT_EQ(sum1.GetElem(coors), elem_sum);
     EXPECT_EQ(sum2.GetElem(coors), elem_sum);
@@ -734,13 +742,13 @@ TEST_F(TestGQTensor, TestSummation) {
 }
 
 
-template <typename ElemT, typename QNT>
+template<typename ElemT, typename QNT>
 void RunTestGQTensorDotMultiCase(
     const GQTensor<ElemT, QNT> &t, const ElemT scalar) {
   auto multied_t = scalar * t;
   GQTensor<ElemT, QNT> multied_t2(t);
   multied_t2 *= scalar;
-  for (auto &coors : GenAllCoors(t.GetShape())) {
+  for (auto &coors: GenAllCoors(t.GetShape())) {
     GtestNear(multied_t.GetElem(coors), scalar * t.GetElem(coors), kEpsilon);
     GtestNear(multied_t2.GetElem(coors), scalar * t.GetElem(coors), kEpsilon);
   }
@@ -777,7 +785,7 @@ TEST_F(TestGQTensor, TestDotMultiplication) {
 }
 
 
-template <typename GQTensorT>
+template<typename GQTensorT>
 void RunTestGQTensorFileIOCase(const GQTensorT &t) {
   std::string file = "test.gqten";
   std::ofstream out(file, std::ofstream::binary);
@@ -823,3 +831,65 @@ TEST_F(TestGQTensor, FileIO) {
   zten_3d_s.Random(qnp1);
   RunTestGQTensorFileIOCase(zten_3d_s);
 }
+
+
+template<typename GQTensorT>
+void RunTestGQTensorElementWiseOperationCase(GQTensorT t, bool real_ten = true) {
+  t.ElementWiseInv(1e-13);
+  t.ElementWiseSqrt();
+  if (real_ten) {
+    t.ElementWiseSign();
+  }
+}
+
+
+TEST_F(TestGQTensor, ElementWiseOperation) {
+  dten_scalar.Random(U1QN());
+  RunTestGQTensorElementWiseOperationCase(dten_scalar);
+
+  DGQTensor dten_1d_s1(dten_1d_s);
+  dten_1d_s1.Random(qn0);
+  RunTestGQTensorElementWiseOperationCase(dten_1d_s1);
+  DGQTensor dten_1d_s2(dten_1d_s);
+  dten_1d_s2.Random(qnp1);
+  RunTestGQTensorElementWiseOperationCase(dten_1d_s2);
+
+  DGQTensor dten_2d_s1(dten_2d_s);
+  dten_2d_s1.Random(qn0);
+  RunTestGQTensorElementWiseOperationCase(dten_2d_s1);
+  DGQTensor dten_2d_s2(dten_2d_s);
+  dten_2d_s2.Random(qnp1);
+  RunTestGQTensorElementWiseOperationCase(dten_2d_s2);
+
+  DGQTensor dten_3d_s1(dten_3d_s);
+  dten_3d_s1.Random(qn0);
+  RunTestGQTensorElementWiseOperationCase(dten_3d_s1);
+  DGQTensor dten_3d_s2(dten_3d_s);
+  dten_3d_s2.Random(qnp1);
+  RunTestGQTensorElementWiseOperationCase(dten_3d_s2);
+
+  zten_scalar.Random(U1QN());
+  RunTestGQTensorElementWiseOperationCase(zten_scalar, false);
+
+  ZGQTensor zten_1d_s1(zten_1d_s);
+  zten_1d_s1.Random(qn0);
+  RunTestGQTensorElementWiseOperationCase(zten_1d_s1, false);
+  ZGQTensor zten_1d_s2(zten_1d_s);
+  zten_1d_s2.Random(qnp1);
+  RunTestGQTensorElementWiseOperationCase(zten_1d_s2, false);
+
+  ZGQTensor zten_2d_s1(zten_2d_s);
+  zten_2d_s1.Random(qn0);
+  RunTestGQTensorElementWiseOperationCase(zten_2d_s1);
+  ZGQTensor zten_2d_s2(zten_2d_s);
+  zten_2d_s2.Random(qnp1);
+  RunTestGQTensorElementWiseOperationCase(zten_2d_s2, false);
+
+  ZGQTensor zten_3d_s1(zten_3d_s);
+  zten_3d_s1.Random(qn0);
+  RunTestGQTensorElementWiseOperationCase(zten_3d_s1, false);
+  ZGQTensor zten_3d_s2(zten_3d_s);
+  zten_3d_s2.Random(qnp1);
+  RunTestGQTensorElementWiseOperationCase(zten_3d_s2, false);
+}
+

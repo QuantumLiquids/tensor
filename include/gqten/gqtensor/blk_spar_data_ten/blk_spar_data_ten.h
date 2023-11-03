@@ -37,9 +37,11 @@
 
 #include <stdlib.h>     // malloc, free
 #include <string.h>     // memcpy, memset
+
 #ifdef Release
 #define NDEBUG
 #endif
+
 #include <assert.h>     // assert
 
 namespace gqten {
@@ -61,8 +63,11 @@ class BlockSparseDataTensor : public Streamable {
 
   // Constructors and destructor.
   BlockSparseDataTensor(const IndexVec<QNT> *);
+
   BlockSparseDataTensor(const BlockSparseDataTensor &);
+
   BlockSparseDataTensor &operator=(const BlockSparseDataTensor &);
+
   ~BlockSparseDataTensor(void);
 
   // Element level operations.
@@ -94,6 +99,7 @@ class BlockSparseDataTensor : public Streamable {
   );
 
   DataBlk<QNT> GetMaxSizeDataBlk(void) const;
+
   size_t GetMaxDataBlkSize(void) const;
 
   void DataBlkCopyAndScale(
@@ -165,23 +171,32 @@ class BlockSparseDataTensor : public Streamable {
 
   // Global level operations
   void Clear(void);
+
   void Allocate(const bool init = false);
 
   void Random(void);
+
   void Transpose(const std::vector<size_t> &);
+
   void FuseFirstTwoIndex(
       const std::vector<std::tuple<size_t, size_t, size_t, size_t>> &
   );
+
   GQTEN_Double Norm(void);
+
   GQTEN_Double Normalize(void);
+
   void Conj(void);
 
   void AddTwoBSDTAndAssignIn(
       const BlockSparseDataTensor &,
       const BlockSparseDataTensor &
   );
+
   void AddAndAssignIn(const BlockSparseDataTensor &);
+
   void MultiplyByScalar(const ElemT);
+
   void CtrctTwoBSDTAndAssignIn(
       const BlockSparseDataTensor &,
       const BlockSparseDataTensor &,
@@ -196,6 +211,7 @@ class BlockSparseDataTensor : public Streamable {
       const ElemT *b_raw_data,
       const std::vector<RawDataCtrctTask> &raw_data_ctrct_tasks
   );
+
   void ConstructExpandedDataOnFirstIndex(
       const BlockSparseDataTensor &,
       const BlockSparseDataTensor &,
@@ -222,17 +238,27 @@ class BlockSparseDataTensor : public Streamable {
   void CopyFromReal(const BlockSparseDataTensor<GQTEN_Double, QNT> &);
 
   void ElementWiseInv(void);
+
   void ElementWiseInv(double tolerance);
+
   void ElementWiseSqrt(void);
+
+  template<typename TenElemT = ElemT, typename std::enable_if<std::is_same<TenElemT, GQTEN_Double>::value>::type * = nullptr>
+  void ElementWiseSign(void);
+
+  template<typename TenElemT = ElemT, typename std::enable_if<std::is_same<TenElemT, GQTEN_Complex>::value>::type * = nullptr>
+  void ElementWiseSign(void);
 
   // Operators overload
   bool operator==(const BlockSparseDataTensor &) const;
+
   bool operator!=(const BlockSparseDataTensor &rhs) const {
     return !(*this == rhs);
   }
 
   // Override base class
   void StreamRead(std::istream &) override;
+
   void StreamWrite(std::ostream &) const override;
 
   // Misc
@@ -259,6 +285,9 @@ class BlockSparseDataTensor : public Streamable {
 
   /// Get the actual raw data size.
   size_t GetActualRawDataSize(void) const { return actual_raw_data_size_; }
+
+  ///Get the pointer to actual raw data
+  ElemT *GetActualRawDataPtr(void) { return pactual_raw_data_; }
 
   // Static members.
   static void ResetDataOffset(BlkIdxDataBlkMap &);
@@ -344,32 +373,46 @@ class BlockSparseDataTensor : public Streamable {
 
   // Raw data operations.
   void RawDataFree_(void);
+
   void RawDataDiscard_(void);
 
   void RawDataAlloc_(const size_t, const bool init = false);
+
   void RawDataInsert_(const size_t, const size_t, const bool init = false);
 
   void RawDataCopy_(const std::vector<RawDataCopyTask> &, const ElemT *);
+
   void RawDataCopy_(const std::vector<ElemT *> &,
                     const std::vector<ElemT *> &,
                     const std::vector<size_t> &);
+
   void RawDataCopyNoAdd_(const std::vector<RawDataCopyTask> &, const ElemT *);
+
   void RawDataCopyAndScale_(
       const RawDataCopyAndScaleTask<ElemT> &,
       const ElemT *
   );
+
   void RawDataSetZeros_(const size_t, const size_t);
+
   void RawDataSetZeros_(const std::vector<size_t> &, const std::vector<size_t> &);
+
   void RawDataSetZeros_(const std::vector<RawDataSetZerosTask> &);
+
   void RawDataDuplicateFromReal_(const GQTEN_Double *, const size_t);
 
   void RawDataRand_(void);
+
   void RawDataTranspose_(const std::vector<RawDataTransposeTask> &);
+
   GQTEN_Double RawDataNorm_(void);
+
   GQTEN_Double RawDataNormalize_(void);
+
   void RawDataConj_(void);
 
   void RawDataMultiplyByScalar_(const ElemT);
+
   void RawDataTwoMatMultiplyAndAssignIn_(
       const ElemT *,
       const ElemT *,
@@ -393,13 +436,17 @@ class BlockSparseDataTensor : public Streamable {
   ) const;
 
   void RawDataRead_(std::istream &);
+
   void RawDataWrite_(std::ostream &) const;
 
   friend class boost::serialization::access;
+
   template<class Archive>
   void save(Archive &ar, const unsigned int version) const;
+
   template<class Archive>
   void load(Archive &ar, const unsigned int version);
+
   BOOST_SERIALIZATION_SPLIT_MEMBER()
 
   template<typename ElemT2, typename QNT2>
@@ -412,6 +459,13 @@ class BlockSparseDataTensor : public Streamable {
                                            GQTensor<ElemT2, QNT2> &gqten,
                                            const int root);
 };
+
+template<typename ElemT, typename QNT>
+void BlockSparseDataTensor<ElemT, QNT>::RawDataTwoMatMultiplyAndAssignInBatch_(const ElemT **, const ElemT **, ElemT **,
+                                                                               const int *, const int *, const int *,
+                                                                               const ElemT *, size_t group_count) {
+
+}
 
 /**
 Create a block sparse data tensor using a pointer which point to the indexes

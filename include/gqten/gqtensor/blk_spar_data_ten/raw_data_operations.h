@@ -31,9 +31,11 @@
 
 #include <stdlib.h>     // malloc, free, calloc
 #include <string.h>     // memcpy, memset
+
 #ifdef Release
 #define NDEBUG
 #endif
+
 #include <assert.h>     // assert
 
 namespace gqten {
@@ -236,6 +238,7 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataCopy_(
     );
   }
 }
+
 /**
 Copy a piece of raw data from another place. 
 The destination must be different and there is no addition 
@@ -396,7 +399,7 @@ ElemT *BlockSparseDataTensor<ElemT, QNT>::RawDataGenDenseDataBlkMat_(
     auto n = std::get<2>(data_blk_mat.col_scts[j]);
     auto blk_idx_in_bsdt = elem.second;
     auto sub_mem_begin = pactual_raw_data_ +
-        blk_idx_data_blk_map_.at(blk_idx_in_bsdt).data_offset;
+                         blk_idx_data_blk_map_.at(blk_idx_in_bsdt).data_offset;
     SubMatMemCpy(
         rows, cols,
         row_offset, col_offset,
@@ -428,6 +431,7 @@ void BlockSparseDataTensor<ElemT, QNT>::RawDataWrite_(std::ostream &os) const {
   os.write((char *) pactual_raw_data_, actual_raw_data_size_ * sizeof(ElemT));
   os << std::endl;
 }
+
 template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::ElementWiseInv(void) {
   int ompth = hp_numeric::tensor_manipulation_num_threads;
@@ -439,6 +443,7 @@ void BlockSparseDataTensor<ElemT, QNT>::ElementWiseInv(void) {
     *(pactual_raw_data_ + i) = 1.0 / (*(pactual_raw_data_ + i));
   }
 }
+
 template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::ElementWiseInv(double tolerance) {
   int ompth = hp_numeric::tensor_manipulation_num_threads;
@@ -451,6 +456,7 @@ void BlockSparseDataTensor<ElemT, QNT>::ElementWiseInv(double tolerance) {
     elem = (std::abs(elem) < tolerance) ? ElemT(0) : 1.0 / elem;
   }
 }
+
 template<typename ElemT, typename QNT>
 void BlockSparseDataTensor<ElemT, QNT>::ElementWiseSqrt(void) {
   int ompth = hp_numeric::tensor_manipulation_num_threads;
@@ -460,6 +466,37 @@ void BlockSparseDataTensor<ElemT, QNT>::ElementWiseSqrt(void) {
                 schedule(static)
   for (size_t i = 0; i < actual_raw_data_size_; i++) {
     *(pactual_raw_data_ + i) = std::sqrt(*(pactual_raw_data_ + i));
+  }
+}
+
+template<typename T>
+int sign(T val) {
+  return (T(0) < val) - (val < T(0));
+}
+
+template<typename ElemT, typename QNT>
+template<typename TenElemT, typename std::enable_if<std::is_same<TenElemT, GQTEN_Double>::value>::type *>
+void BlockSparseDataTensor<ElemT, QNT>::ElementWiseSign() {
+  int ompth = hp_numeric::tensor_manipulation_num_threads;
+#pragma omp parallel for default(none) \
+                shared(pactual_raw_data_, actual_raw_data_size_)\
+                num_threads(ompth)\
+                schedule(static)
+  for (size_t i = 0; i < actual_raw_data_size_; i++) {
+    *(pactual_raw_data_ + i) = sign(*(pactual_raw_data_ + i));
+  }
+}
+
+template<typename ElemT, typename QNT>
+template<typename TenElemT, typename std::enable_if<std::is_same<TenElemT, GQTEN_Complex>::value>::type *>
+void BlockSparseDataTensor<ElemT, QNT>::ElementWiseSign(void) {
+  int ompth = hp_numeric::tensor_manipulation_num_threads;
+#pragma omp parallel for default(none) \
+                shared(pactual_raw_data_, actual_raw_data_size_)\
+                num_threads(ompth)\
+                schedule(static)
+  for (size_t i = 0; i < actual_raw_data_size_; i++) {
+    *(pactual_raw_data_ + i) = sign((pactual_raw_data_ + i)->real());
   }
 }
 } /* gqten */

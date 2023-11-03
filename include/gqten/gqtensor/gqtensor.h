@@ -148,6 +148,8 @@ class GQTensor : public Showable {
 
   void ElementWiseSqrt(void);
 
+  void ElementWiseSign(void);
+
   // Operators overload.
   bool operator==(const GQTensor &) const;
 
@@ -179,6 +181,9 @@ class GQTensor : public Showable {
   size_t GetActualDataSize(void) const;
 
   const ElemT *GetRawDataPtr(void) const;
+
+  // The following non-const function should be called carefully.
+  ElemT *GetRawDataPtr(void);
 
  private:
   /// The rank of the GQTensor.
