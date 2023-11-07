@@ -6,13 +6,13 @@
 * Description: GraceQ/tensor project.  Unittests for tensor contraction with restriction on 1 sector
 */
 
+#include "gtest/gtest.h"
 #include "gqten/gqtensor_all.h"
 #include "gqten/tensor_manipulation/ten_ctrct.h"            // Contract
 #include "gqten/tensor_manipulation/basic_operations.h"     // Dag
 #include "gqten/tensor_manipulation/ten_ctrct_1sector.h"
 #include "gqten/tensor_manipulation/ten_linear_combine.h"
 
-#include "gtest/gtest.h"
 #include "../testing_utility.h"
 
 #include <iostream>

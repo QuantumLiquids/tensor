@@ -6,11 +6,11 @@
 * Description: GraceQ/tensor project. Unittests for tensor fuse index.
 */
 
+#include "gtest/gtest.h"
 #include "gqten/gqtensor_all.h"
 #include "gqten/tensor_manipulation/ten_fuse_index.h"
 #include "gqten/tensor_manipulation/ten_ctrct.h"
 
-#include "gtest/gtest.h"
 #include "gqten/utility/timer.h"
 
 

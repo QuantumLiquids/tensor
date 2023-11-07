@@ -5,12 +5,13 @@
 *
 * Description: GraceQ/tensor project. Unittests for index combination.
 */
+
+#include "gtest/gtest.h"
 #include "gqten/gqtensor_all.h"
 #include "gqten/tensor_manipulation/index_combine.h"
 #include "gqten/tensor_manipulation/basic_operations.h"
 #include "gqten/tensor_manipulation/ten_ctrct.h"
 
-#include "gtest/gtest.h"
 
 
 using namespace gqten;

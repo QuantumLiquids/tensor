@@ -5,11 +5,12 @@
 *
 * Description: GraceQ/tensor project. Unit tests for QNSector class.
 */
+
+#include "gtest/gtest.h"
 #include "gqten/gqtensor/qnsct.h"           // QNSector
 #include "gqten/gqtensor/qn/qn.h"           // QN
 #include "gqten/gqtensor/qn/qnval_u1.h"     // U1QNVal
 
-#include "gtest/gtest.h"
 #include "../testing_utility.h"           // RandInt, RandUnsignedInt
 
 #include <functional>     // hash

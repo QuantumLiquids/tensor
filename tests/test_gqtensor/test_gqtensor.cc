@@ -5,10 +5,10 @@
 *
 * Description: GraceQ/tensor project. Unittests for GQTensor object.
 */
+#include "gtest/gtest.h"
 #include "gqten/gqtensor_all.h"      // GQTensor, Index, QN, U1QNVal, QNSectorVec
 #include "gqten/utility/utils_inl.h"        // GenAllCoors
 
-#include "gtest/gtest.h"
 #include "../testing_utility.h"     // RandInt, RandUnsignedInt, TransCoors
 
 #include <fstream>    // ifstream, ofstream

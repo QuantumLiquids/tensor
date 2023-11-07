@@ -5,9 +5,9 @@
 *
 * Description: GraceQ/tensor project. Unit test for U(1) quantum number value.
 */
-#include "gqten/gqtensor/qn/qnval_u1.h"     // U1QNVal
 
 #include "gtest/gtest.h"
+#include "gqten/gqtensor/qn/qnval_u1.h"     // U1QNVal
 #include "../../testing_utility.h"    // RandInt
 
 

@@ -5,10 +5,11 @@
 *
 * Description: GraceQ/tensor project. Unittests for tensor linear combination functions.
 */
+
+#include "gtest/gtest.h"
 #include "gqten/gqtensor_all.h"
 #include "gqten/tensor_manipulation/ten_linear_combine.h"
 
-#include "gtest/gtest.h"
 
 
 using namespace gqten;

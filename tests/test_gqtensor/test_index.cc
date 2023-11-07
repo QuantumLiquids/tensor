@@ -5,12 +5,12 @@
 *
 * Description: GraceQ/tensor project. Unit tests for Index class.
 */
+#include "gtest/gtest.h"
 #include "gqten/gqtensor/index.h"           // Index
 #include "gqten/gqtensor/qn/qn.h"           // QN
 #include "gqten/gqtensor/qn/qnval_u1.h"     // U1QNVal
 #include "gqten/gqtensor/qnsct.h"           // QNSectorVec
 
-#include "gtest/gtest.h"
 #include "../testing_utility.h"     // RandInt, RandUnsignedInt
 
 #include <fstream>      // ifstream, ofstream

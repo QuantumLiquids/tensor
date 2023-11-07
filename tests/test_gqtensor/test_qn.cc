@@ -5,11 +5,11 @@
 *
 * Description: GraceQ/tensor project. Unit tests for quantum number object.
 */
+#include "gtest/gtest.h"
 #include "gqten/gqtensor/qn/qn.h"         // QN
 #include "gqten/gqtensor/qn/qnval_u1.h"   // U1QNVal
 #include "gqten/framework/vec_hash.h"     // VecStdTypeHasher
 
-#include "gtest/gtest.h"
 #include "../testing_utility.h"           // RandInt
 
 #include <fstream>

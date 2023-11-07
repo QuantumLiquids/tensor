@@ -5,10 +5,11 @@
 *
 * Description: GraceQ/tensor project. Unittests for basic tensor operations.
 */
+
+#include "gtest/gtest.h"
 #include "gqten/gqtensor_all.h"      // GQTensor, Index, QN, U1QNVal, QNSectorVec
 #include "gqten/tensor_manipulation/basic_operations.h"
 
-#include "gtest/gtest.h"
 
 using namespace gqten;
 

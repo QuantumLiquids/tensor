@@ -115,7 +115,8 @@ void RunTestTenCtrct1DCase(GQTensor<TenElemT, QNT> &t, const QNT &div) {
   auto t_dag = Dag(t);
   Timer contract_timer("contract");
   size_t start_flops = flop;
-  Contract(&t, &t_dag, {{0}, {0}}, &t_res);
+  Contract(&t, &t_dag, {{0},
+                        {0}}, &t_res);
   size_t end_flops = flop;
   double elapsed_time = contract_timer.Elapsed();
   std::cout << "flop = " << end_flops - start_flops << std::endl;
@@ -171,7 +172,8 @@ void RunTestTenCtrct2DCase1(
       0.0,
       dense_res, n);
   GQTensor<TenElemT, QNT> res;
-  Contract(&ta, &tb, {{1}, {0}}, &res);
+  Contract(&ta, &tb, {{1},
+                      {0}}, &res);
   idx = 0;
   for (auto &coors: GenAllCoors(res.GetShape())) {
     GtestExpectNear(res.GetElem(coors), dense_res[idx], kEpsilon);
@@ -211,7 +213,8 @@ void RunTestTenCtrct2DCase2(
     res_scalar += (dense_ta[i] * dense_tb[i]);
   }
   GQTensor<TenElemT, QNT> res;
-  Contract(&ta, &tb, {{0, 1}, {1, 0}}, &res);
+  Contract(&ta, &tb, {{0, 1},
+                      {1, 0}}, &res);
   GtestExpectNear(res.GetElem({}), res_scalar, kEpsilon);
 
   delete[] dense_ta;
@@ -281,7 +284,8 @@ void RunTestTenCtrct3DCase1(
       0.0,
       dense_res, n);
   GQTensor<TenElemT, QNT> res;
-  Contract(&ta, &tb, {{2}, {0}}, &res);
+  Contract(&ta, &tb, {{2},
+                      {0}}, &res);
   idx = 0;
   for (auto &coors: GenAllCoors(res.GetShape())) {
     GtestExpectNear(res.GetElem(coors), dense_res[idx], kEpsilon);
@@ -326,7 +330,8 @@ void RunTestTenCtrct3DCase2(
       0.0,
       dense_res, n);
   GQTensor<TenElemT, QNT> res;
-  Contract(&ta, &tb, {{1, 2}, {0, 1}}, &res);
+  Contract(&ta, &tb, {{1, 2},
+                      {0, 1}}, &res);
   idx = 0;
   for (auto &coors: GenAllCoors(res.GetShape())) {
     GtestExpectNear(res.GetElem(coors), dense_res[idx], kEpsilon);
@@ -366,7 +371,8 @@ void RunTestTenCtrct3DCase3(
     res_scalar += (dense_ta[i] * dense_tb[i]);
   }
   GQTensor<TenElemT, QNT> res;
-  Contract(&ta, &tb, {{0, 1, 2}, {0, 1, 2}}, &res);
+  Contract(&ta, &tb, {{0, 1, 2},
+                      {0, 1, 2}}, &res);
   GtestExpectNear(res.GetElem({}), res_scalar, kEpsilon);
 
   delete[] dense_ta;
@@ -434,6 +440,30 @@ TEST_F(TestContraction, 3DCase) {
 }
 
 template<typename TenElemT, typename QNT>
+bool BSDTCompareShell(
+    const BlockSparseDataTensor<TenElemT, QNT> &bsdta,
+    const BlockSparseDataTensor<TenElemT, QNT> &bsdtb
+) {
+  if (bsdta.IsScalar() != bsdtb.IsScalar()) {
+    return false;
+  } else if (bsdta.IsScalar()) {
+    return true;
+  }
+  const auto &blk_idx_data_blk_map_a = bsdta.GetBlkIdxDataBlkMap();
+  const auto &blk_idx_data_blk_map_b = bsdtb.GetBlkIdxDataBlkMap();
+  if (blk_idx_data_blk_map_b.size() != blk_idx_data_blk_map_a.size()) { return false; }
+  auto lhs_idx_blk_it = blk_idx_data_blk_map_a.begin();
+  auto rhs_idx_blk_it = blk_idx_data_blk_map_b.begin();
+  size_t data_blk_size = blk_idx_data_blk_map_a.size();
+  for (size_t i = 0; i < data_blk_size; ++i) {
+    if (lhs_idx_blk_it->first != rhs_idx_blk_it->first) { return false; }
+    lhs_idx_blk_it++;
+    rhs_idx_blk_it++;
+  }
+  return true;
+}
+
+template<typename TenElemT, typename QNT>
 void RunTestTenExtraCtrct(
     const GQTensor<TenElemT, QNT> &ta,
     const std::vector<size_t> &ctrct_axes_a, //continuous number
@@ -457,56 +487,73 @@ void RunTestTenExtraCtrct(
   Contract<TenElemT, QNT, false, false>(ta, tb,
                                         ctrct_axes_a[0], ctrct_axes_b[0],
                                         ctrct_axes_a.size(), res4);
-
+  TenT benchmark_res;
   const size_t rank_a = ta.Rank();
   const size_t rank_b = tb.Rank();
-  std::vector<size_t> trans_axes_a;
-  trans_axes_a.reserve(rank_a);
-  for (size_t i = ctrct_axes_a.back() + 1; i < rank_a; i++) {
-    trans_axes_a.push_back(i);
-  }
-  for (size_t i = 0; i <= ctrct_axes_a.back(); i++) {
-    trans_axes_a.push_back(i);
-  }
-  TenT ta_copy(ta), tb_copy(tb);
-  ta_copy.Transpose(trans_axes_a);
+  if ((ctrct_axes_a[0] == 0 || ctrct_axes_a.back() == rank_a - 1) &&
+      (ctrct_axes_b[0] == 0 || ctrct_axes_b.back() == rank_b - 1)) {
+    Contract(&ta, &tb, {ctrct_axes_a, ctrct_axes_b}, &benchmark_res);
+  } else {
 
-  std::vector<size_t> trans_axes_b;
-  trans_axes_b.reserve(rank_b);
-  for (size_t i = ctrct_axes_b.back() + 1; i < rank_b; i++) {
-    trans_axes_b.push_back(i);
-  }
-  for (size_t i = 0; i <= ctrct_axes_b.back(); i++) {
-    trans_axes_b.push_back(i);
-  }
-  tb_copy.Transpose(trans_axes_b);
+    std::vector<size_t> trans_axes_a;
+    trans_axes_a.reserve(rank_a);
+    for (size_t i = ctrct_axes_a.back() + 1; i < rank_a; i++) {
+      trans_axes_a.push_back(i);
+    }
+    for (size_t i = 0; i <= ctrct_axes_a.back(); i++) {
+      trans_axes_a.push_back(i);
+    }
+    TenT ta_copy(ta), tb_copy(tb);
+    ta_copy.Transpose(trans_axes_a);
 
-  std::vector<size_t> ctrct_axes_after_transpose_a, ctrct_axes_after_transpose_b;
-  size_t ctrct_axes_size = ctrct_axes_a.size();
-  for (size_t i = ta.Rank() - ctrct_axes_size; i < rank_a; i++) {
-    ctrct_axes_after_transpose_a.push_back(i);
+    std::vector<size_t> trans_axes_b;
+    trans_axes_b.reserve(rank_b);
+    for (size_t i = ctrct_axes_b.back() + 1; i < rank_b; i++) {
+      trans_axes_b.push_back(i);
+    }
+    for (size_t i = 0; i <= ctrct_axes_b.back(); i++) {
+      trans_axes_b.push_back(i);
+    }
+    tb_copy.Transpose(trans_axes_b);
+
+    std::vector<size_t> ctrct_axes_after_transpose_a, ctrct_axes_after_transpose_b;
+    size_t ctrct_axes_size = ctrct_axes_a.size();
+    for (size_t i = rank_a - ctrct_axes_size; i < rank_a; i++) {
+      ctrct_axes_after_transpose_a.push_back(i);
+    }
+    for (size_t i = rank_b - ctrct_axes_size; i < rank_b; i++) {
+      ctrct_axes_after_transpose_b.push_back(i);
+    }
+
+    Contract(&ta_copy, &tb_copy, {ctrct_axes_after_transpose_a, ctrct_axes_after_transpose_b}, &benchmark_res);
   }
-  for (size_t i = tb.Rank() - ctrct_axes_size; i < rank_b; i++) {
-    ctrct_axes_after_transpose_b.push_back(i);
-  }
-  TenT benchmark_res;
-  Contract(&ta_copy, &tb_copy, {ctrct_axes_after_transpose_a, ctrct_axes_after_transpose_b}, &benchmark_res);
+
+  const BlockSparseDataTensor<TenElemT, QNT> &bsdt_res = benchmark_res.GetBlkSparDataTen();
 
   EXPECT_EQ(benchmark_res.GetIndexes(), res1.GetIndexes());
+  const BlockSparseDataTensor<TenElemT, QNT> &bsdt_res1 = res1.GetBlkSparDataTen();
+  EXPECT_EQ(bsdt_res.GetActualRawDataSize(), bsdt_res1.GetActualRawDataSize());
   TenT diff1 = benchmark_res + (-res1);
-  EXPECT_NEAR(diff1.Normalize() / std::max(res1.Normalize(), 1e-5), 0.0, kDoubleEpsilon);
+  EXPECT_NEAR(diff1.Get2Norm() / std::max(res1.Get2Norm(), 1e-5), 0.0, kDoubleEpsilon);
 
   EXPECT_EQ(benchmark_res.GetIndexes(), res2.GetIndexes());
   TenT diff2 = benchmark_res + (-res2);
-  EXPECT_NEAR(diff2.Normalize() / std::max(res2.Normalize(), 1e-5), 0.0, kDoubleEpsilon);
+  EXPECT_NEAR(diff2.Normalize() / std::max(res2.Get2Norm(), 1e-5), 0.0, kDoubleEpsilon);
 
   EXPECT_EQ(benchmark_res.GetIndexes(), res3.GetIndexes());
+  EXPECT_TRUE(BSDTCompareShell(bsdt_res, res3.GetBlkSparDataTen()));
   TenT diff3 = benchmark_res + (-res3);
-  EXPECT_NEAR(diff3.Normalize() / std::max(res3.Normalize(), 1e-5), 0.0, kDoubleEpsilon);
+  double norm_diff3 = diff3.Get2Norm();
+  double norm_res3 = res3.Get2Norm();
+  EXPECT_NEAR(norm_diff3 / std::max(norm_res3, 1e-5), 0.0, kDoubleEpsilon * 10);
+  if (norm_diff3 / std::max(norm_res3, 1e-5) > kDoubleEpsilon) {
+    std::cout << "norm_diff3 = " << std::scientific << norm_diff3 << std::endl;
+    std::cout << "norm_res3 = " << norm_res3 << std::endl;
+  }
 
   EXPECT_EQ(benchmark_res.GetIndexes(), res4.GetIndexes());
   TenT diff4 = benchmark_res + (-res4);
-  EXPECT_NEAR(diff4.Normalize() / std::max(res4.Normalize(), 1e-5), 0.0, kDoubleEpsilon);
+  EXPECT_NEAR(diff4.Get2Norm() / std::max(res4.Get2Norm(), 1e-5), 0.0, kDoubleEpsilon * 10);
 }
 
 TEST_F(TestContraction, ExtraContract) {

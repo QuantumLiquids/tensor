@@ -7,10 +7,10 @@
 */
 
 //Note run this executable as: /usr/bin/mpirun -np 2 ./tests/test_boost_mpi
+#include "gtest/gtest.h"
 #include "gqten/gqten.h"      // GQTensor, Index, QN, U1QNVal, QNSectorVec
 #include "gqten/utility/utils_inl.h"        // GenAllCoors
 #include "gqten/utility/timer.h"
-#include "gtest/gtest.h"
 #include "../testing_utility.h"     // RandInt, RandUnsignedInt, TransCoors
 
 #include <fstream>    // ifstream, ofstream

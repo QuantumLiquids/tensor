@@ -5,6 +5,8 @@
 * 
 * Description: GraceQ/tensor project. Unittests for tensor SVD.
 */
+
+#include "gtest/gtest.h"
 #include "gqten/gqtensor_all.h"
 #include "gqten/tensor_manipulation/ten_decomp/ten_svd.h"   // SVD
 #include "gqten/tensor_manipulation/ten_ctrct.h"            // Contract
@@ -12,7 +14,6 @@
 #include "gqten/utility/utils_inl.h"
 #include "gqten/framework/hp_numeric/lapack.h"
 #include "gqten/utility/timer.h"
-#include "gtest/gtest.h"
 #include "../testing_utility.h"
 
 #include <thread>     //hardware_concurrency()

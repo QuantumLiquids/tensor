@@ -5,11 +5,12 @@
 *
 * Description: GraceQ/tensor project. Unittests for tensor QR.
 */
+
+#include "gtest/gtest.h"
 #include "gqten/gqtensor_all.h"
 #include "gqten/tensor_manipulation/ten_decomp/ten_qr.h"    // QR
 #include "gqten/tensor_manipulation/ten_ctrct.h"            // Contract
 
-#include "gtest/gtest.h"
 
 
 using namespace gqten;

@@ -5,10 +5,11 @@
 *
 * Description: GraceQ/tensor project. Unittests for tensor expansion.
 */
+
+#include "gtest/gtest.h"
 #include "gqten/gqtensor_all.h"
 #include "gqten/tensor_manipulation/ten_expand.h"
 #include "gqten/tensor_manipulation/ten_mc_expand.h"
-#include "gtest/gtest.h"
 #include "gqten/utility/timer.h"
 
 using namespace gqten;
