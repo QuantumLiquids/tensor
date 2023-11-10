@@ -53,7 +53,8 @@ Index<U1QN> RandIndex(const unsigned qn_sct_num,  //how many quantum number sect
 int main(int argc, char *argv[]) {
   using std::vector;
   namespace mpi = boost::mpi;
-  mpi::environment env(mpi::threading::multiple);
+//  mpi::environment env(mpi::threading::multiple);
+  mpi::environment env;
   mpi::communicator world;
   size_t thread_num;
   if (argc == 1) {// no input parameter
@@ -65,10 +66,6 @@ int main(int argc, char *argv[]) {
   hp_numeric::SetTensorTransposeNumThreads(thread_num);
 
   if( world.rank() == kMPIMasterRank){
-    if (env.thread_level() < mpi::threading::multiple){
-      std::cout << "warning: env.thread_level() < mt::threading::multiple" << std::endl;
-    }
-
     auto index1_in = RandIndex(20,30, gqten::IN);
     auto index2_in = RandIndex(4,5, gqten::IN);
     auto index1_out = RandIndex(4,5, gqten::OUT);

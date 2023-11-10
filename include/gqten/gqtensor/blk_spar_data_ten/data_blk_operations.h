@@ -481,8 +481,12 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVD(
 }
 
 /**
-SVD decomposition.
+SVD decomposition. Multi-thread version required MPI initial as
+ MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, provided);
+ Nov 9 2023, I decide to remove the multi-thread version,
+ and replace it by the standard Producer-consumer scheme
 */
+/*
 template<typename ElemT, typename QNT>
 std::map<size_t, DataBlkMatSvdRes<ElemT>>
 BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVDMaster(
@@ -498,8 +502,8 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVDMaster(
 
   auto iter = idx_data_blk_mat_map.begin();
 
-  size_t slave_num = world.size() - 1;
-  size_t task_size = idx_data_blk_mat_map.size();
+  const size_t slave_num = world.size() - 1;
+  const size_t task_size = idx_data_blk_mat_map.size();
   // if task_size < slave num the code should also work
   // suppose procs num >= slave num
   // for parallel do not need in order
@@ -556,7 +560,90 @@ BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVDMaster(
 #endif
   return idx_svd_res_map;
 }
+*/
 
+
+template<typename ElemT, typename QNT>
+std::map<size_t, DataBlkMatSvdRes<ElemT>>
+BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVDMaster(
+    const IdxDataBlkMatMap<QNT> &idx_data_blk_mat_map,
+    boost::mpi::communicator &world
+) const {
+#ifdef GQTEN_MPI_TIMING_MODE
+  Timer data_blk_decomp_svd_master_timer("data_blk_decomp_svd_master_func");
+#endif
+  std::map<size_t, DataBlkMatSvdRes<ElemT>> idx_svd_res_map;
+
+  const size_t worker_num = world.size() - 1;
+  size_t task_size = idx_data_blk_mat_map.size();
+  /**
+   * Send package: (idx, m, n, mat)
+   * Recv package: (idx, m, n, u, s, v)
+   */
+  size_t m, n; //m : rows; n : cols;
+  int idx; // data blk idx
+  for (auto &[idx_next, data_blk_mat_next]: idx_data_blk_mat_map) {
+    // Wait for a worker to become available
+    MPI_Status status;
+    MPI_Recv(&idx, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_Comm(world), &status);
+    size_t worker_id = status.MPI_SOURCE;
+    if (status.MPI_TAG > 0) { //valid results
+      hp_numeric::MPI_Recv(m, worker_id, idx + 14, MPI_Comm(world));
+      hp_numeric::MPI_Recv(n, worker_id, idx + 15, MPI_Comm(world));
+      const size_t ld = std::min(m, n);
+      GQTEN_Double *s = (GQTEN_Double *) malloc(ld * sizeof(GQTEN_Double));
+      ElemT *u = (ElemT *) malloc((ld * m) * sizeof(ElemT));
+      ElemT *vt = (ElemT *) malloc((ld * n) * sizeof(ElemT));
+      const size_t k = m > n ? n : m;
+      hp_numeric::MPI_Recv(u, ld * m, worker_id, idx + 16, MPI_Comm(world));
+      hp_numeric::MPI_Recv(s, ld, worker_id, idx + 17, MPI_Comm(world));
+      hp_numeric::MPI_Recv(vt, ld * n, worker_id, idx + 18, MPI_Comm(world));
+      idx_svd_res_map[idx] = DataBlkMatSvdRes<ElemT>(m, n, k, u, s, vt);
+    }
+    // Distribute data to available worker
+    ElemT *mat = RawDataGenDenseDataBlkMat_(data_blk_mat_next);
+    size_t data_length = data_blk_mat_next.rows * data_blk_mat_next.cols;
+    MPI_Send(&idx_next, 1, MPI_INT, worker_id, idx_next + 6, MPI_Comm(world)); // The tag should be positive
+    hp_numeric::MPI_Send(data_blk_mat_next.rows, worker_id, idx_next + 7, MPI_Comm(world));
+    hp_numeric::MPI_Send(data_blk_mat_next.cols, worker_id, idx_next + 8, MPI_Comm(world));
+    hp_numeric::MPI_Send(mat, data_length, worker_id, idx_next + 9, MPI_Comm(world));
+    free(mat);
+  }
+
+  // Send termination signal to each rank when they submit their last job
+  for (int num_terminated = 0; num_terminated < worker_num; num_terminated++) {
+    // Wait for a worker to become available
+    MPI_Status status;
+    MPI_Recv(&idx, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_Comm(world), &status);
+    size_t worker_id = status.MPI_SOURCE;
+    // If a matrix was decomposed
+    if (status.MPI_TAG > 0) {
+      hp_numeric::MPI_Recv(m, worker_id, idx + 14, MPI_Comm(world));
+      hp_numeric::MPI_Recv(n, worker_id, idx + 15, MPI_Comm(world));
+      const size_t ld = std::min(m, n);
+      GQTEN_Double *s = (GQTEN_Double *) malloc(ld * sizeof(GQTEN_Double));
+      ElemT *u = (ElemT *) malloc((ld * m) * sizeof(ElemT));
+      ElemT *vt = (ElemT *) malloc((ld * n) * sizeof(ElemT));
+      const size_t k = m > n ? n : m;
+      hp_numeric::MPI_Recv(u, ld * m, worker_id, idx + 16, MPI_Comm(world));
+      hp_numeric::MPI_Recv(s, ld, worker_id, idx + 17, MPI_Comm(world));
+      hp_numeric::MPI_Recv(vt, ld * n, worker_id, idx + 18, MPI_Comm(world));
+      idx_svd_res_map[idx] = DataBlkMatSvdRes<ElemT>(m, n, k, u, s, vt);
+    }
+
+    // Send termination signal (tag = 0); workers receive the variable as idx
+    MPI_Send(&num_terminated, 1, MPI_INT, worker_id, 0, MPI_Comm(world));
+  }
+  MPI_Barrier(MPI_Comm(world));
+#ifdef GQTEN_MPI_TIMING_MODE
+  data_blk_decomp_svd_master_timer.PrintElapsed();
+#endif
+  return idx_svd_res_map;
+}
+// The MPI SVD version corresponding to the multi-thread version.
+// Nov 9 2023, I decide to remove the multi-thread version,
+// and replace it by the standard Producer-consumer scheme
+/*
 template<typename ElemT>
 void DataBlkDecompSVDSlave(boost::mpi::communicator &world) {
   size_t task_done = 0;
@@ -603,6 +690,78 @@ void DataBlkDecompSVDSlave(boost::mpi::communicator &world) {
   slave_total_work_timer.PrintElapsed();
   slave_commu_timer.PrintElapsed();
 #endif
+}
+ */
+
+template<typename ElemT>
+void DataBlkDecompSVDSlave(boost::mpi::communicator &world) {
+  size_t task_done = 0;
+  size_t idx(0), m(0), n(0);
+  size_t consumer_rank = world.rank();
+
+  /**
+   * Recv package: (idx, m, n, mat)
+   * Send package: (idx, m, n, u, s, v)
+   */
+  MPI_Send(&idx, 1, MPI_INT, kMPIMasterRank, 0, MPI_Comm(world)); // The signal I'm available
+
+#ifdef GQTEN_MPI_TIMING_MODE
+  Timer slave_total_work_timer("worker " + std::to_string(consumer_rank) + " total work");
+  Timer slave_commu_timer("worker " + std::to_string(consumer_rank) + " communication and wait");
+  slave_commu_timer.Suspend();
+#endif
+  bool terminated(false);
+  do {
+    // Wait for a job
+    MPI_Status status;
+    MPI_Recv(&idx, 1, MPI_INT, kMPIMasterRank, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+    if (status.MPI_TAG == 0) {
+      terminated = true;
+    } else {
+#ifdef GQTEN_MPI_TIMING_MODE
+      slave_commu_timer.Restart();
+#endif
+      hp_numeric::MPI_Recv(m, kMPIMasterRank, idx + 7, MPI_Comm(world));
+      hp_numeric::MPI_Recv(n, kMPIMasterRank, idx + 8, MPI_Comm(world));
+      size_t data_size = m * n;
+      ElemT *mat = (ElemT *) malloc(data_size * sizeof(ElemT));
+      hp_numeric::MPI_Recv(mat, data_size, kMPIMasterRank, idx + 9, MPI_Comm(world));
+#ifdef GQTEN_MPI_TIMING_MODE
+      slave_commu_timer.Suspend();
+#endif
+
+      ElemT *u = nullptr;
+      ElemT *vt = nullptr;
+      GQTEN_Double *s = nullptr;
+      hp_numeric::MatSVD(mat, m, n, u, s, vt);
+      free(mat);
+      size_t ld = std::min(m, n);
+#ifdef GQTEN_MPI_TIMING_MODE
+      slave_commu_timer.Restart();
+#endif
+      MPI_Send(&idx, 1, MPI_INT, kMPIMasterRank, idx + 13, MPI_Comm(world)); // The tag should be positive
+      hp_numeric::MPI_Send(m, kMPIMasterRank, idx + 14, MPI_Comm(world));
+      hp_numeric::MPI_Send(n, kMPIMasterRank, idx + 15, MPI_Comm(world));
+      hp_numeric::MPI_Send(u, ld * m, kMPIMasterRank, idx + 16, MPI_Comm(world));
+      hp_numeric::MPI_Send(s, ld, kMPIMasterRank, idx + 17, MPI_Comm(world));
+      hp_numeric::MPI_Send(vt, ld * n, kMPIMasterRank, idx + 18, MPI_Comm(world));
+#ifdef GQTEN_MPI_TIMING_MODE
+      slave_commu_timer.Suspend();
+#endif
+      free(u);
+      free(vt);
+      free(s);
+      task_done++;
+    }
+  } while (!terminated);
+  MPI_Barrier(MPI_Comm(world));
+
+#ifdef GQTEN_MPI_TIMING_MODE
+  std::cout << "[[worker " << consumer_rank << " has done " << task_done << " tasks.]]" << std::endl;
+  slave_total_work_timer.PrintElapsed();
+  slave_commu_timer.PrintElapsed();
+#endif
+  return;
 }
 
 template<typename ElemT, typename QNT>
