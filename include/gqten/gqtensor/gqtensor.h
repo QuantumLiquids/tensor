@@ -150,6 +150,8 @@ class GQTensor : public Showable {
 
   void ElementWiseSign(void);
 
+  void ElementWiseBoundTo(double bound);
+
   // Operators overload.
   bool operator==(const GQTensor &) const;
 

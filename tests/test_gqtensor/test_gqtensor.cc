@@ -840,6 +840,7 @@ void RunTestGQTensorElementWiseOperationCase(GQTensorT t, bool real_ten = true) 
   if (real_ten) {
     t.ElementWiseSign();
   }
+  t.ElementWiseBoundTo(0.05);
 }
 
 

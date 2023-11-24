@@ -499,5 +499,24 @@ void BlockSparseDataTensor<ElemT, QNT>::ElementWiseSign(void) {
     *(pactual_raw_data_ + i) = sign((pactual_raw_data_ + i)->real());
   }
 }
+
+inline GQTEN_Double BoundNumber(GQTEN_Double number, double bound) {
+  return sign(number) * bound;
+}
+
+inline GQTEN_Complex BoundNumber(GQTEN_Complex number, double bound) {
+  return number * bound / std::abs(number);
+}
+
+template<typename ElemT, typename QNT>
+void BlockSparseDataTensor<ElemT, QNT>::ElementWiseBoundTo(double bound) {
+  for (size_t i = 0; i < actual_raw_data_size_; i++) {
+    ElemT *elem = pactual_raw_data_ + i;
+    if (std::abs(*elem) > bound) {
+      *elem *= BoundNumber(*elem, bound);
+    }
+  }
+}
+
 } /* gqten */
 #endif /* ifndef GQTEN_GQTENSOR_BLK_SPAR_DATA_TEN_RAW_DATA_OPERATIONS_H */

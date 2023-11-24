@@ -973,6 +973,10 @@ void GQTensor<ElemT, QNT>::ElementWiseSign() {
   pblk_spar_data_ten_->ElementWiseSign();
 }
 
+template<typename ElemT, typename QNT>
+void GQTensor<ElemT, QNT>::ElementWiseBoundTo(double bound) {
+  pblk_spar_data_ten_->ElementWiseBoundTo(bound);
+}
 
 } /* gqten */
 #endif /* ifndef GQTEN_GQTENSOR_GQTENSOR_IMPL_H */

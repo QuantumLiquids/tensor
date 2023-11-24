@@ -249,6 +249,8 @@ class BlockSparseDataTensor : public Streamable {
   template<typename TenElemT = ElemT, typename std::enable_if<std::is_same<TenElemT, GQTEN_Complex>::value>::type * = nullptr>
   void ElementWiseSign(void);
 
+  void ElementWiseBoundTo(double bound);
+
   // Operators overload
   bool operator==(const BlockSparseDataTensor &) const;
 
