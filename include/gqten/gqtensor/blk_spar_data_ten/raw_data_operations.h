@@ -500,6 +500,43 @@ void BlockSparseDataTensor<ElemT, QNT>::ElementWiseSign(void) {
   }
 }
 
+template<typename RandGenerator>
+inline void RandSign(GQTEN_Double *number,
+                     std::uniform_real_distribution<double> &dist,
+                     RandGenerator &g) {
+  if (*number > 1e-5) {
+    *number = dist(g);
+  } else if (*number < -1e-5) {
+    *number = -dist(g);
+  }
+}
+
+template<typename RandGenerator>
+inline void RandSign(GQTEN_Complex *number,
+                     std::uniform_real_distribution<double> &dist,
+                     RandGenerator &g) {
+  if (number->real() > 1e-5) {
+    number->real(dist(g));
+  } else if (number->real() < -1e-5) {
+    number->real(-dist(g));
+  }
+
+  if (number->imag() > 1e-5) {
+    number->imag(dist(g));
+  } else if (number->imag() < -1e-5) {
+    number->imag(-dist(g));
+  }
+}
+
+template<typename ElemT, typename QNT>
+template<typename RandGenerator>
+void BlockSparseDataTensor<ElemT, QNT>::ElementWiseRandSign(std::uniform_real_distribution<double> &dist,
+                                                            RandGenerator &g) {
+  for (size_t i = 0; i < actual_raw_data_size_; i++) {
+    RandSign(pactual_raw_data_ + i, dist, g);
+  }
+}
+
 inline GQTEN_Double BoundNumber(GQTEN_Double number, double bound) {
   return sign(number) * bound;
 }

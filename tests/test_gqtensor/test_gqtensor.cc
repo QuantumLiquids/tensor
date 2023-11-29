@@ -841,6 +841,11 @@ void RunTestGQTensorElementWiseOperationCase(GQTensorT t, bool real_ten = true) 
     t.ElementWiseSign();
   }
   t.ElementWiseBoundTo(0.05);
+
+  std::uniform_real_distribution<double> u_double(0, 1);
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  t.ElementWiseRandSign(u_double, gen);
 }
 
 

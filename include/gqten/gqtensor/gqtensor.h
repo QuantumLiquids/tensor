@@ -152,6 +152,10 @@ class GQTensor : public Showable {
 
   void ElementWiseBoundTo(double bound);
 
+  template<typename RandGenerator>
+  void ElementWiseRandSign(std::uniform_real_distribution<double> &dist,
+                           RandGenerator &g);
+
   // Operators overload.
   bool operator==(const GQTensor &) const;
 

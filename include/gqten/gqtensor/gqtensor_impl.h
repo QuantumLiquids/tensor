@@ -978,5 +978,11 @@ void GQTensor<ElemT, QNT>::ElementWiseBoundTo(double bound) {
   pblk_spar_data_ten_->ElementWiseBoundTo(bound);
 }
 
+template<typename ElemT, typename QNT>
+template<typename RandGenerator>
+void GQTensor<ElemT, QNT>::ElementWiseRandSign(std::uniform_real_distribution<double> &dist,
+                                               RandGenerator &g) {
+  pblk_spar_data_ten_->ElementWiseRandSign(dist, g);
+}
 } /* gqten */
 #endif /* ifndef GQTEN_GQTENSOR_GQTENSOR_IMPL_H */
