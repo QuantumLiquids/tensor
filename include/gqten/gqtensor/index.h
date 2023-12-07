@@ -297,23 +297,18 @@ Calculate quantum number divergence for a vector of Index and a given block coor
 template <typename QNT>
 QNT CalcDiv(const IndexVec<QNT> &indexes, const CoorsT &blk_coors) {
   assert(indexes.size() == blk_coors.size());
-  QNT div, qnflux;
-  auto ndim = indexes.size();
-  for (size_t i = 0; i < ndim; ++i) {
+  const size_t ndim = indexes.size();
+  const auto &index0 = indexes[0];
+  QNT div = index0.GetQNSct(blk_coors[0]).GetQn();
+  if (index0.GetDir() == GQTenIndexDirType::IN) {
+    div = -div;
+  }
+  for (size_t i = 1; i < ndim; ++i) {
     auto index = indexes[i];
     if (index.GetDir() == GQTenIndexDirType::IN) {
-      qnflux = -index.GetQNSct(blk_coors[i]).GetQn();
+      div += -index.GetQNSct(blk_coors[i]).GetQn();
     } else if (index.GetDir() == GQTenIndexDirType::OUT) {
-      qnflux = index.GetQNSct(blk_coors[i]).GetQn();
-    }
-    if (ndim == 1) {
-      return qnflux;
-    } else {
-      if (i == 0) {
-        div = qnflux;
-      } else {
-        div += qnflux;
-      }
+      div += index.GetQNSct(blk_coors[i]).GetQn();
     }
   }
   return div;

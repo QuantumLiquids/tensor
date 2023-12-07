@@ -287,6 +287,7 @@ QNT GQTensor<ElemT, QNT>::Div(void) const {
       auto indexes = GetIndexes();
       auto first_blk_idx_data_blk = blk_idx_data_blk_map.begin();
       auto div = CalcDiv(indexes, first_blk_idx_data_blk->second.blk_coors);
+#ifndef NDEBUG
       for (
           auto it = std::next(first_blk_idx_data_blk);
           it != blk_idx_data_blk_map.end();
@@ -296,9 +297,11 @@ QNT GQTensor<ElemT, QNT>::Div(void) const {
         if (blki_div != div) {
           std::cout << "Tensor does not have a special divergence. Return empty quantum number."
                     << std::endl;
+          assert(blki_div == div);
           return QNT();
         }
       }
+#endif
       return div;
     }
   }

@@ -61,7 +61,7 @@ inline void TensorExpandPreChecker(
   }
   // To be expanded tensors should have the same quantum number divergence or
   // be an empty tensor
-  assert(a.GetQNBlkNum() == 0 || b.GetQNBlkNum() == 0 || a.Div() ==  b.Div());
+  assert(a.GetQNBlkNum() == 0 || b.GetQNBlkNum() == 0 || a.Div() == b.Div());
 }
 
 
@@ -76,7 +76,7 @@ inline void ExpandedTenDivChecker(
   } else if (b.GetQNBlkNum() != 0) {
     assert(c.Div() == b.Div());
   } else {
-    assert(c.Div() == QNT());
+    assert(c.GetQNBlkNum() == 0);
   }
 }
 
@@ -193,7 +193,7 @@ inline Index<QNT> ExpandIndexAndRecordInfo(
   }
 
   // Deal with left QNSectors from the index from tensor B
-  for(size_t sct_coor_b = 0; sct_coor_b < qnscts_from_b_size; ++sct_coor_b){
+  for (size_t sct_coor_b = 0; sct_coor_b < qnscts_from_b_size; ++sct_coor_b) {
     if (
         find(
             idxs_of_erased_qnscts_from_b.cbegin(),
@@ -244,8 +244,8 @@ void ExpandOneIdx_(
   size_t ten_rank = pa->Rank();
   std::vector<size_t> transpose_order(ten_rank);
   transpose_order[0] = expand_idx_num;
-  for(size_t i = 1; i <= expand_idx_num; i++){ transpose_order[i] = i - 1; }
-  for(size_t i = expand_idx_num+1; i < ten_rank; i++){ transpose_order[i] = i; }
+  for (size_t i = 1; i <= expand_idx_num; i++) { transpose_order[i] = i - 1; }
+  for (size_t i = expand_idx_num + 1; i < ten_rank; i++) { transpose_order[i] = i; }
   if (pa == pb) {
     pa->Transpose(transpose_order);
   } else {
@@ -286,7 +286,7 @@ void ExpandOneIdx_(
   Timer expand_latter_transpose_timer("   =============> expansion_second_time_transpose");
 #endif
   // transpose back
-  for(size_t i = 0; i < expand_idx_num; i++){ transpose_order[i] = i + 1; }
+  for (size_t i = 0; i < expand_idx_num; i++) { transpose_order[i] = i + 1; }
   transpose_order[expand_idx_num] = 0;
   if (pa == pb) {
     pa->Transpose(transpose_order);
