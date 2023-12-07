@@ -31,9 +31,9 @@ struct TestGQTensor : public testing::Test {
   U1QN qnp1 = U1QN({QNCard(qn_nm, U1QNVal(1))});
   U1QN qnp2 = U1QN({QNCard(qn_nm, U1QNVal(2))});
   U1QN qnm1 = U1QN({QNCard(qn_nm, U1QNVal(-1))});
+  QNSctT qnsctm1_s = QNSctT(qnm1, 3);
   QNSctT qnsct0_s = QNSctT(qn0, 4);
   QNSctT qnsctp1_s = QNSctT(qnp1, 5);
-  QNSctT qnsctm1_s = QNSctT(qnm1, 3);
   QNSctT qnsct0_l = QNSctT(qn0, 10);
   QNSctT qnsctp1_l = QNSctT(qnp1, 8);
   QNSctT qnsctm1_l = QNSctT(qnm1, 12);
@@ -159,7 +159,7 @@ TEST_F(TestGQTensor, TestElemAssignment) {
       dten_2d_s,
       {drand(), drand()},
       {{2, 3},
-       {1, 7}});
+       {3, 7}});
 
   RunTestGQTensorElemAssignmentCase(dten_3d_s, {drand()}, {{0, 0, 0}});
   RunTestGQTensorElemAssignmentCase(dten_3d_s, {drand()}, {{2, 3, 4}});
@@ -167,7 +167,7 @@ TEST_F(TestGQTensor, TestElemAssignment) {
       dten_3d_s,
       {drand(), drand()},
       {{2, 3, 5},
-       {1, 7, 4}});
+       {8, 7, 10}});
 
   RunTestGQTensorElemAssignmentCase(
       zten_1d_s,
@@ -199,14 +199,14 @@ TEST_F(TestGQTensor, TestElemAssignment) {
       zten_2d_s,
       {zrand(), zrand()},
       {{2, 3},
-       {1, 7}});
+       {3, 7}});
   RunTestGQTensorElemAssignmentCase(zten_3d_s, {zrand()}, {{0, 0, 0}});
   RunTestGQTensorElemAssignmentCase(zten_3d_s, {zrand()}, {{2, 3, 4}});
   RunTestGQTensorElemAssignmentCase(
       zten_3d_s,
       {zrand(), zrand()},
       {{2, 3, 5},
-       {1, 7, 4}});
+       {8, 7, 10}});
 }
 
 
