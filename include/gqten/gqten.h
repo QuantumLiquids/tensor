@@ -17,7 +17,6 @@
 
 
 #include "gqten/framework/consts.h"
-#include "gqten/framework/value_t.h"
 #include "gqten/gqtensor_all.h"
 #include "gqten/tensor_manipulation_all.h"
 
