@@ -421,7 +421,7 @@ void GQTensor<ElemT, QNT>::Transpose(
 }
 
 /**
- * Calculate the 2-norm of the tensor
+ * Calculate the 2-norm of the tensor, square root of summation of element squares
  * @return the 2-norm
  */
 template<typename ElemT, typename QNT>

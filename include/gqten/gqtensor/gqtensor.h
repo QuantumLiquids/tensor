@@ -75,6 +75,7 @@ class GQTensor : public Showable {
   /// Get the shape of the GQTensor.
   const ShapeT &GetShape(void) const { return shape_; }
 
+  double Sparsity(void) const { return double(pblk_spar_data_ten_->GetActualRawDataSize()) / (double) size_; }
   /// Get the number of quantum number block contained by this GQTensor.
   size_t GetQNBlkNum(void) const {
     if (IsScalar() || IsDefault()) { return 0; }
