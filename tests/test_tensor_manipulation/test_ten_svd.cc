@@ -19,7 +19,7 @@
 #include <thread>     //hardware_concurrency()
 
 using namespace gqten;
-using U1QN = QN<U1QNVal>;
+using U1QN = special_qn::U1QN;
 using IndexT = Index<U1QN>;
 using QNSctT = QNSector<U1QN>;
 using QNSctVecT = QNSectorVec<U1QN>;
@@ -29,17 +29,17 @@ using ZGQTensor = GQTensor<GQTEN_Complex, U1QN>;
 
 struct TestSvd : public testing::Test {
   std::string qn_nm = "qn";
-  U1QN qn0 =  U1QN({QNCard(qn_nm, U1QNVal( 0))});
-  U1QN qnp1 = U1QN({QNCard(qn_nm, U1QNVal( 1))});
-  U1QN qnp2 = U1QN({QNCard(qn_nm, U1QNVal( 2))});
+  U1QN qn0 = U1QN({QNCard(qn_nm, U1QNVal(0))});
+  U1QN qnp1 = U1QN({QNCard(qn_nm, U1QNVal(1))});
+  U1QN qnp2 = U1QN({QNCard(qn_nm, U1QNVal(2))});
   U1QN qnm1 = U1QN({QNCard(qn_nm, U1QNVal(-1))});
   U1QN qnm2 = U1QN({QNCard(qn_nm, U1QNVal(-2))});
 
   size_t d_s = 3;
-  QNSctT qnsct0_s =  QNSctT(qn0,  d_s);
+  QNSctT qnsct0_s = QNSctT(qn0, d_s);
   QNSctT qnsctp1_s = QNSctT(qnp1, d_s);
   QNSctT qnsctm1_s = QNSctT(qnm1, d_s);
-  IndexT idx_in_s =  IndexT({qnsctm1_s, qnsct0_s, qnsctp1_s}, IN);
+  IndexT idx_in_s = IndexT({qnsctm1_s, qnsct0_s, qnsctp1_s}, IN);
   IndexT idx_out_s = IndexT({qnsctm1_s, qnsct0_s, qnsctp1_s}, OUT);
 
   DGQTensor dten_1d_s = DGQTensor({idx_out_s});
@@ -53,23 +53,19 @@ struct TestSvd : public testing::Test {
   ZGQTensor zten_4d_s = ZGQTensor({idx_in_s, idx_out_s, idx_out_s, idx_out_s});
 };
 
-
 inline size_t IntDot(const size_t &size, const size_t *x, const size_t *y) {
   size_t res = 0;
   for (size_t i = 0; i < size; ++i) { res += x[i] * y[i]; }
   return res;
 }
 
-
 inline double ToDouble(const double d) {
   return d;
 }
 
-
 inline double ToDouble(const GQTEN_Complex z) {
   return z.real();
 }
-
 
 inline void SVDTensRestore(
     const DGQTensor *pu,
@@ -81,7 +77,6 @@ inline void SVDTensRestore(
   Contract(pu, ps, {{ldims}, {0}}, &t_restored_tmp);
   Contract(&t_restored_tmp, pvt, {{ldims}, {0}}, pres);
 }
-
 
 inline void SVDTensRestore(
     const ZGQTensor *pu,
@@ -95,8 +90,7 @@ inline void SVDTensRestore(
   Contract(&t_restored_tmp, pvt, {{ldims}, {0}}, pres);
 }
 
-
-template <typename TenT>
+template<typename TenT>
 void CheckIsIdTen(const TenT &t) {
   auto shape = t.GetShape();
   EXPECT_EQ(shape.size(), 2);
@@ -108,8 +102,7 @@ void CheckIsIdTen(const TenT &t) {
   }
 }
 
-
-template <typename TenElemT, typename QNT>
+template<typename TenElemT, typename QNT>
 void RunTestSvdCase(
     GQTensor<TenElemT, QNT> &t,
     const size_t &ldims,
@@ -127,13 +120,13 @@ void RunTestSvdCase(
   double trunc_err;
   size_t D;
   std::string qn_nm = "qn";
-  U1QN qn0 =  U1QN({QNCard(qn_nm, U1QNVal( 0))});
+  U1QN qn0 = U1QN({QNCard(qn_nm, U1QNVal(0))});
   SVD(
       &t,
       ldims,
       qn0,
       cutoff, dmin, dmax,
-      &u, &s,&vt, &trunc_err, &D
+      &u, &s, &vt, &trunc_err, &D
   );
 
   // Canonical check
@@ -158,7 +151,7 @@ void RunTestSvdCase(
       cols *= t.GetIndexes()[i].dim();
     }
   }
-  auto dense_mat = new TenElemT [rows*cols];
+  auto dense_mat = new TenElemT[rows * cols];
   auto offsets = CalcMultiDimDataOffsets(t.GetShape());
   for (auto &coors : GenAllCoors(t.GetShape())) {
     dense_mat[IntDot(ndim, coors.data(), offsets.data())] = t.GetElem(coors);
@@ -182,7 +175,7 @@ void RunTestSvdCase(
   }
   std::sort(dense_svs.begin(), dense_svs.end());
   auto endit = dense_svs.cend();
-  auto begit =  endit - dmax;
+  auto begit = endit - dmax;
   if (dmax > dense_svs.size()) { begit = dense_svs.cbegin(); }
   auto saved_dense_svs = std::vector<double>(begit, endit);
   std::vector<double> qn_svs;
@@ -222,18 +215,17 @@ void RunTestSvdCase(
     GtestExpectNear(norm_ratio * norm_ratio, trunc_err, 1E-02);
   }
 
-  delete [] dense_mat;
+  delete[] dense_mat;
   free(dense_s);
   free(dense_u);
   free(dense_vt);
 }
 
-
 TEST_F(TestSvd, 2DCase) {
   RunTestSvdCase(
       dten_2d_s,
       1, 1,
-      0, 1, d_s*3,
+      0, 1, d_s * 3,
       &qn0);
   RunTestSvdCase(
       dten_2d_s,
@@ -254,7 +246,7 @@ TEST_F(TestSvd, 2DCase) {
   RunTestSvdCase(
       dten_2d_s,
       1, 1,
-      0, 1, d_s*3,
+      0, 1, d_s * 3,
       &qnp1);
   RunTestSvdCase(
       dten_2d_s,
@@ -275,7 +267,7 @@ TEST_F(TestSvd, 2DCase) {
   RunTestSvdCase(
       dten_2d_s,
       1, 1,
-      0, 1, d_s*3,
+      0, 1, d_s * 3,
       &qnp2);
   RunTestSvdCase(
       dten_2d_s,
@@ -285,7 +277,7 @@ TEST_F(TestSvd, 2DCase) {
   RunTestSvdCase(
       dten_2d_s,
       1, 1,
-      0, 1, d_s*3,
+      0, 1, d_s * 3,
       &qnm1);
   RunTestSvdCase(
       dten_2d_s,
@@ -295,7 +287,7 @@ TEST_F(TestSvd, 2DCase) {
   RunTestSvdCase(
       dten_2d_s,
       1, 1,
-      0, 1, d_s*3,
+      0, 1, d_s * 3,
       &qnm2);
   RunTestSvdCase(
       dten_2d_s,
@@ -305,7 +297,7 @@ TEST_F(TestSvd, 2DCase) {
   RunTestSvdCase(
       zten_2d_s,
       1, 1,
-      0, 1, d_s*3,
+      0, 1, d_s * 3,
       &qn0);
   RunTestSvdCase(
       zten_2d_s,
@@ -315,7 +307,7 @@ TEST_F(TestSvd, 2DCase) {
   RunTestSvdCase(
       zten_2d_s,
       1, 1,
-      0, 1, d_s*3,
+      0, 1, d_s * 3,
       &qnp1);
   RunTestSvdCase(
       zten_2d_s,
@@ -325,7 +317,7 @@ TEST_F(TestSvd, 2DCase) {
   RunTestSvdCase(
       zten_2d_s,
       1, 1,
-      0, 1, d_s*3,
+      0, 1, d_s * 3,
       &qnp2);
   RunTestSvdCase(
       zten_2d_s,
@@ -335,7 +327,7 @@ TEST_F(TestSvd, 2DCase) {
   RunTestSvdCase(
       zten_2d_s,
       1, 1,
-      0, 1, d_s*3,
+      0, 1, d_s * 3,
       &qnm1);
   RunTestSvdCase(
       zten_2d_s,
@@ -345,7 +337,7 @@ TEST_F(TestSvd, 2DCase) {
   RunTestSvdCase(
       zten_2d_s,
       1, 1,
-      0, 1, d_s*3,
+      0, 1, d_s * 3,
       &qnm2);
   RunTestSvdCase(
       zten_2d_s,
@@ -353,18 +345,17 @@ TEST_F(TestSvd, 2DCase) {
       0, 1, d_s,
       &qnm2);
 }
-
 
 TEST_F(TestSvd, 3DCase) {
   RunTestSvdCase(
       dten_3d_s,
       1, 2,
-      0, 1, d_s*3,
+      0, 1, d_s * 3,
       &qn0);
   RunTestSvdCase(
       dten_3d_s,
       1, 2,
-      0, 1, d_s*2,
+      0, 1, d_s * 2,
       &qn0);
   RunTestSvdCase(
       dten_3d_s,
@@ -380,12 +371,12 @@ TEST_F(TestSvd, 3DCase) {
   RunTestSvdCase(
       dten_3d_s,
       1, 2,
-      0, 1, d_s*3,
+      0, 1, d_s * 3,
       &qnp1);
   RunTestSvdCase(
       dten_3d_s,
       1, 2,
-      0, 1, d_s*2,
+      0, 1, d_s * 2,
       &qnp1);
   RunTestSvdCase(
       dten_3d_s,
@@ -401,12 +392,12 @@ TEST_F(TestSvd, 3DCase) {
   RunTestSvdCase(
       dten_3d_s,
       2, 1,
-      0, 1, d_s*3,
+      0, 1, d_s * 3,
       &qn0);
   RunTestSvdCase(
       dten_3d_s,
       2, 1,
-      0, 1, d_s*2,
+      0, 1, d_s * 2,
       &qn0);
   RunTestSvdCase(
       dten_3d_s,
@@ -422,163 +413,161 @@ TEST_F(TestSvd, 3DCase) {
   RunTestSvdCase(
       dten_3d_s,
       2, 1,
-      0, 1, d_s*3,
+      0, 1, d_s * 3,
       &qnp1);
   RunTestSvdCase(
       dten_3d_s,
       2, 1,
-      0, 1, d_s*2,
+      0, 1, d_s * 2,
       &qnp1);
 
   RunTestSvdCase(
       zten_3d_s,
       1, 2,
-      0, 1, d_s*3,
+      0, 1, d_s * 3,
       &qn0);
   RunTestSvdCase(
       zten_3d_s,
       1, 2,
-      0, 1, d_s*2,
+      0, 1, d_s * 2,
       &qn0);
   RunTestSvdCase(
       zten_3d_s,
       1, 2,
-      0, 1, d_s*3,
+      0, 1, d_s * 3,
       &qnp1);
   RunTestSvdCase(
       zten_3d_s,
       1, 2,
-      0, 1, d_s*2,
+      0, 1, d_s * 2,
       &qnp1);
   RunTestSvdCase(
       zten_3d_s,
       2, 1,
-      0, 1, d_s*3,
+      0, 1, d_s * 3,
       &qn0);
   RunTestSvdCase(
       zten_3d_s,
       2, 1,
-      0, 1, d_s*2,
+      0, 1, d_s * 2,
       &qn0);
   RunTestSvdCase(
       zten_3d_s,
       2, 1,
-      0, 1, d_s*3,
+      0, 1, d_s * 3,
       &qnp1);
   RunTestSvdCase(
       zten_3d_s,
       2, 1,
-      0, 1, d_s*2,
+      0, 1, d_s * 2,
       &qnp1);
 }
-
 
 TEST_F(TestSvd, 4DCase) {
   RunTestSvdCase(
       dten_4d_s,
       2, 2,
-      0, 1, (d_s*3)*(d_s*3),
+      0, 1, (d_s * 3) * (d_s * 3),
       &qn0);
   RunTestSvdCase(
       dten_4d_s,
       2, 2,
-      0, 1, (d_s*3),
+      0, 1, (d_s * 3),
       &qn0);
   RunTestSvdCase(
       dten_4d_s,
       2, 2,
-      0, 1, (d_s*3) + 1,
+      0, 1, (d_s * 3) + 1,
       &qn0);
   RunTestSvdCase(
       dten_4d_s,
       2, 2,
-      0, 1, (d_s*3) - 1,
+      0, 1, (d_s * 3) - 1,
       &qn0);
 
   RunTestSvdCase(
       dten_4d_s,
       2, 2,
-      0, 1, (d_s*3)*(d_s*3),
+      0, 1, (d_s * 3) * (d_s * 3),
       &qnp1);
   RunTestSvdCase(
       dten_4d_s,
       2, 2,
-      0, 1, (d_s*3),
+      0, 1, (d_s * 3),
       &qnp1);
   RunTestSvdCase(
       dten_4d_s,
       2, 2,
-      0, 1, (d_s*3) + 1,
+      0, 1, (d_s * 3) + 1,
       &qnp1);
   RunTestSvdCase(
       dten_4d_s,
       2, 2,
-      0, 1, (d_s*3) - 1,
+      0, 1, (d_s * 3) - 1,
       &qnp1);
 
   RunTestSvdCase(
       dten_4d_s,
       1, 3,
-      0, 1, d_s*3,
+      0, 1, d_s * 3,
       &qn0);
   RunTestSvdCase(
       dten_4d_s,
       1, 3,
-      0, 1, d_s*2,
+      0, 1, d_s * 2,
       &qn0);
   RunTestSvdCase(
       dten_4d_s,
       1, 3,
-      0, 1, d_s*3,
+      0, 1, d_s * 3,
       &qnp1);
   RunTestSvdCase(
       dten_4d_s,
       1, 3,
-      0, 1, d_s*2,
+      0, 1, d_s * 2,
       &qnp1);
 
   RunTestSvdCase(
       zten_4d_s,
       2, 2,
-      0, 1, (d_s*3)*(d_s*3),
+      0, 1, (d_s * 3) * (d_s * 3),
       &qn0);
   RunTestSvdCase(
       zten_4d_s,
       2, 2,
-      0, 1, (d_s*3),
+      0, 1, (d_s * 3),
       &qn0);
   RunTestSvdCase(
       zten_4d_s,
       2, 2,
-      0, 1, (d_s*3)*(d_s*3),
+      0, 1, (d_s * 3) * (d_s * 3),
       &qnp1);
   RunTestSvdCase(
       zten_4d_s,
       2, 2,
-      0, 1, (d_s*3),
+      0, 1, (d_s * 3),
       &qnp1);
   RunTestSvdCase(
       zten_4d_s,
       1, 3,
-      0, 1, d_s*3,
+      0, 1, d_s * 3,
       &qn0);
   RunTestSvdCase(
       zten_4d_s,
       1, 3,
-      0, 1, d_s*2,
+      0, 1, d_s * 2,
       &qn0);
   RunTestSvdCase(
       zten_4d_s,
       1, 3,
-      0, 1, d_s*3,
+      0, 1, d_s * 3,
       &qnp1);
   RunTestSvdCase(
       zten_4d_s,
       1, 3,
-      0, 1, d_s*2,
+      0, 1, d_s * 2,
       &qnp1);
 }
-
 
 struct TestSvdOmpParallel : public testing::Test {
   std::string qn_nm = "qn";
@@ -586,13 +575,13 @@ struct TestSvdOmpParallel : public testing::Test {
 
 IndexT RandIndex(const unsigned qn_sct_num,  //how many quantum number sectors?
                  const unsigned max_dim_in_one_qn_sct, // maximum dimension in every quantum number sector?
-                 const GQTenIndexDirType dir){
-    QNSectorVec<U1QN> qnsv(qn_sct_num);
-    for(size_t i=0;i<qn_sct_num;i++){
-        auto qn = U1QN({QNCard("qn", U1QNVal(i))});
-        srand(i*i/3);
-        unsigned degeneracy = rand()%max_dim_in_one_qn_sct+1;
-        qnsv[i] = QNSector(qn, degeneracy);
-    }
-    return Index(qnsv, dir);
+                 const GQTenIndexDirType dir) {
+  QNSectorVec<U1QN> qnsv(qn_sct_num);
+  for (size_t i = 0; i < qn_sct_num; i++) {
+    auto qn = U1QN({QNCard("qn", U1QNVal(i))});
+    srand(i * i / 3);
+    unsigned degeneracy = rand() % max_dim_in_one_qn_sct + 1;
+    qnsv[i] = QNSector(qn, degeneracy);
+  }
+  return Index(qnsv, dir);
 }

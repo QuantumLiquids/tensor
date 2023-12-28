@@ -567,7 +567,7 @@ template<typename ElemT, typename QNT>
 std::map<size_t, DataBlkMatSvdRes<ElemT>>
 BlockSparseDataTensor<ElemT, QNT>::DataBlkDecompSVDMaster(
     const IdxDataBlkMatMap<QNT> &idx_data_blk_mat_map,
-    boost::mpi::communicator &world
+    const boost::mpi::communicator &world
 ) const {
 #ifdef GQTEN_MPI_TIMING_MODE
   Timer data_blk_decomp_svd_master_timer("data_blk_decomp_svd_master_func");
@@ -694,7 +694,7 @@ void DataBlkDecompSVDSlave(boost::mpi::communicator &world) {
  */
 
 template<typename ElemT>
-void DataBlkDecompSVDSlave(boost::mpi::communicator &world) {
+void DataBlkDecompSVDSlave(const boost::mpi::communicator &world) {
   size_t task_done = 0;
   size_t idx(0), m(0), n(0);
   size_t consumer_rank = world.rank();

@@ -27,9 +27,9 @@ MPI Tensor SVD executor used in master processor.
 @tparam TenElemT Element type of tensors.
 @tparam QNT Quantum number type of tensors.
 */
-template <typename TenElemT, typename QNT>
-class MPITensorSVDExecutor : public TensorSVDExecutor<TenElemT, QNT>{
-public:
+template<typename TenElemT, typename QNT>
+class MPITensorSVDExecutor : public TensorSVDExecutor<TenElemT, QNT> {
+ public:
   MPITensorSVDExecutor(
       const GQTensor<TenElemT, QNT> *,
       const size_t,
@@ -39,18 +39,18 @@ public:
       GQTensor<GQTEN_Double, QNT> *,
       GQTensor<TenElemT, QNT> *,
       GQTEN_Double *, size_t *,
-      boost::mpi::communicator& 
+      const boost::mpi::communicator &
   );
 
   ~MPITensorSVDExecutor(void) = default;
 
   void Execute(void) override;
 
-private:
-  boost::mpi::communicator& world_;
+ private:
+  const boost::mpi::communicator &world_;
 };
 
-template <typename TenElemT, typename QNT>
+template<typename TenElemT, typename QNT>
 MPITensorSVDExecutor<TenElemT, QNT>::MPITensorSVDExecutor(
     const GQTensor<TenElemT, QNT> *pt,
     const size_t ldims,
@@ -60,29 +60,27 @@ MPITensorSVDExecutor<TenElemT, QNT>::MPITensorSVDExecutor(
     GQTensor<GQTEN_Double, QNT> *ps,
     GQTensor<TenElemT, QNT> *pvt,
     GQTEN_Double *pactual_trunc_err, size_t *pD,
-    boost::mpi::communicator& world
-): TensorSVDExecutor<TenElemT, QNT>(pt, ldims, lqndiv, trunc_err, Dmin, Dmax, pu, ps, pvt, 
-                    pactual_trunc_err, pD), world_(world) {}
-
+    const boost::mpi::communicator &world
+): TensorSVDExecutor<TenElemT, QNT>(pt, ldims, lqndiv, trunc_err, Dmin, Dmax, pu, ps, pvt,
+                                    pactual_trunc_err, pD), world_(world) {}
 
 /**
 MPI Execute tensor SVD calculation.
 */
-template <typename TenElemT, typename QNT>
+template<typename TenElemT, typename QNT>
 void MPITensorSVDExecutor<TenElemT, QNT>::Execute(void) {
   this->SetStatus(ExecutorStatus::EXEING);
 
   auto idx_raw_data_svd_res = this->pt_->GetBlkSparDataTen().DataBlkDecompSVDMaster(
-                                  this->idx_ten_decomp_data_blk_mat_map_,
-                                  world_
-                              );
+      this->idx_ten_decomp_data_blk_mat_map_,
+      world_
+  );
   auto kept_sv_info = this->CalcTruncedSVInfo_(idx_raw_data_svd_res);
   this->ConstructSVDResTens_(kept_sv_info, idx_raw_data_svd_res);
   DeleteDataBlkMatSvdResMap(idx_raw_data_svd_res);
 
   this->SetStatus(ExecutorStatus::FINISH);
 }
-
 
 /**
 Function version for tensor SVD.
@@ -103,7 +101,7 @@ Function version for tensor SVD.
 @param pactual_trunc_err A pointer to actual truncation error after the truncation.
 @param pD A pointer to actual kept dimensions after the truncation.
 */
-template <typename TenElemT, typename QNT>
+template<typename TenElemT, typename QNT>
 void MPISVDMaster(
     const GQTensor<TenElemT, QNT> *pt,
     const size_t ldims,
@@ -113,7 +111,7 @@ void MPISVDMaster(
     GQTensor<GQTEN_Double, QNT> *ps,
     GQTensor<TenElemT, QNT> *pvt,
     GQTEN_Double *pactual_trunc_err, size_t *pD,
-    boost::mpi::communicator& world
+    const boost::mpi::communicator &world
 ) {
   MPITensorSVDExecutor<TenElemT, QNT> mpi_ten_svd_executor(
       pt,
@@ -130,19 +128,13 @@ void MPISVDMaster(
  * 
  * @note claim the type TenElemT when call this function
  */
-template <typename TenElemT>
+template<typename TenElemT>
 inline void MPISVDSlave(
-  boost::mpi::communicator& world
-){
+    const boost::mpi::communicator &world
+) {
   DataBlkDecompSVDSlave<TenElemT>(world);
 }
 
-
-
-
-
 }
-
-
 
 #endif
