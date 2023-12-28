@@ -98,7 +98,7 @@ inline lapack_int MatSVD(
   u = (GQTEN_Complex *) malloc((ldu * m) * sizeof(GQTEN_Complex));
   s = (GQTEN_Double *) malloc(ldu * sizeof(GQTEN_Double));
   vt = (GQTEN_Complex *) malloc((ldvt * ldu) * sizeof(GQTEN_Complex));
-
+#ifdef FAST_SVD
   auto info = LAPACKE_zgesdd(
       LAPACK_ROW_MAJOR, 'S',
       m, n,
@@ -107,6 +107,20 @@ inline lapack_int MatSVD(
       reinterpret_cast<lapack_complex_double *>(u), ldu,
       reinterpret_cast<lapack_complex_double *>(vt), ldvt
   );
+#else // stable
+  double *superb = new double[m];
+  auto info = LAPACKE_zgesvd(
+      LAPACK_ROW_MAJOR, 'S', 'S',
+      m, n,
+      reinterpret_cast<lapack_complex_double *>(mat), lda,
+      s,
+      reinterpret_cast<lapack_complex_double *>(u), ldu,
+      reinterpret_cast<lapack_complex_double *>(vt), ldvt,
+      superb
+  );
+  delete[] superb;
+
+#endif
   assert(info == 0);
 #ifdef GQTEN_COUNT_FLOPS
   flop += 8 * m * n * n - 8 * n * n * n / 3;
