@@ -9,7 +9,7 @@
 #include "gtest/gtest.h"
 #include "gqten/gqtensor_all.h"
 #include "gqten/tensor_manipulation/ten_expand.h"
-#include "gqten/tensor_manipulation/ten_mc_expand.h"
+#include "gqten/tensor_manipulation/ten_block_expand.h"
 #include "gqten/utility/timer.h"
 
 using namespace gqten;
@@ -65,7 +65,7 @@ void RunTestTenMCExpansionCase(
 ) {
   using TenT = GQTensor<ElemT, QNT>;
   TenT res;
-  ExpandMC(&a, &b, expand_idx_nums, &res);
+  ExpandQNBlocks(&a, &b, expand_idx_nums, &res);
   EXPECT_TRUE(res == c);
 }
 

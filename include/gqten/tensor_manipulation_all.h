@@ -23,8 +23,8 @@
 #include "gqten/tensor_manipulation/ten_decomp/ten_qr.h"      // QR, TensorQRExecutor
 #include "gqten/tensor_manipulation/ten_expand.h"             // Expand
 #include "gqten/tensor_manipulation/ten_fuse_index.h"         // Fuse Index
-#include "gqten/tensor_manipulation/ten_mc_expand.h"
-#include "gqten/tensor_manipulation/ten_ctrct_1sector.h"
+#include "gqten/tensor_manipulation/ten_block_expand.h"
+#include "gqten/tensor_manipulation/ten_ctrct_1sct.h"
 
 
 #include "gqten/mpi_tensor_manipulation/ten_decomp/mpi_svd.h" // MPISVDMaster, MPISVDSlave

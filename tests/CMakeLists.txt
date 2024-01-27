@@ -197,7 +197,7 @@ add_unittest(test_ten_fuse_index
 
 # Test tensor magic changing expansion
 add_unittest(test_ten_mc_expand
-  "test_tensor_manipulation/test_ten_mc_expand.cc"
+  "test_tensor_manipulation/test_ten_block_expand.cc"
   "${MATH_LIB_COMPILE_FLAGS}" "" "${MATH_LIB_LINK_FLAGS}"
 )
 # Test tensor comminutation for serialization
@@ -216,7 +216,7 @@ add_mpi_unittest(test_boost_mpi
 
 #Test tensor restriction contract 
 add_unittest(test_ten_ctrct_1sector
-  "test_tensor_manipulation/test_ten_ctrct_1sector.cc"
+  "test_tensor_manipulation/test_ten_ctrct_1sct.cc"
   "${MATH_LIB_COMPILE_FLAGS}" "" "${MATH_LIB_LINK_FLAGS}"
 )
 

@@ -10,7 +10,7 @@
 #include "gqten/gqtensor_all.h"
 #include "gqten/tensor_manipulation/ten_ctrct.h"            // Contract
 #include "gqten/tensor_manipulation/basic_operations.h"     // Dag
-#include "gqten/tensor_manipulation/ten_ctrct_1sector.h"
+#include "gqten/tensor_manipulation/ten_ctrct_1sct.h"
 #include "gqten/tensor_manipulation/ten_linear_combine.h"
 
 #include "../testing_utility.h"

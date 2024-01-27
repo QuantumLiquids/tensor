@@ -1,18 +1,21 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 /*
-* Author: Hao-Xin Wang <wanghx18@mails.tsinghua.edu.cn>
+* Author: Hao-Xin Wang <wanghaoxin1996@gmail.com>
 * Creation Date: 2021-7-29
 *
-* Description: GraceQ/tensor project. Contract two tensors, one outer index are restrict on only one qn sector
+* Description: GraceQ/tensor project. Contract two tensors, where one of the free indices in the first tensor
+*              is projected onto a subspace representing a single quantum number sector.
 */
 
 /**
-  @file ten_ctrct_1sector.h
-  @brief Contract two tensors, one outer index are restrict on only one qn sector
-  @note the restriction only support on first tensor's index
-*/
-#ifndef GQTEN_TENSOR_MANIPULATION_TEN_CTRCT_ONE_SECTOR_H
-#define GQTEN_TENSOR_MANIPULATION_TEN_CTRCT_ONE_SECTOR_H
+ * @file ten_ctrct_1sct.h
+ * @brief Contract two tensors, where one of the free indices in the first tensor
+ *        is projected onto a subspace representing a single quantum number sector.
+ *        This function is designed for parallel implementation of
+ *        Density Matrix Renormalization Group (DMRG) algorithm.
+ */
+#ifndef GQTEN_TENSOR_MANIPULATION_TEN_CTRCT_ONE_SCT_H
+#define GQTEN_TENSOR_MANIPULATION_TEN_CTRCT_ONE_SCT_H
 
 
 #include "gqten/framework/bases/executor.h"                 // Executor
@@ -258,4 +261,4 @@ void Contract1Sector(
 
 
 } /* gqten */
-#endif /* ifndef GQTEN_TENSOR_MANIPULATION_TEN_CTRCT_H */
+#endif /* ifndef GQTEN_TENSOR_MANIPULATION_TEN_CTRCT_ONE_SCT_H */

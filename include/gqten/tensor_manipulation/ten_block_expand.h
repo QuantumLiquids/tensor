@@ -1,18 +1,20 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 /*
-* Author: Hao-Xin Wang
+* Author: Hao-Xin Wang <wanghaoxin1996@gmail.com>
 * Creation Date: 2021-07-30
 *
-* Description: GraceQ/tensor project. Expand two tensors, magic changing version.
+* Description: GraceQ/tensor project. Perform a non-standard expansion of quantum number blocks from the second tensor to the first tensor.
 */
 
 /**
-@file ten_mc_expand.h
-@brief Expand two tensors, magic change version, which means only add new quantum sectors in the identified index of seconde tensor.
+ * @file tensor_block_expand.h
+ * @brief Perform a non-standard expansion of quantum number blocks from the second tensor to the first tensor,
+ *        specifically only expanding blocks that are not present in the first tensor.
+ *        This function is designed for introduce perturbation
+ *        in two-site update Density Matrix Renormalization Group algorithm.
 */
-#ifndef GQTEN_TENSOR_MANIPULATION_TEN_MC_EXPAND_H
-#define GQTEN_TENSOR_MANIPULATION_TEN_MC_EXPAND_H
-
+#ifndef GQTEN_TENSOR_MANIPULATION_TEN_BLOCK_EXPAND_H
+#define GQTEN_TENSOR_MANIPULATION_TEN_BLOCK_EXPAND_H
 
 #include "gqten/gqtensor_all.h"     // GQTensor
 #include "gqten/utility/timer.h"
@@ -23,15 +25,14 @@
 #include <algorithm>    // find
 
 #ifdef Release
-  #define NDEBUG
+#define NDEBUG
 #endif
 #include <assert.h>     // assert
 
-
 namespace gqten {
 // Forward declaration
-template <typename TenElemT, typename QNT>
-void ExpandMCOneIdx_(
+template<typename TenElemT, typename QNT>
+void ExpandQNBlocksOneIdx_(
     GQTensor<TenElemT, QNT> *,
     GQTensor<TenElemT, QNT> *,
     const size_t,
@@ -52,8 +53,8 @@ Function version for tensor magic changing expansion.
 @note cpa and cpb will actually be temporarily changed in this function. This
       defect will be fixed in the future!
 */
-template <typename TenElemT, typename QNT>
-void ExpandMC(
+template<typename TenElemT, typename QNT>
+void ExpandQNBlocks(
     const GQTensor<TenElemT, QNT> *cpa,
     const GQTensor<TenElemT, QNT> *cpb,
     const std::vector<size_t> &expand_idx_nums,
@@ -68,44 +69,10 @@ void ExpandMC(
   auto pb = const_cast<GQTensor<TenElemT, QNT> *>(cpb);
 
   if (expand_idx_nums.size() == 1) {
-    ExpandMCOneIdx_(pa, pb, expand_idx_nums[0], pc);
-    return;
+    ExpandQNBlocksOneIdx_(pa, pb, expand_idx_nums[0], pc);
   } else {
-    std::cout << "Sorry that magic version expansion on multi-index is not support now." <<std::endl;
+    std::cout << "Sorry that block expansion in multi-index version is not support now." << std::endl;
     exit(0);
-    /*
-    std::vector<size_t> expand_idx_nums_without_last_one(
-        expand_idx_nums.begin(), expand_idx_nums.end() - 1
-    );
-    auto indexes_a = pa->GetIndexes();
-    auto indexes_b = pb->GetIndexes();
-    auto expand_dual_a_indexes = pa->GetIndexes();
-    auto expand_dual_b_indexes = pb->GetIndexes();
-    for(auto idx_num : expand_idx_nums_without_last_one){
-      expand_dual_a_indexes[idx_num] = indexes_b[idx_num];
-      expand_dual_b_indexes[idx_num] = indexes_a[idx_num];
-    }
-
-    GQTensor<TenElemT, QNT> expand_tmp_a, expand_tmp_b;
-    {
-      GQTensor<TenElemT, QNT> expand_dual_a(expand_dual_a_indexes);
-      Expand(
-          pa, &expand_dual_a,
-          expand_idx_nums_without_last_one,
-          &expand_tmp_a
-      );
-    }
-    {
-      GQTensor<TenElemT, QNT> expand_dual_b(expand_dual_b_indexes);
-      Expand(
-          &expand_dual_b, pb,
-          expand_idx_nums_without_last_one,
-          &expand_tmp_b
-      );
-    }
-
-    ExpandOneIdx_(&expand_tmp_a, &expand_tmp_b, expand_idx_nums.back(), pc);
-    */
   }
 
 #ifndef NDEBUG
@@ -116,11 +83,11 @@ void ExpandMC(
   } else {
     assert(pc->Div() == QNT() || pc->Div() == pb->Div());
   }
-#endif /* ifndef NDEBUG */
+#endif
+  return;
 }
 
-
-template <typename QNT>
+template<typename QNT>
 inline Index<QNT> ExpandIndexMCAndRecordInfo(
     const Index<QNT> &idx_from_a,
     const Index<QNT> &idx_from_b,
@@ -130,28 +97,27 @@ inline Index<QNT> ExpandIndexMCAndRecordInfo(
   auto qnscts_from_b = idx_from_b.GetQNScts();
   auto qnscts_from_a_size = idx_from_a.GetQNSctNum();
   auto qnscts_from_b_size = idx_from_b.GetQNSctNum();
-  expanded_qnscts.reserve(qnscts_from_a_size+qnscts_from_b_size);
-  for(size_t i=0;i<qnscts_from_b_size;i++){
-    QNSector<QNT>& qnsct_in_b = qnscts_from_b[i];
-    auto iter = std::find_if(expanded_qnscts.cbegin(), 
-                expanded_qnscts.cbegin()+qnscts_from_a_size,
-                [qnsct_in_b](QNSector<QNT> qnsct_in_a){
-                  return qnsct_in_a.GetQn() == qnsct_in_b.GetQn();
-                } );
-    if(iter == expanded_qnscts.cbegin()+qnscts_from_a_size){//didn't find
+  expanded_qnscts.reserve(qnscts_from_a_size + qnscts_from_b_size);
+  for (size_t i = 0; i < qnscts_from_b_size; i++) {
+    QNSector<QNT> &qnsct_in_b = qnscts_from_b[i];
+    auto iter = std::find_if(expanded_qnscts.cbegin(),
+                             expanded_qnscts.cbegin() + qnscts_from_a_size,
+                             [qnsct_in_b](QNSector<QNT> qnsct_in_a) {
+                               return qnsct_in_a.GetQn() == qnsct_in_b.GetQn();
+                             });
+    if (iter == expanded_qnscts.cbegin() + qnscts_from_a_size) {//didn't find
       b_idx_qnsct_coor_expanded_idx_qnsct_coor_map.insert(
-                      std::make_pair( i, expanded_qnscts.size() )
-                      );
+          std::make_pair(i, expanded_qnscts.size())
+      );
       expanded_qnscts.push_back(qnsct_in_b);
-    }else{//found
+    } else {//found
       b_idx_qnsct_coor_expanded_idx_qnsct_coor_map.insert(
-              std::make_pair(i, -1)
+          std::make_pair(i, -1)
       );
     }
   }
   return Index<QNT>(expanded_qnscts, idx_from_a.GetDir());
 }
-
 
 /**
 Tensor expansion: special case for only expand on one index.
@@ -167,8 +133,8 @@ Tensor expansion: special case for only expand on one index.
 @note This function will temporarily modify two input tensors! Intra-used
       function, not for normal user!
 */
-template <typename TenElemT, typename QNT>
-void ExpandMCOneIdx_(
+template<typename TenElemT, typename QNT>
+void ExpandQNBlocksOneIdx_(
     GQTensor<TenElemT, QNT> *pa,
     GQTensor<TenElemT, QNT> *pb,
     const size_t expand_idx_num,
@@ -176,17 +142,17 @@ void ExpandMCOneIdx_(
 ) {
 #ifndef NDEBUG
   TensorExpandPreChecker(*pa, *pb, {expand_idx_num});
-#endif /* ifndef NDEBUG */
+#endif
 
 #ifdef GQTEN_TIMING_MODE
-  Timer expand_pre_transpose_timer("   =============> expansion_first_time_transpose");
+  Timer expand_pre_transpose_timer("expand_init_transpose");
 #endif
   // Firstly we transpose the expand_idx_num-th index to the first index
   size_t ten_rank = pa->Rank();
   std::vector<size_t> transpose_order(ten_rank);
   transpose_order[0] = expand_idx_num;
-  for(size_t i = 1; i <= expand_idx_num; i++){ transpose_order[i] = i - 1; }
-  for(size_t i = expand_idx_num+1; i < ten_rank; i++){ transpose_order[i] = i; }
+  for (size_t i = 1; i <= expand_idx_num; i++) { transpose_order[i] = i - 1; }
+  for (size_t i = expand_idx_num + 1; i < ten_rank; i++) { transpose_order[i] = i; }
   if (pa == pb) {
     pa->Transpose(transpose_order);
   } else {
@@ -198,7 +164,7 @@ void ExpandMCOneIdx_(
 #endif
 
 #ifdef GQTEN_TIMING_MODE
-  Timer expand_index_timer("   =============> expansion_expand_index_and_record_info");
+  Timer expand_index_timer("expand_index_and_record_info");
 #endif
   // Then we can expand the two tensor according the first indexes. For each block, the data are direct connected
   // Expand the first index
@@ -210,7 +176,7 @@ void ExpandMCOneIdx_(
   );
 #ifdef GQTEN_TIMING_MODE
   expand_index_timer.PrintElapsed();
-#endif 
+#endif
   // Expand data
   IndexVec<QNT> expanded_idxs = pa->GetIndexes();
   expanded_idxs[0] = expanded_index;
@@ -221,10 +187,10 @@ void ExpandMCOneIdx_(
       b_idx_qnsct_coor_expanded_idx_qnsct_coor_map
   );
 #ifdef GQTEN_TIMING_MODE
-  Timer expand_latter_transpose_timer("   =============> expansion_second_time_transpose");
+  Timer expand_latter_transpose_timer("expand_final_transpose");
 #endif
   // transpose back
-  for(size_t i = 0; i < expand_idx_num; i++){ transpose_order[i] = i + 1; }
+  for (size_t i = 0; i < expand_idx_num; i++) { transpose_order[i] = i + 1; }
   transpose_order[expand_idx_num] = 0;
   if (pa == pb) {
     pa->Transpose(transpose_order);
@@ -236,9 +202,6 @@ void ExpandMCOneIdx_(
 #ifdef GQTEN_TIMING_MODE
   expand_latter_transpose_timer.PrintElapsed();
 #endif
-#ifndef NDEBUG
-// Div checker, but repeat
-#endif /* ifndef NDEBUG */
 }
 } /* gqten */
-#endif /* ifndef GQTEN_TENSOR_MANIPULATION_TEN_EXPAND_H */
+#endif /* ifndef GQTEN_TENSOR_MANIPULATION_TEN_BLOCK_EXPAND_H */
